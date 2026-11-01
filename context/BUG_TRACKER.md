@@ -1,7 +1,7 @@
 # Signal Studio AI — Bug Tracker
 
 **Path:** `context/BUG_TRACKER.md`  
-**Status:** Phase 03-A accepted; Phase 03 remains open
+**Status:** Phase 03-A and 03-B accepted; Phase 03 remains open
 **Product:** Local-only Windows 3D animation editor
 
 ## Purpose
@@ -19,6 +19,28 @@ Severity:
 - `P3`: cosmetic issue or minor usability defect.
 
 ## Bugs and observations — new project
+
+**Phase 03-B (2026-11-01):** The seated-use issue below was identified from source geometry and corrected. Typecheck, lint, 22/22 automated tests and the production build passed after the change. The agent's browser inventory was empty and the in-app browser was unavailable, so Studio 01 composition, object intersections, orbit/zoom, resize, GPU performance and console state are **unverified**. The existing project schema and project data were not changed.
+
+**Final architecture review (2026-11-02):** Typecheck, lint, 24/24 automated tests and production build passed after the camera-anchor correction. Browser inventory was again empty and the in-app browser unavailable. Visual acceptance, close-up obstruction and hardware performance remain unverified. No project data or schema was changed.
+
+**User visual acceptance (2026-11-02):** The user reported **12/12 Phase 03-B manual browser checks passed**, including studio composition, laptop facing the host, furniture layout, lighting, character placement space, orbit/zoom, 16:9 resizing, project regressions, browser console and performance. No new defect was reported. This confirms the tested visual and interaction behavior despite the agent's earlier unavailable browser. No FPS measurement, screenshot, separate 9:16 framing check, or test with real character models was supplied. Phase 03-B is accepted; Phase 03-C and overall Phase 03 remain open.
+
+### BUG-0008 — Studio camera suggestions lacked conversation, close-up and vertical compositions
+
+- **Status:** FIXED_UNVERIFIED · **Severity:** P2 · **Phase:** 03-B
+- **Evidence:** The environment defined only `wide` and `front` poses. Neither pose identified seats or provided a vertical group/conversation suggestion. The first geometry test also exposed insufficient horizontal margin for a proposed 9:16 guest close-up.
+- **Fix:** Added serializable poses for two seats, each of three seats, three-seat group, and vertical conversation/group/studio views. Added metadata referencing stable seat placement IDs, moved the wide view toward the open front, and increased guest close-up distance for vertical clearance. The editor orbit camera remains independent.
+- **Regression test:** `tests/environment.test.mjs` validates pose and metadata integrity, seat references, format coverage and approximate seat clearance; all 24 tests pass.
+- **Verification limit:** These are framing suggestions, not an implemented camera mode, timeline or export. The user's 12 checks did not separately cover every new production-camera suggestion or 9:16 framing. Prop occlusion with real character models remains unverified.
+
+### BUG-0007 — Podcast seating and laptop were oriented for the viewer
+
+- **Status:** VERIFIED · **Severity:** P2 · **Phase:** 03-B
+- **Evidence:** Source geometry put the laptop screen hinge at local negative Z and keyboard at positive Z. The laptop instance had near-zero yaw while the host sat at negative Z, placing the screen nearer the host and the keyboard farther away. Both desk microphones were also near the audience edge of the desktop, beyond comfortable seated speaking distance.
+- **Fix:** Rotate the laptop toward the host, align it with the host seat, move both chairs toward the usable desk edge, reposition the desktop microphones, and provide the guest with a side table and microphone. Add the host-facing display surface to the laptop geometry.
+- **Regression test:** `tests/environment.test.mjs` checks keyboard/screen order, display-facing direction, desk clearance, seat alignment and microphone reach for all three seats.
+- **Verification:** The user confirmed laptop orientation, furniture layout and character placement space in the 12/12 manual browser run on 2026-11-02. Seated fit with actual character models remains a later Phase 04 check; no model was added in 03-B.
 
 **Phase 03-A acceptance (2026-11-01):** The user reported all eight manual browser checks passed: visible 3D rendering, orbit, zoom, lighting, resizing, navigation stability, project-management regression, and no new browser console errors. No new Phase 03-A application defect was reported. The earlier browser-unavailable observation applied to the agent's environment before the user-run check. Forced WebGL failure/context-loss behavior was not included in the report and remains unverified. npm reported 16 moderate dependency advisories at installation; they were not triaged in this phase. Existing Phase 01 observations retain their recorded statuses unless independently rechecked.
 

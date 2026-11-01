@@ -375,6 +375,10 @@ Characters may use prebuilt Kamyar, ChatGPT, Claude, or future models. Imported 
 
 ## 8. Environment Architecture
 
+**Phase 03-B implementation (2026-11-01):** `src/lib/environments/registry.ts` contains only the finished Studio 01 definition. `studio-01.ts` stores its stable environment ID, reusable prop definitions, independent default prop instances, camera suggestions and future character anchors as serializable data. `environment-registry.ts` validates references, IDs, finite transforms and camera anchors; `copyDefaultProps` isolates nested transforms for future scene-specific arrangements. `src/components/viewport/environments/` maps renderer keys to independent procedural prop components. The rendering layer reads the registry, while the domain registry does not depend on React or Three.js. This phase does not persist environment references or change schema v1. Asset import, scene overrides and prop editing remain future work.
+
+**03-B camera suggestion review (2026-11-02):** Studio 01 camera poses remain independent of the editor orbit camera. Per-pose metadata records framing intent, suggested aspect ratio and stable character-placement anchor IDs; it never stores character names or infers speaker identity. Separate 16:9 and 9:16 suggestions cover whole-set, two-seat and three-seat composition, with individual seat close-ups. These are starting poses only. Scene camera mode selection (manual, optional speaker-following or fixed), timeline priority/overrides, cuts, interpolation and export framing require later authorized phases and deterministic evaluation. No current UI control claims these functions.
+
 # Dynamic Scene Props and Environment Object Management
 
 Signal Studio AI must provide a data-driven scene prop management system.
@@ -462,7 +466,13 @@ This is a future scene-composition feature.
 
 Do not implement it during Phase 01.
 
-Implement basic prop management when the 3D environment system is ready, then expand it into advanced environment editing according to the roadmap.
+Implement basic scene-prop management in planned Phase 05-B after saved scenes exist; expand reusable environment composition and external prop import in Phase 12. Refine Studio 01 geometry/materials/lighting in 05-B without replacing its verified registry or exceeding integrated-GPU capacity.
+
+### Educational display boundary (planned Phase 06-B onward)
+
+A laptop, monitor or digital display remains a reusable 3D prop. Its screen surface reads a scene-local display assignment referencing a managed image or video asset; neither the media file nor playback state is baked into the prop definition. The display has three explicit states: image, video and off/blank. Off hides content while retaining the assigned asset and source timing for later reuse. Correct aspect ratio and screen orientation are renderer concerns; validated asset references and time mapping are domain concerns.
+
+Phase 06-B provides local import, assignment and basic preview playback. Phase 07 adds repeatable scene-local display-state events and derives video source time from the master frame, including seek/pause; the runtime decoder may cache frames but cannot become the timeline authority. Camera events are a separate track and never mutate display assignment or playback position. Phase 09 supplies cinematic angle changes; Phase 11 resolves the same display and camera state per output frame and validates synchronized media export. A scene may contain multiple independent changes of either kind.
 
 An environment must be represented independently from the scenes using it.
 
@@ -877,6 +887,8 @@ Camera tracks may contain:
 \- Transition duration.
 
 Camera evaluation must be deterministic and independent of React UI state.
+
+Planned Phase 09 camera direction includes fixed/manual/optional speaker-following modes, user-defined presets and keyframes, over-the-shoulder and display close-up views, wide/two-person/multi-person compositions, cuts and smooth transitions, with separate 16:9 and 9:16 framing. Explicit manual timeline events override automatic suggestions. Display-state events remain independent: a camera change must not stop, replace or rewind a playing video. Hidden or unbound speakers cannot force an unrelated camera target.
 
 ## 17. Shared Frame Evaluation
 

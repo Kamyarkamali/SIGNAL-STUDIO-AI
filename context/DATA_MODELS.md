@@ -98,6 +98,8 @@ type AssetKind =
   | "environment-model"
   | "prop-model"
   | "texture"
+  | "display-image"
+  | "display-video"
   | "audio"
   | "animation"
   | "thumbnail";
@@ -204,15 +206,27 @@ interface EnvironmentDefinition {
 
 interface ScenePropInstance {
   id: PropInstanceId;
-  assetId: AssetId;
+  definitionId?: string; // stable built-in procedural prop definition
+  assetId?: AssetId; // imported prop model; exactly one prop source is required
   transform: Transform;
   visible: boolean;
   properties?: Record<string, string | number | boolean>;
 }
 
+interface DisplayAssignment {
+  propInstanceId: PropInstanceId; // a prop with a supported screen surface
+  state: "image" | "video" | "off";
+  imageAssetId?: AssetId;
+  videoAssetId?: AssetId;
+  sourceStartSeconds?: number;
+  sourceEndSeconds?: number;
+  playbackRate?: number;
+}
+
 interface EnvironmentOverrides {
   lightingPresetId?: string;
   editableProps: ScenePropInstance[];
+  displayAssignments?: DisplayAssignment[];
   effectParameters?: Record<string, string | number | boolean>;
 }
 ```
@@ -220,6 +234,7 @@ interface EnvironmentOverrides {
 - The initial real environment is **Podcast Studio**; don't add fictitious alternatives to fill a selector.
 - Stage-one customization uses available presets. Later phases can compose environments from validated model/prop assets, lights and cameras. Full mesh modeling from scratch is an advanced future capability.
 - Scene overrides never mutate shared environment definitions. Changing an environment must not erase speaker assignments, character identities, or timeline data.
+- Scene prop IDs are independent of reusable definitions and of one another; add/remove/hide/restore/duplicate/transform operations must preserve scene isolation. Imported media assets are separate from both prop definitions and scene instances. A display's `off` state retains its asset references and timing. Validate that a selected state has the matching available asset and that source ranges are valid; never infer state from an absent file.
 
 ## 8. Scenes and Camera Configuration
 
@@ -321,6 +336,7 @@ type TrackKind =
   | "body"
   | "gesture"
   | "camera"
+  | "display"
   | "lighting"
   | "environment-effect";
 
@@ -358,6 +374,8 @@ interface BehaviorEvent {
 ```
 
 - `BehaviorEvent` is one member of a discriminated event union; speaker, dialogue, visibility and camera events must each have validated, purpose-specific schemas rather than being forced into generic `params`.
+- A future `DisplayStateEvent` targets a display-capable `PropInstanceId` and selects `image`, `video`, or `off` with a scene-local start/end frame and optional source-video range/rate. A separate `CameraEvent` targets a production camera/preset and records a cut or frame-bounded transition. Both use stable IDs and the same event collection but resolve independently; neither writes into the other's state.
+- For video, the requested source timestamp is a pure function of project frame, scene-local event start, project FPS, source offset/range and playback rate. Define frame-boundary, looping/end and decode policies before implementation. Pausing freezes the project playhead; seeking evaluates the target source timestamp directly. Renderer and offline exporter may decode differently, but must select equivalent source frames and handle unavailable frames explicitly.
 - Maintain a **single authoritative collection** for events (for example `project.events` in the production schema). A track stores IDs, not duplicate mutable copies. The `ProjectDocument` example above is intentionally incomplete until the union is finalized in `DATA_MODELS` implementation review.
 - Priority defaults: manual > user-approved AI > automatic dialogue > idle. Priority conflict resolution is **per affected property/layer**, not globally. Compatible mouth, head, facial and hand animation can run together.
 - Define deterministic tie-breaking for events competing on the same layer: explicit `priority`, then stable source precedence, then event ordering/ID. Document and test it.
@@ -380,6 +398,7 @@ interface EvaluatedFrame {
     normalizedPose: Record<string, number | string | boolean>;
   }>;
   cameraPose: CameraPose | null;
+  displayStates: Array<{ propInstanceId: PropInstanceId; state: "image" | "video" | "off"; assetId: AssetId | null; sourceSeconds: number | null }>;
   environmentId: EnvironmentId | null;
   activeAudioClipIds: AudioClipId[];
   activeSpeakerIds: SpeakerId[];

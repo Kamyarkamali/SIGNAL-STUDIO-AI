@@ -97,6 +97,14 @@ The application must remain understandable to users without programming or profe
 - Timeline-controlled camera events.
 - Fullscreen preview.
 - Click-to-play/pause interaction.
+- Future user-defined and fixed shots, optional speaker-following, over-the-shoulder and display close-up views, with independent 16:9 and 9:16 framing.
+
+### 3.7.1 Educational Display Media (future)
+
+- Upload local programming screenshots/images and supported educational videos for laptop, monitor and digital display surfaces.
+- Select image, video or screen-off states repeatedly within a scene; screen-off preserves the chosen asset for later reuse.
+- Schedule display changes and camera changes independently on the timeline. Camera cuts or movements must not reset display playback.
+- Use one deterministic project-time mapping for source-video frames in seeking, preview and final export.
 
 ### 3.8 Timeline Editor
 
@@ -172,6 +180,8 @@ The first production example will feature:
 - A Persian conversation about React, Next.js and AI assistance.
 
 These characters and this environment are initial examples, not hardcoded limitations of the platform.
+
+**Future programming-tutorial workflow:** Kamyar and ChatGPT converse in the studio; Kamyar introduces code; an over-the-shoulder shot reveals a laptop showing an uploaded VS Code screenshot or tutorial video; dialogue and display media remain synchronized; the camera returns to a chosen studio shot; a later phase exports the synchronized episode. This workflow is planned, not implemented in Phase 03-B.
 
 ## 7. Project Scope
 

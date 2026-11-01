@@ -36,7 +36,7 @@ export function StudioViewport() {
   return <section className="overflow-hidden rounded-xl border border-line bg-surface" aria-labelledby="viewport-title">
     <div className="flex h-[43px] items-center justify-between gap-3 border-b border-line px-4 text-[13px] font-bold">
       <span id="viewport-title">نمای صحنه</span>
-      <span className="text-xs font-normal text-[#a8b8c8]">قاب آزمایشی · ۱۶:۹</span>
+      <span className="text-xs font-normal text-[#a8b8c8]">استودیوی پادکست مدرن · ۰۱</span>
     </div>
     <div className="relative aspect-video w-full overflow-hidden bg-[#14212c]">
       {status === "ready" && <CanvasErrorBoundary><SceneCanvas onFailure={() => setStatus("failed")} /></CanvasErrorBoundary>}
@@ -44,7 +44,7 @@ export function StudioViewport() {
       {(status === "unavailable" || status === "failed") && <WebGLFallback unavailable={status === "unavailable"} />}
     </div>
     <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 px-[15px] py-[7px] text-xs text-[#a8b8c8]">
-      <span>محتوای موقت توسعه؛ محیط نهایی نیست.</span>
+      <span>محیط استودیوی پادکست · قاب ۱۶:۹</span>
       <span>برای چرخش بکشید؛ برای بزرگ‌نمایی از چرخ ماوس استفاده کنید.</span>
     </div>
   </section>;

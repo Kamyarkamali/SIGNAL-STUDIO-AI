@@ -3,7 +3,7 @@
 **Document:** `context/PROGRESS_CHECKLIST.md`  
 **Status:** Initial baseline — planning only  
 **Roadmap:** `context/ROADMAP.md`  
-**Last reviewed:** 2026-11-01  
+**Last reviewed:** 2026-11-02
 **Project mode:** Single-user, local Windows application
 
 ## 1. How to Use This Checklist
@@ -88,7 +88,7 @@
 
 ## 5. Phase 03 — 3D Viewport & First Environment
 
-**Phase status:** In progress. Phase 03-A was accepted after user-run browser checks on 2026-11-01. Phases 03-B and 03-C are not completed; overall Phase 03 remains open.
+**Phase status:** In progress. Phase 03-A and 03-B are accepted after user-run browser checks. Phase 03-C is not started; overall Phase 03 remains open.
 
 ### Phase 03-A — Core 3D engine foundation (2026-11-01)
 
@@ -100,12 +100,24 @@
 
 **Evidence:** The user reported all eight Phase 03-A manual browser acceptance checks passed on 2026-11-01: 3D rendering, orbit, zoom, lighting, resizing, navigation stability, project-management regression and no new browser console errors. The final `npm run typecheck`, `npm run lint`, `npm test` (16/16), and `npm run build` all passed on 2026-11-01. WebGL-disabled fallback appearance and forced context-loss recovery were not part of the eight reported checks and remain unverified. **Phase 03-A accepted**; this does not close Phase 03.
 
-### Phase 03-B — First real environment (not started)
+### Phase 03-B — First real environment (accepted 2026-11-02)
 
-- [ ] Register the initial **Podcast Studio** as a real environment asset.
-- [ ] Implement an environment registry, real asset loading and missing-asset errors.
-- [ ] Do not present nonexistent alternative environments.
-- [ ] Verify the real environment survives navigation, resize and reload without corrupting scene state.
+- [x] Render **Modern Podcast Studio — Studio 01** with a composed room, desk, chairs, bookshelf, laptop, microphones, acoustic wall, decorations, plants and practical lights. The user confirmed visual composition, furniture, laptop orientation and lighting in the manual browser run.
+- [x] Register only the implemented studio using a stable environment ID, separate prop definition IDs and default instance IDs. Unit tests verify registry resolution, uniqueness, valid transforms and independent arrangement copies.
+- [x] Define serializable production-camera suggestions and host/co-host/guest placement anchors without changing the project schema. Unit tests validate camera data and anchor separation.
+- [x] Add seat-based camera suggestion metadata for studio, two-seat conversation, individual close-ups and three-seat group framing in 16:9 and 9:16. Registry and geometry tests validate pose data, placement references and approximate horizontal clearance; these are suggestions only, not camera behavior or export support.
+- [x] Keep nonexistent environments out of the registry and UI. Source review and registry test show one actual environment.
+- [x] Verify composition, prop spacing, orbit/zoom, resize, navigation stability, console behavior and performance in a real browser on the target hardware. The user reported all 12 manual acceptance checks passed; the reported areas include visual composition, laptop facing the host, furniture layout, lighting, space for future character placement, orbit, zoom, 16:9 resizing, project regressions, browser console and performance. Individual timing/FPS measurements were not supplied.
+
+**Phase 03-B evidence:** `npm run typecheck`, `npm run lint`, `npm test` (22/22), and `npm run build` passed on 2026-11-01 after the seated-use correction. Existing navigation, project-persistence, camera and WebGL-unit regressions passed. No real GLB asset is loaded: Studio 01 is a procedural environment assembled from independent props. External asset loading and missing-file recovery remain future work. No project JSON schema or stored project data changed.
+
+**Seated-use correction:** The laptop now faces the host at negative Z, with keyboard nearer the chair than the screen. Host/co-host chairs are closer to the desk, microphones are positioned for their seated users, and the guest has a separate side table and microphone. `tests/environment.test.mjs` covers these spatial relationships. Visual clearance with future character models remains unverified; see BUG-0007.
+
+**Final architecture review (2026-11-02):** Source review found that `wide` and `front` alone did not describe conversation, close-up, three-seat, or vertical framing. The wide suggestion was moved toward the open front of the set; additional serializable production-camera poses and seat-ID metadata were added without changing the editor camera, project schema, prop IDs, or character placement. `npm run typecheck`, `npm run lint`, `npm test` (24/24) and `npm run build` passed. Automated checks establish only approximate seat clearance and the existing laptop/desk/microphone alignment. The agent's browser was unavailable at that review; the later user run below supersedes that limit for its reported checks. The required `context/CHARACTERS_AND_AUDIO_REQUIREMENTS.md` is absent; only `_REVISED.md` exists and was reviewed as the available source.
+
+**User manual acceptance (2026-11-02):** The user confirmed **12/12 Phase 03-B browser checks passed**. Reported checks cover the studio composition, host-facing laptop, furniture arrangement, lighting, character placement space, orbit and zoom, 16:9 resize behavior, project regressions, browser console and performance. This supersedes the agent's earlier browser-unavailable limit for those tested areas. No screenshots, console transcript, FPS figures or separate 9:16/cinematic-camera test evidence were supplied. **Phase 03-B accepted**; Phase 03-C and overall Phase 03 remain open.
+
+**Future scope recorded, not implemented:** Phase 05-B is planned for independent scene props and Studio 01 visual refinement; 06-B for image/video/off display assignment and basic playback; 07 for deterministic display-state events and master-timeline source-video timing; 09 for cinematic camera modes and events; 11 for synchronized offline output. These phases require separate implementation and verification. None of their controls or acceptance criteria are checked by the 03-B report.
 
 ### Phase 03-C — Remaining Phase 03 integration (not started)
 

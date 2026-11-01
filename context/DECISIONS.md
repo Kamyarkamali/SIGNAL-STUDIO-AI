@@ -113,14 +113,30 @@ Use IDs `ADR-001`, `ADR-002`, etc. Each entry states **Decision**, **Reason**, *
 - **Trade-offs:** The v1 schema permits empty scene/entity collections only; later phases must add versioned migrations before writing those entities. Revision serialization protects the single local server process; concurrent independent server processes sharing one root are not supported. Project import/export and binary asset import remain deferred under the narrower Phase 02 request; the asset folders, metadata schema, resolver, and safe duplication are ready.
 - **Revisit trigger:** First real scene or asset-import workflow, cross-process storage access, or user-requested project transfer.
 
-## Pending decisions
-
 ### ADR-016 — Phase 03-A viewport foundation
 - **Status:** ACCEPTED
 - **Decision:** Use pinned Three.js 0.187.0, React Three Fiber 9.8.2, Drei 10.7.9 and `@types/three` 0.187.0 with the existing React 19.3.1. Keep the Canvas in a client-only component, separate editor orbit controls from a validated serializable production camera configuration, and use demand rendering with bounded DPR. Render only a labeled temporary test mesh and reference ground in 03-A.
 - **Reason:** Establish and test the rendering boundary before adding environment assets or scene persistence.
 - **Trade-offs:** No real environment or production-camera preview yet; browser/GPU verification remains required.
 - **Revisit trigger:** Phase 03-B asset integration or observed compatibility/performance issue.
+
+### ADR-017 — Phase 03-B procedural Studio 01 and environment registry
+- **Status:** ACCEPTED
+- **Decision:** Register only the implemented Modern Podcast Studio — Studio 01 under a stable environment ID. Keep serializable prop definitions, default prop instances, camera suggestions and character placement anchors separate from the React Three Fiber renderer. Render each major prop through its own component. The initial arrangement is built-in code data; `copyDefaultProps` returns independent nested transforms for later scene overrides. Do not write environment references into project schema v1 in this phase.
+- **Reason:** Deliver a complete visible studio without large external assets or premature project migration, while preserving independent prop identity for later editing.
+- **Trade-offs:** Procedural materials have no imported texture detail; exact composition and performance need real browser/hardware validation. Built-in prop arrangements are currently changed by code; user editing and persistence belong to later authorized work.
+- **Revisit trigger:** Phase 03-C object editing/persistence or validated GLB asset integration.
+
+**Final 03-B camera review (2026-11-02):** Keep production-camera suggestions as serializable poses, with separate metadata for framing intent, supported aspect-ratio suggestion and stable character-placement anchor IDs. Add wide, two-seat, individual-seat and three-seat suggestions, including vertical variants. Seat references do not bind a pose to a character name or speaker identity. Future manual, fixed and optional speaker-following modes, timeline overrides, movement, cuts and export remain outside 03-B. Approximate geometric clearance is tested; visual suitability requires browser review.
+
+### ADR-018 — Future scene props and educational display sequencing
+- **Status:** ACCEPTED for planning; implementation phases remain unstarted
+- **Decision:** Place basic per-scene prop editing and Studio 01 quality refinement in Phase 05-B after scene persistence. Place local image/video/off display assignment and basic playback in Phase 06-B after managed assets and scene props. Resolve repeated display-state changes from project frames in Phase 07, cinematic camera direction independently in Phase 09, and synchronized offline output in Phase 11. Keep Phase 12 for imported assets and reusable environment composition.
+- **Reason:** Scene-specific prop IDs, managed media assets and deterministic time are prerequisites for the tutorial workflow; independent camera and display tracks prevent a camera change from resetting video.
+- **Trade-offs:** Adds two explicitly gated subphases before timeline work; media format/decode limits and integrated-GPU budget need measured implementation evidence.
+- **Revisit trigger:** A validated asset/decoder prototype or scene schema migration reveals a dependency conflict.
+
+## Pending decisions
 
 
 

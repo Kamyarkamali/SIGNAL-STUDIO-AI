@@ -14,6 +14,8 @@ Build a beginner-friendly animation production workspace where users can create 
 
 Do not show a feature as available if its backend, 3D adapter, or timeline execution is not implemented. Planned features must be hidden or clearly labeled unavailable; never use decorative buttons that imply functionality.
 
+**Future educational workflow labels:** Once their phases are implemented and browser-verified, use clear Persian controls such as «محتوای نمایشگر»، «تصویر»، «ویدیو»، «نمایشگر خاموش»، «نمای پشت شانه»، «نمای نزدیک نمایشگر»، «نمای کامل استودیو»، «تغییر زاویه دوربین»، «افزودن به تایم‌لاین» and «پیش‌نمایش». The media selector and camera selector are independent. Users can repeat display and camera changes within one scene, and turning a screen off must not erase its saved media choice. Do not expose these as active controls in Phase 03-B.
+
 ## 2. Language, Direction and Typography
 
 - All user-visible navigation, form labels, validation messages, tooltips, onboarding, error states, and dialogs must use natural Persian.

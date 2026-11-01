@@ -1,9 +1,9 @@
 # Signal Studio AI — Development Roadmap
 
 **Document:** `context/ROADMAP.md`  
-**Status:** Proposed development plan — awaiting approval  
+**Status:** Phases 03-A and 03-B accepted; later phases are planned and require separate approval
 **Target:** Single-user Windows local application, Persian RTL editor  
-**Current stage:** Documentation / Phase 00; no application functionality is assumed implemented.
+**Current stage:** Phase 03-C pending; overall Phase 03 remains open.
 
 ## 1. Roadmap Rules
 
@@ -32,7 +32,11 @@
     ↓
 05 Scene Manager + Storyboard + Time Model
     ↓
+05-B Scene Prop Editing + Studio Refinement
+    ↓
 06 Audio Assets + Manual Speaker Timeline
+    ↓
+06-B Educational Display Media
     ↓
 07 Deterministic Timeline + Behavior Evaluation
     ↓
@@ -51,7 +55,7 @@
 14 Advanced Creation / Optional Extensions
 ```
 
-The architecture anticipates later features, but implementation must not build unneeded layers prematurely. The order of Phases 10–12 may be adjusted only through a documented decision after prerequisite tests pass.
+The architecture anticipates later features, but implementation must not build unneeded layers prematurely. Phase 05-B depends on saved scenes; 06-B depends on local asset storage and scene props; display-state events in 07 depend on 06-B; camera direction in 09 depends on deterministic timeline evaluation; export in 11 depends on both media and camera evaluation. Each new subphase needs explicit authorization. The order of Phases 10–12 may be adjusted only through a documented decision after prerequisite tests pass.
 
 ## 3. Phase 00 — Documentation and Design Contracts
 
@@ -115,6 +119,16 @@ The architecture anticipates later features, but implementation must not build u
 
 **Out of scope:** AI script interpretation, advanced fade effects.
 
+### Phase 05-B — Scene Prop Editing and Studio Refinement (planned, not started)
+
+**Goal:** Edit independent scene arrangements while preserving reusable prop definitions and the accepted Studio 01 architecture.
+
+**Scope:** Add, remove, hide, restore, duplicate, select, move, rotate and scale real available prop instances from the viewport and Persian UI; persist per-scene arrangements and stable IDs; refine existing podcast furniture, laptop proportions, materials and lighting for visual consistency on integrated graphics. Keep scene instances separate from prop definitions and avoid a needless renderer or schema redesign. Version and migrate project data before persisting new scene fields.
+
+**Acceptance:** A user edits the studio props in Scene 2, saves and reopens, and Scene 1 and reusable definitions remain unchanged. Duplicate instances move independently. Selection and transforms work from viewport and Persian controls, with no phantom assets. Before/after browser views verify the host-facing laptop and useful camera sightlines; performance is measured on target integrated graphics without an unjustified regression.
+
+**Out of scope:** New fictional environments, arbitrary mesh modeling, media playback and cinematic camera editing.
+
 ## 9. Phase 06 — Audio Asset Management and Manual Speaker Assignment
 
 **Goal:** User-uploaded audio is the source; speaker identity is manually editable.
@@ -125,13 +139,23 @@ The architecture anticipates later features, but implementation must not build u
 
 **Out of scope:** Automatic diarization, TTS, lip sync.
 
+### Phase 06-B — Educational Display Media (planned, not started)
+
+**Goal:** Show locally uploaded educational content on a real laptop, monitor or digital display prop.
+
+**Scope:** Import supported images/screenshots and video files into managed local assets; assign a separate media reference to a display surface without changing the underlying prop definition; select image, video or screen-off state; preserve aspect ratio and host-facing screen orientation; basic video playback, pause, seek and visibility in preview; retain media configuration while the screen is off. Validate formats, sizes, missing files, decoding and GPU cleanup. A blank/off display must be a real state, not a deleted asset.
+
+**Acceptance:** Import a programming screenshot and a supported tutorial video, alternate each with off/blank on one display, save/reopen and recover the same assignments. Video can play, pause and seek on the selected display, while an unrelated camera choice leaves media state unchanged. Unsupported media reports a Persian error and does not corrupt the project. Browser tests verify aspect ratio, orientation and integrated-GPU behavior.
+
+**Out of scope:** Timeline scheduling of display changes, cinematic camera editor, offline export. Those depend on Phases 07, 09 and 11.
+
 ## 10. Phase 07 — Deterministic Timeline and Behavior Resolver
 
 **Goal:** Any frame evaluates to the same scene state regardless of play history.
 
-**Scope:** A pure `evaluateProjectAtFrame(...)` domain function, explicit scene/frame conversions, behavior layer ownership, per-property conflict precedence, priorities and blend boundaries, visibility, camera events, audio references, deterministic prepared audio-amplitude envelope, serializable event schemas. Refer to `BEHAVIOR_SYSTEM.md` as authoritative.
+**Scope:** A pure `evaluateProjectAtFrame(...)` domain function, explicit scene/frame conversions, behavior layer ownership, per-property conflict precedence, priorities and blend boundaries, visibility, camera events, audio references, deterministic prepared audio-amplitude envelope, serializable event schemas. Add independent display-state events for image, video and off; media start/end and source offsets derive the requested video frame from the master timeline. Refer to `BEHAVIOR_SYSTEM.md` as authoritative.
 
-**Acceptance:** Identical project/frame evaluation in random and sequential order; exact boundary tests; manual gaze overrides automatic gaze but does not stop independent mouth motion; hidden speakers remain speakers; no dependence on DOM, React, Three.js mutable instances, `Date.now()` or unseeded random values.
+**Acceptance:** Identical project/frame evaluation in random and sequential order; exact boundary tests; manual gaze overrides automatic gaze but does not stop independent mouth motion; hidden speakers remain speakers; no dependence on DOM, React, Three.js mutable instances, `Date.now()` or unseeded random values. Within one scene, repeated image → video → off → image changes resolve exactly at arbitrary frames; turning off a display preserves its asset association. Seeking and pausing select the correct source-video time independently of camera events.
 
 **Out of scope:** Visual quality polish, video encoding.
 
@@ -149,9 +173,9 @@ The architecture anticipates later features, but implementation must not build u
 
 **Goal:** Precise, editable scene direction and cinematography.
 
-**Scope:** Production-camera keyframes and presets, shots targeting visible characters, cut/fade transitions with explicit time semantics, director notes separate from executable events, manual gaze/reaction/camera event authoring, selected-scene preview.
+**Scope:** Production-camera keyframes, user-defined presets and selectable fixed/manual/optional speaker-following modes. Support over-the-shoulder and laptop/monitor display close-ups, wide studio, two-character and multi-character shots, plus custom shots. Manual camera selection and timeline events override automatic suggestions; schedule cuts and smooth transitions. Store separate framing choices for 16:9 and 9:16. Camera selection and display-media selection remain independent; changing angle never stops, replaces or resets display playback. Keep director notes separate from executable events.
 
-**Acceptance:** Camera and transition results repeat at arbitrary times; scene 2 correct when visited directly; hidden characters never inadvertently targeted; text notes are not falsely advertised as executed animation; all editing changes persist.
+**Acceptance:** Camera and transition results repeat at arbitrary times; scene 2 correct when visited directly; hidden characters never inadvertently targeted; text notes are not falsely advertised as executed animation; all editing changes persist. A single scene schedules multiple over-the-shoulder, display close-up, wide and custom shots with cuts or smooth changes; fixed mode stays fixed, speaker-following is optional and a manual event wins. Test 16:9 and 9:16 framing separately. Camera changes leave concurrent screenshot/video/off display state and source-video time unchanged.
 
 **Out of scope:** Natural-language AI director, final renderer.
 
@@ -171,7 +195,7 @@ The architecture anticipates later features, but implementation must not build u
 
 **Scope:** Validate Remotion/Three integration and licensing; separate local render worker; project snapshot and disk asset handoff; fixed FPS and render resolution; audio mix/mux via a supported encoder/FFmpeg; initial 720p/30fps MP4/H.264 if supported; single-scene and full-episode export; real progress, cancel, cleanup, lower-quality fallback. Do not use MediaRecorder as the final offline render method.
 
-**Acceptance:** Render a short multi-scene sample; open video and verify visuals, character movement, camera changes and original audio synchronization; compare arbitrary rendered frames against preview evaluation; cancel safely; measure memory/throughput on target laptop; document any output limits.
+**Acceptance:** Render a short multi-scene sample; open video and verify visuals, character movement, camera changes, display screenshots/video/off states and original audio synchronization; compare arbitrary rendered frames against preview evaluation, including out-of-order seeking across multiple media and camera changes; cancel safely; measure memory/throughput on target laptop; document any output limits. Uploaded video frames must map to master timeline time during seek, pause, playback and offline rendering.
 
 **Out of scope:** Cloud rendering, unverified 4K claims.
 
@@ -179,7 +203,7 @@ The architecture anticipates later features, but implementation must not build u
 
 **Goal:** Build more environments from compatible prepared assets.
 
-**Scope:** Add validated GLB/glTF environment/prop import, place/move/rotate/scale props, scene-level lighting and reusable environment presets, asset dependency handling; gated import of third-party character models and capability detection. The built-in podcast environment remains available.
+**Scope:** Add validated GLB/glTF environment/prop import, reusable environment composition, scene-level lighting presets and asset dependency handling; gated import of third-party character models and capability detection. Extend the already verified basic scene-prop editing from 05-B. The built-in podcast environment remains available.
 
 **Acceptance:** Import a supported prop; arrange and save a new environment configuration; reference it from Scene 2 without affecting Scene 1; restart and reload all assets; missing assets fail gracefully; imported characters do not promise animations without rig support.
 
