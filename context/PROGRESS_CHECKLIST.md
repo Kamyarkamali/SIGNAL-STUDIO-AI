@@ -1,0 +1,265 @@
+# Signal Studio AI — Progress Checklist
+
+**Document:** `context/PROGRESS_CHECKLIST.md`  
+**Status:** Initial baseline — planning only  
+**Roadmap:** `context/ROADMAP.md`  
+**Last reviewed:** 2026-11-01  
+**Project mode:** Single-user, local Windows application
+
+## 1. How to Use This Checklist
+
+- `[x]` means **implemented AND verified against the stated acceptance criteria**. Documentation tasks may be checked after the document is present and reviewed; they do not imply application code exists.
+- `[ ]` means **not implemented, partially implemented, or not adequately verified**. Add a note distinguishing these conditions.
+- Track **implementation** and **verification** separately when a feature is coded but browser validation is missing. Never silently turn such an item into `[x]`.
+- Verification evidence should identify the date, command/test name, browser/manual steps, result, and relevant file or commit. `npm run build` alone does not verify interactive behavior.
+- Codex must update this file and `BUG_TRACKER.md` after each phase. Changes to technical contracts must also update `DECISIONS.md` and the affected context document.
+- Previous deleted prototypes, example screenshots, and historical Codex reports are **not** evidence of implementation in this new project.
+- No later phase starts without user approval and an accepted handoff from the current phase.
+
+### Status Vocabulary
+
+- **Not started:** no implementation yet.
+- **In progress:** partly implemented, acceptance criteria outstanding.
+- **Implemented / unverified:** code exists but required browser/visual or integration evidence is missing.
+- **Blocked:** external technical dependency or reproducible issue prevents completion; link to `BUG_TRACKER.md`.
+- **Verified:** implementation and acceptance tests passed; item can be checked.
+
+## 2. Phase 00 — Documentation & Design Contracts
+
+**Phase status:** In progress. The drafts below have been prepared in conversation; their presence in the actual project directory and consistency as a complete set have not been independently verified.
+
+- [ ] `context/PROJECT_OVERVIEW.md` exists in the local project and is reviewed.
+- [ ] `context/TECH_STACK.md` exists and is consistent with approved local-only scope.
+- [ ] `context/ARCHITECTURE.md` exists and defines clear ownership boundaries.
+- [ ] `context/DATA_MODELS.md` exists, with stable IDs and versioned structures.
+- [ ] `context/CHARACTERS_AND_AUDIO_REQUIREMENTS.md` exists and distinguishes mixed audio from speaker identity.
+- [ ] `context/BEHAVIOR_SYSTEM.md` exists and defines layer-local behavior priority.
+- [ ] `context/UI_UX_GUIDELINES.md` exists and specifies Persian RTL and LTR timeline behavior.
+- [ ] `context/CODING_STANDARDS.md` exists with test and performance requirements.
+- [ ] `context/ROADMAP.md` exists and is approved.
+- [ ] `context/PROGRESS_CHECKLIST.md` is placed in the local project and reviewed.
+- [ ] `context/BUG_TRACKER.md` is created.
+- [ ] `context/DECISIONS.md` is created, recording approved and unresolved decisions.
+- [ ] Root `AGENTS.md` is created and points to the context documents.
+- [ ] Cross-document review confirms consistent character/scene/asset terminology, storage and timeline policies.
+- [ ] Phase 00 is explicitly approved before application setup.
+
+**Acceptance evidence:** paths reviewed; document conflicts resolved; architectural decisions logged; no claim of application implementation.
+
+## 3. Phase 01 — Local App Foundation
+
+**Phase status:** Implemented / unverified. The 2026-11-01 static checks and localhost response passed; browser interaction, visual layout, keyboard focus, responsive behavior, and hydration remain unverified because no browser surface was available.
+
+- [x] Initialize Next.js, React, strict TypeScript, Tailwind CSS v4 and linting using compatible pinned versions. Verified by installed packages, `npm run typecheck`, `npm run lint`, and `npm run build` on 2026-11-01.
+- [ ] Create functional Persian RTL shell and local navigation with distinct section content. Implemented in `src/components/`; each destination has unique copy, but browser clicking remains unverified.
+- [ ] Establish readable typography, accessible controls, dark theme and responsive layout. Styles and focus rules are implemented; visual and keyboard checks remain unverified.
+- [x] Clearly mark unavailable future features; no fake clickable controls. Source and rendered initial HTML inspected on 2026-11-01; controls are section navigation and help only.
+- [x] Run locally on Windows without cloud login or deployment. `npm run dev` served `http://127.0.0.1:3000/` with HTTP 200 on 2026-11-01; process stopped after the check.
+- [ ] Validate typecheck, lint, build, and browser navigation/hydration behavior. First three passed on 2026-11-01; browser checks remain unverified.
+- [ ] Update documentation and obtain Phase 01 approval.
+
+**Phase 01 evidence (2026-11-01):** Node 22.21.0, npm 11.6.2; `npm test` passed 1 navigation configuration test; `npm run typecheck`, `npm run lint`, and `npm run build` passed. `npm run dev` and a later `npm run start` both served HTTP 200 on `127.0.0.1:3000`; production HTML contained `lang="fa"`, `dir="rtl"`, viewport, and timeline. Browser inventory returned no available browser, so navigation clicks, RTL rendering, mobile layout, focus behavior, and hydration were not tested. Manual follow-up: run `npm run dev`, open `http://127.0.0.1:3000/`, visit every navigation item and Help, verify distinct content and persistent viewport/timeline, inspect desktop and narrow widths, tab through controls, and check the browser console for hydration errors. No Phase 02 work started.
+
+**Focused Phase 01 QA (2026-11-01):** Source review found separate content branches for all ten navigation destinations plus Help; Scenes and Characters use independent branches and guidance. The shell uses `lang="fa"`/`dir="rtl"`, and the timeline ruler explicitly uses `dir="ltr"`. CSS declares a 16:9 viewport; a conflicting mobile minimum height was removed, and helper text below 12 px was enlarged. The root `AGENTS.md` was restored after Next.js appended its own block; `agentRules: false` prevented regeneration on a development-server restart. After these fixes, `npm run typecheck`, `npm run lint`, `npm test` (1 pass), and `npm run build` passed. These are source and build checks, not browser interaction evidence.
+
+**Still unverified:** Navigation clicks, independent panel updates, actual 16:9 geometry, LTR visual flow, typography appearance, 1920×1080 / 1366×768 / narrow mobile layout, keyboard focus, and a clean browser console. Playwright is not installed or cached; the browser tool exposed no browser, and Windows computer use reported an unavailable native connection. The source of the `cz-shortcut-listen` DOM mutation is confirmed as ColorZilla, but removal of the hydration warning in a clean profile is unverified. Keep Phase 01 at **Implemented / unverified** and leave browser-dependent boxes unchecked. No Phase 02 work started.
+
+**Tailwind and font migration (2026-11-01):** Migrated component layout, spacing, colors, typography, responsive behavior, hover and focus styles from handwritten CSS to Tailwind v4 utilities. Retained only CSS-first theme tokens, dark color scheme, and decorative shell/preview/timeline backgrounds in `globals.css`. Font metadata identifies the installed files as Yekan Bakh FaNum with Arabic script support; the shell loads its used 400/600/700/800 WOFF2 weights via `next/font/local` with swap and system fallbacks. `npm run typecheck`, `npm run lint`, `npm test` (1 pass), and `npm run build` passed. Production HTML includes `lang="fa"`, `dir="rtl"`, four font preloads, and no extension-injected markup. All four generated font URLs returned HTTP 200 with `font/woff2`. Compiled CSS contains the font-sans, aspect-video, grid, responsive, and timeline classes. Browser inventory returned no available browser, so actual font rendering, visual comparison, geometry, interaction, focus, responsive viewports, and hydration console are **unverified**. Phase 01 remains **Implemented / unverified**.
+
+**Hydration investigation (2026-11-01):** Source and server HTML were inspected. Chrome's installed Translator extension inserts `translate-tooltip-mtz translator-hidden` into the body; ColorZilla inserts `cz-shortcut-listen`. These match the reported unexpected DOM. No application-side defect was confirmed; metadata and SSR were preserved. A clean profile could not be launched, so the warning's disappearance with extensions disabled remains unverified. See BUG-0004.
+
+## 4. Phase 02 — Projects, Persistence & Asset Registry
+
+**Phase status:** Accepted (2026-11-01). Automated checks and server/disk tests passed; the user reports all 10 Phase 02 manual browser acceptance tests passed. The unrelated unchecked roadmap items and Phase 01 verification gaps below remain open.
+
+- [x] Implement local create, rename, duplicate, save, reopen and delete project workflows. Automated and HTTP checks passed; the user confirmed the Persian browser workflow, including refresh persistence and deletion confirmation, in the 10-test manual acceptance run on 2026-11-01.
+- [x] Implement versioned project JSON and managed asset folders. Schema v1, directory initialization, and stored files were verified in temporary-directory tests and an HTTP disk check.
+- [ ] Implement schema validation, safe migration, atomic writes/backups and missing-asset handling. Validation, atomic replacement, backup, and safe asset resolution were tested; no prior schema exists to migrate, and browser missing-asset feedback is not yet available.
+- [ ] Implement import/replace/delete asset lifecycle with reference checks and confirmation. Binary import and its UI are deferred by the narrower Phase 02 request; no asset import is presented as working.
+- [x] Ensure project starts without unrequested demo audio. The creation test confirms empty asset, clip, scene, and event collections.
+- [x] Verify persistence across full process restart and reject unsafe paths/invalid files. Production HTTP flow persisted a project, stopped and restarted the server, reopened it, renamed, duplicated, and recoverably deleted it. Unit tests reject corrupt JSON, unsupported versions, stale revisions, invalid names, unsafe asset paths, and traversal IDs.
+- [x] Obtain Phase 02 approval. The user reported all 10 manual browser acceptance tests passed and accepted Phase 02 on 2026-11-01.
+
+**Phase 02 evidence:** `npm run typecheck`, `npm run lint`, `npm test` (12/12), and `npm run build` passed on 2026-11-01. Tests include failed atomic replacement cleanup, missing-asset recovery, and Origin/Host validation. A production server on `127.0.0.1:3102` used the absolute `SIGNAL_STUDIO_DATA_DIR` path to `.tmp/phase02-http-check`. Create → save → inspect `project.json` → stop/restart server → list/open → rename → duplicate/open → delete both returned the expected data; the final project list was empty. The test root is isolated and ignored by Git. Automatic approval review rejected recursive cleanup of that test root, so it remains under `.tmp/`. Browser inventory returned no browsers; actual modal focus, keyboard use, autosave timing, responsive styling, and console/hydration behavior remain **unverified**. Phase 03 was not started.
+
+**Phase 02 API regression (2026-11-01):** The reported `POST /api/projects` 403 was reproduced on the active port-3000 development server with browser-style Host and Origin headers. Next.js normalized `nextUrl.origin` to `localhost` despite an incoming `127.0.0.1` Host. The guard now compares Origin to the validated received Host and checks the actual server port. Browser-header POSTs from both served origins returned 201; mismatched or untrusted Origins returned 403. A browser-header create/save/reload/open/rename/duplicate/delete flow passed. Raw HTTP Host probes confirmed mismatched port and untrusted hostname are rejected. This confirms HTTP guard behavior, not the still-unverified Chrome UI workflow; see BUG-0006.
+
+**User manual acceptance (2026-11-01):** The user confirmed that all 10 Phase 02 browser acceptance tests passed, including project creation, persistence after refresh, rename, duplication, deletion confirmation, save status, and Phase 01 UI regression checks. The previously reported project-creation 403 was not reproducible in that tested workflow. This user report verifies those stated behaviors; it does not provide separate measurements for every Phase 01 viewport size, keyboard/focus path, clean-profile hydration console, or future binary-asset import. Those items remain unchecked where applicable. Phase 03 has not started.
+
+## 5. Phase 03 — 3D Viewport & First Environment
+
+**Phase status:** Not started.
+
+- [ ] Build a stable Three.js / React Three Fiber viewport with camera controls.
+- [ ] Register the initial **Podcast Studio** as a real environment asset.
+- [ ] Support resize, performance presets, fullscreen and missing-asset errors.
+- [ ] Do not present nonexistent alternative environments.
+- [ ] Verify viewport survives navigation, resize and reload without corrupting scene state.
+- [ ] Obtain Phase 03 approval.
+
+## 6. Phase 04 — Character Models, Library & Scene Instances
+
+**Phase status:** Not started.
+
+- [ ] Provide actual, separately verified models for Kamyar, ChatGPT and Claude as each becomes available; do not check any preset without a visible usable model.
+- [ ] Separate model definition, named character definition and scene character instance.
+- [ ] Create/rename/duplicate characters with stable IDs and supported appearance customization.
+- [ ] Add/remove/show/hide a **visible 3D instance**; creating a library entry alone is insufficient.
+- [ ] Edit independent position, rotation, scale, orientation and appearance without shifting other actors or props.
+- [ ] Ensure correct facial geometry, including beard anchored to the lower face and unobstructed mouth where supported.
+- [ ] Persist and restore scene instance state; test two characters sharing one base model.
+- [ ] Handle missing or unsupported models gracefully.
+- [ ] Obtain Phase 04 approval.
+
+## 7. Phase 05 — Scene Manager, Storyboard & Timing
+
+**Phase status:** Not started.
+
+- [ ] Create, rename, duplicate, delete and drag/reorder scene cards.
+- [ ] Define independent scene settings, duration and environment references.
+- [ ] Derive global offsets from scene order and explicit transition timing policy.
+- [ ] Implement scene-only and full-episode preview boundaries.
+- [ ] Verify scene switching/duplication does not distort characters, props or camera.
+- [ ] Verify changes persist after restart and scene duration affects actual preview behavior.
+- [ ] Obtain Phase 05 approval.
+
+## 8. Phase 06 — Audio Assets & Manual Speaker Assignment
+
+**Phase status:** Not started.
+
+- [ ] Upload, preview, replace, remove and persist WAV/MP3 audio files locally.
+- [ ] Render a real waveform and editable speaker intervals.
+- [ ] Assign any interval to a character ID, audio-only speaker or explicitly unassigned/silent state.
+- [ ] Support split, merge, drag, resize, seek and segment-only preview.
+- [ ] Ensure mixed recordings do not default to Kamyar and deleted audio never returns automatically.
+- [ ] Verify speaker changes across several intervals, plus save/reload behavior.
+- [ ] Obtain Phase 06 approval.
+
+## 9. Phase 07 — Deterministic Timeline & Behavior Priorities
+
+**Phase status:** Not started.
+
+- [ ] Build a pure project-at-frame evaluator independent of UI and Three.js objects.
+- [ ] Define event boundaries, global/scene-local timing and overlap policy.
+- [ ] Evaluate character visibility, active speaker, animation layers and camera deterministically.
+- [ ] Apply manual > approved AI > automatic dialogue > idle precedence **only on conflicting layers**.
+- [ ] Verify random-order and sequential frame evaluation produce the same state.
+- [ ] Test hidden speaker handling, event priority and exact boundary frames.
+- [ ] Obtain Phase 07 approval.
+
+## 10. Phase 08 — Facial Animation, Gaze & Reactions
+
+**Phase status:** Not started.
+
+- [ ] Implement real mouth/face animation on compatible Kamyar and robot models, not decorative placeholders.
+- [ ] Only the assigned visible speaker animates its mouth; audio-only speakers do not animate unrelated mouths.
+- [ ] Implement natural blinking, listening, facial expression and supported gestures.
+- [ ] Implement body orientation separately from constrained head/eye gaze and safe target fallbacks.
+- [ ] Support layered reactions, timeline control and behavior priority rules.
+- [ ] Verify seek/pause behavior and visually inspect animation on actual models.
+- [ ] Obtain Phase 08 approval.
+
+## 11. Phase 09 — Cameras & Scene Direction
+
+**Phase status:** Not started.
+
+- [ ] Separate inspection/edit camera from production camera.
+- [ ] Implement scene-specific shot presets, camera timeline events and transitions.
+- [ ] Provide persisted director notes and **distinct** executable direction events.
+- [ ] Ensure off-screen/hidden characters are not incorrectly targeted by automatic camera logic.
+- [ ] Verify direct seeking, repeatability, transitions and stored camera edits.
+- [ ] Obtain Phase 09 approval.
+
+## 12. Phase 10 — End-to-End UX & Preview Stabilization
+
+**Phase status:** Not started.
+
+- [ ] Complete understandable Persian navigation, contextual panels, tooltips and beginner workflow.
+- [ ] Keep 3D viewport and multi-track timeline easy to access while editing.
+- [ ] Implement reliable click-to-Play/Pause on normal and fullscreen preview.
+- [ ] Complete end-to-end user journey from project creation to full preview and reopening.
+- [ ] Test every visible control; disable/notate unsupported features rather than faking them.
+- [ ] Run automated browser tests plus a documented manual walkthrough.
+- [ ] Obtain Phase 10 approval.
+
+## 13. Phase 11 — Offline Frame Rendering & MP4 Export
+
+**Phase status:** Not started.
+
+- [ ] Evaluate renderer package/graphics compatibility and licensing before adding dependencies.
+- [ ] Implement independent frame evaluation and 3D capture without relying on real-time MediaRecorder screen recording.
+- [ ] Transfer validated local assets and a stable project snapshot to renderer.
+- [ ] Synchronize original audio and scene/camera/character state with frames.
+- [ ] Implement 720p/30 FPS MP4 baseline, error reporting, progress, cancellation and cleanup.
+- [ ] Produce and **inspect** a playable short multi-scene export with correct audio and visuals.
+- [ ] Obtain Phase 11 approval.
+
+## 14. Phase 12 — Environment Composition & Asset Import
+
+**Phase status:** Not started.
+
+- [ ] Import compatible GLB/glTF props and validated environment assets.
+- [ ] Arrange props/lights/cameras into a reusable environment composition.
+- [ ] Save and reuse an environment without altering other scenes.
+- [ ] Validate imported rig/animation capabilities rather than promising universal animation.
+- [ ] Verify imported asset survival across application restart.
+- [ ] Obtain Phase 12 approval.
+
+## 15. Phase 13 — Optional AI Director
+
+**Phase status:** Not started.
+
+- [ ] Provide opt-in, provider-independent AI proposal interface.
+- [ ] Validate suggestions against actual character and action capabilities.
+- [ ] Support review, edit, accept, reject and undo; never overwrite manual changes silently.
+- [ ] Verify full offline manual use remains possible without AI.
+- [ ] Obtain Phase 13 approval.
+
+## 16. Phase 14 — Optional Advanced Creation
+
+**Phase status:** Not started, outside initial MVP.
+
+- [ ] Evaluate procedural/parametric character creation and advanced environment authoring.
+- [ ] Evaluate optional mesh editing, rigging or AI-assisted asset creation as separate approved projects.
+- [ ] Define feasibility, hardware constraints and licensing before implementation.
+- [ ] Obtain explicit approval for any advanced feature.
+
+## 17. Cross-Cutting Quality Gates (Every Implementation Phase)
+
+- [ ] Phase-specific typecheck, lint and build results recorded (per phase, not one global pass).
+- [ ] Relevant unit and integration tests pass and are named in handoff.
+- [ ] Interactive features are browser-verified or explicitly left unchecked as unverified.
+- [ ] No regression in existing scene state, assets, audio or saved projects.
+- [ ] No known misleading controls or unsupported features represented as working.
+- [ ] Performance/resource cleanup risks inspected for affected subsystems.
+- [ ] `BUG_TRACKER.md` and `DECISIONS.md` updated when appropriate.
+- [ ] This checklist updated with verifiable evidence and user acceptance.
+
+_These cross-cutting items are a repeatable gate template. Recheck and record them separately for each phase; do not permanently mark the entire section complete after one milestone._
+
+## 18. Phase Handoff Record Template
+
+Copy for each development phase (append below or link to a dated handoff):
+
+```md
+### Phase NN — Title
+
+- Date:
+- Implemented scope:
+- Explicitly deferred scope:
+- Files changed:
+- Typecheck / lint / build:
+- Automated tests (name + result):
+- Browser/manual checks (steps + result):
+- Known bugs / blockers (IDs):
+- Context documents updated:
+- User acceptance: Pending / Approved (date)
+- Final status: Not started / In progress / Implemented-unverified / Blocked / Verified
+```
+
+## 19. Current Baseline Summary
+
+**Verified application milestones: 0 / 14** (Phases 01–14).  
+**Phase 00:** documentation drafts prepared, final consistency and local-file confirmation pending.  
+**Next action:** place and review this checklist, create `BUG_TRACKER.md`, `DECISIONS.md` and `AGENTS.md`, then complete Phase 00 review.  
+**Reminder:** no feature of the deleted earlier prototype should be carried forward as implemented.

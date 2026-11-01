@@ -1,0 +1,40 @@
+﻿@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-yekan-bakh), Tahoma, Arial, sans-serif;
+  --color-background: #0b1019;
+  --color-surface: #121925;
+  --color-line: #263243;
+  --color-foreground: #f2f6fc;
+  --color-muted: #9aa9bd;
+  --color-accent: #40d7c5;
+}
+
+:root { color-scheme: dark; }
+
+/* Static decorative effects are shared by the editor shell. */
+.app-background {
+  background: radial-gradient(ellipse at 48% -18%, #19283b 0, transparent 45%), #0b1019;
+}
+.section-background { background: linear-gradient(130deg, #172330, #141d29 72%); }
+.viewport-background {
+  background: radial-gradient(ellipse at 50% 65%, #1d3440 0, #152532 34%, #0e1925 70%);
+}
+.viewport-grid {
+  background-image: linear-gradient(#7194a0 1px, transparent 1px), linear-gradient(90deg, #7194a0 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to top, black, transparent 80%);
+}
+.viewport-background::before, .viewport-background::after {
+  content: "";
+  position: absolute;
+  width: 45%;
+  height: 1px;
+  background: #75939c35;
+  bottom: 23%;
+}
+.viewport-background::before { left: 8%; transform: rotate(29deg); }
+.viewport-background::after { right: 8%; transform: rotate(-29deg); }
+.timeline-ruler-background {
+  background: repeating-linear-gradient(90deg, transparent 0, transparent calc(20% - 1px), #283949 calc(20% - 1px), #283949 20%);
+}
