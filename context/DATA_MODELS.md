@@ -2,11 +2,13 @@
 
 **Document:** `context/DATA_MODELS.md`  
 **Project:** Signal Studio AI  
-**Status:** Proposed schema, planning phase — not implemented  
+**Status:** Phase 02 project schema v1 and Phase 03-C project arrangement schema v2 implemented; later scene/timeline contracts remain proposed
 **Target:** Single-user, local Windows application  
 **Language:** English for technical documentation; Persian (`fa-IR`) for all visible application UI
 
 > This document defines the canonical data concepts and invariants. TypeScript examples are illustrative contracts, **not** production-ready schemas. Zod schemas, migrations, tests and storage adapters must be created in their approved implementation phases.
+
+**Phase 03-C implementation note (2026-11-02):** Project schema v2 adds one `environmentArrangement` at project scope for the built-in Studio 01. It holds `environmentId` and validated prop instances with stable IDs, definition IDs, position/rotation/positive scale and visibility. The current application has no scene entities, so this field does not represent scene independence. v1 projects are migrated in memory when read; the original JSON remains intact until the next successful write, which first makes a backup. New/duplicated projects use v2. Scene-local overrides below remain planned for Phase 05-B.
 
 ## 1. Purpose and Source of Truth
 
@@ -234,6 +236,7 @@ interface EnvironmentOverrides {
 - The initial real environment is **Podcast Studio**; don't add fictitious alternatives to fill a selector.
 - Stage-one customization uses available presets. Later phases can compose environments from validated model/prop assets, lights and cameras. Full mesh modeling from scratch is an advanced future capability.
 - Scene overrides never mutate shared environment definitions. Changing an environment must not erase speaker assignments, character identities, or timeline data.
+- In schema v2, `environmentArrangement` is a project-level bridge until scenes exist. Its props refer to the built-in environment definition; protected room and acoustic-wall instances must retain their default transforms and visibility. Selection is editor-only state, never serialized. Later scene-specific migration must preserve this arrangement without silently copying mutable state between scenes.
 - Scene prop IDs are independent of reusable definitions and of one another; add/remove/hide/restore/duplicate/transform operations must preserve scene isolation. Imported media assets are separate from both prop definitions and scene instances. A display's `off` state retains its asset references and timing. Validate that a selected state has the matching available asset and that source ranges are valid; never infer state from an absent file.
 
 ## 8. Scenes and Camera Configuration
@@ -398,7 +401,12 @@ interface EvaluatedFrame {
     normalizedPose: Record<string, number | string | boolean>;
   }>;
   cameraPose: CameraPose | null;
-  displayStates: Array<{ propInstanceId: PropInstanceId; state: "image" | "video" | "off"; assetId: AssetId | null; sourceSeconds: number | null }>;
+  displayStates: Array<{
+    propInstanceId: PropInstanceId;
+    state: "image" | "video" | "off";
+    assetId: AssetId | null;
+    sourceSeconds: number | null;
+  }>;
   environmentId: EnvironmentId | null;
   activeAudioClipIds: AudioClipId[];
   activeSpeakerIds: SpeakerId[];
@@ -525,6 +533,28 @@ Unit tests check domain contracts; browser tests must check actual editor and re
 - `context/ARCHITECTURE.md` owns dependency boundaries, `context/BEHAVIOR_SYSTEM.md` owns detailed behavior rules, and the roadmap owns implementation order.
 - Future implementation must update the schema, migrations, tests, `context/PROGRESS_CHECKLIST.md` and `context/DECISIONS.md` when contracts change.
 - Mark features `[x]` only after appropriate verification; unimplemented and browser-unverified work remains unchecked.
+
+type CinematicFocusTarget =
+| { type: "character"; instanceId: string }
+| { type: "prop"; instanceId: string }
+| { type: "world"; position: [number, number, number] };
+
+type CinematicFocusSettings = {
+enabled: boolean;
+target: CinematicFocusTarget;
+blurIntensity: number;
+focusDistance?: number;
+transitionFrames: number;
+priority: number;
+};
+
+type CinematicFocusEvent = {
+id: string;
+sceneId: string;
+startFrame: number;
+durationFrames: number;
+settings: CinematicFocusSettings;
+};
 
 ## Gaze Event Requirements
 

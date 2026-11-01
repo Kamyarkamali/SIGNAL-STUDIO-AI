@@ -3,7 +3,7 @@
 **Document:** `context/ROADMAP.md`  
 **Status:** Phases 03-A and 03-B accepted; later phases are planned and require separate approval
 **Target:** Single-user Windows local application, Persian RTL editor  
-**Current stage:** Phase 03-C pending; overall Phase 03 remains open.
+**Current stage:** Phase 03-C implementation under verification; overall Phase 03 remains open.
 
 ## 1. Roadmap Rules
 
@@ -89,7 +89,7 @@ The architecture anticipates later features, but implementation must not build u
 
 ## 6. Phase 03 — 3D Viewport and First Environment
 
-**Approved split (2026-11-01):** Phase 03-A covers only the core interactive 3D engine: Three.js, React Three Fiber, Drei, WebGL canvas, editor orbit/zoom camera, serializable production camera contract, reference ground/test mesh, responsive 16:9 sizing, failure feedback, and resource cleanup. The test mesh is temporary development content. Phase 03-B is the first real Podcast Studio environment, environment registry and asset loading. Phase 03-C covers the remaining Phase 03 viewport features and integration acceptance. Completion of 03-A does not complete Phase 03.
+**Approved split (2026-11-01; 03-C scope expanded by explicit user request on 2026-11-02):** Phase 03-A covers the core interactive 3D engine. Phase 03-B is the accepted Podcast Studio and environment registry. Phase 03-C adds a project-level editable arrangement with safe v1 migration, viewport/panel selection, prop add/remove/restore/visibility/transforms/duplication and actual local save/reload. Fullscreen, quality controls and remaining viewport integration checks from the original Phase 03 plan remain acceptance work unless separately verified. No scene-local editing is claimed before the scene system exists.
 
 **Goal:** A stable real 3D canvas and reusable environment definition.
 
@@ -121,9 +121,9 @@ The architecture anticipates later features, but implementation must not build u
 
 ### Phase 05-B — Scene Prop Editing and Studio Refinement (planned, not started)
 
-**Goal:** Edit independent scene arrangements while preserving reusable prop definitions and the accepted Studio 01 architecture.
+**Goal:** Extend the 03-C project-level arrangement to independent scene arrangements after the scene system exists, while preserving reusable prop definitions and the accepted Studio 01 architecture.
 
-**Scope:** Add, remove, hide, restore, duplicate, select, move, rotate and scale real available prop instances from the viewport and Persian UI; persist per-scene arrangements and stable IDs; refine existing podcast furniture, laptop proportions, materials and lighting for visual consistency on integrated graphics. Keep scene instances separate from prop definitions and avoid a needless renderer or schema redesign. Version and migrate project data before persisting new scene fields.
+**Scope:** Add scene-local overrides and migration from the 03-C project-level arrangement; keep all existing prop operations independent per scene. Refine existing podcast furniture, laptop proportions, materials and lighting for visual consistency on integrated graphics without a needless renderer or schema redesign.
 
 **Acceptance:** A user edits the studio props in Scene 2, saves and reopens, and Scene 1 and reusable definitions remain unchanged. Duplicate instances move independently. Selection and transforms work from viewport and Persian controls, with no phantom assets. Before/after browser views verify the host-facing laptop and useful camera sightlines; performance is measured on target integrated graphics without an unjustified regression.
 
@@ -178,6 +178,31 @@ The architecture anticipates later features, but implementation must not build u
 **Acceptance:** Camera and transition results repeat at arbitrary times; scene 2 correct when visited directly; hidden characters never inadvertently targeted; text notes are not falsely advertised as executed animation; all editing changes persist. A single scene schedules multiple over-the-shoulder, display close-up, wide and custom shots with cuts or smooth changes; fixed mode stays fixed, speaker-following is optional and a manual event wins. Test 16:9 and 9:16 framing separately. Camera changes leave concurrent screenshot/video/off display state and source-video time unchanged.
 
 **Out of scope:** Natural-language AI director, final renderer.
+
+Phase 09-A — Camera Direction
+
+Phase 09-B — Cinematic Focus & Depth of Field
+
+### Phase 09-A — Camera Direction
+
+- Manual, fixed, and speaker-following camera modes.
+- Close-up, wide, group, listener reaction, and over-the-shoulder shots.
+- Camera cuts, smooth movements, keyframes, and reusable presets.
+- Manual overrides of automatic camera behavior.
+- Independent 16:9 and 9:16 framing.
+
+### Phase 09-B — Cinematic Focus and Depth of Field
+
+- Focus on the active speaker, listener, character, or prop.
+- Adjustable foreground/background blur and depth of field.
+- Smooth rack focus between different targets.
+- Enable or disable blur for individual shots.
+- Manual focus overrides.
+- Timeline-based focus events.
+- Performance, Balanced, and Cinematic preview quality.
+- Deterministic focus evaluation for offline video rendering.
+
+Do not implement these features before their approved phases.
 
 ## 13. Phase 10 — End-to-End Editor UX and Preview Stabilization
 

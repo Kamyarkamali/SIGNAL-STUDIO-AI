@@ -305,3 +305,31 @@ This capability is complete only when:
 These requirements define the product architecture and must be implemented incrementally according to the approved roadmap.
 
 Do not implement the entire behavior system during the initial project setup.
+
+### Natural Listener Reactions
+
+Characters must support natural listening behaviors, including:
+
+- Looking toward the speaker
+- Blinking
+- Subtle head nodding
+- Smiling
+- Concern and empathy
+- Surprise
+- Thoughtful expressions
+- Neutral listening
+- Supported hand and body gestures
+
+Multiple characters may listen and react simultaneously.
+
+Listener reactions must not accidentally trigger speaking
+or mouth animations.
+
+Reactions must respect character model capabilities.
+
+Users must be able to enable, disable, prioritize,
+and schedule listener reactions.
+
+Manual director events override conflicting automatic reactions.
+
+Camera focus must remain independent from listener behavior.

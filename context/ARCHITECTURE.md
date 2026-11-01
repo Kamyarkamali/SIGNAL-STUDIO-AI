@@ -379,6 +379,8 @@ Characters may use prebuilt Kamyar, ChatGPT, Claude, or future models. Imported 
 
 **03-B camera suggestion review (2026-11-02):** Studio 01 camera poses remain independent of the editor orbit camera. Per-pose metadata records framing intent, suggested aspect ratio and stable character-placement anchor IDs; it never stores character names or infers speaker identity. Separate 16:9 and 9:16 suggestions cover whole-set, two-seat and three-seat composition, with individual seat close-ups. These are starting poses only. Scene camera mode selection (manual, optional speaker-following or fixed), timeline priority/overrides, cuts, interpolation and export framing require later authorized phases and deterministic evaluation. No current UI control claims these functions.
 
+**03-C project arrangement (2026-11-02):** `studio-01.ts` remains the reusable environment template and prop-definition registry. Project JSON v2 stores one validated `environmentArrangement` with independent prop-instance IDs and transforms; selection and active transform mode stay in React editor state. The viewport reads the draft arrangement, while the existing project save hook persists committed changes through revision-checked atomic writes and backups. Session storage remembers only the last open project ID across page refresh; project JSON on disk remains authoritative. v1 is read through an in-memory migration, and no scene independence is claimed. Room shell and acoustic wall are protected in both the editor and schema. Drei TransformControls modifies the selected object during a drag and commits one validated transform on release; default orbit controls are disabled for the drag and restored by lifecycle cleanup. Browser-level verification of this interaction remains required.
+
 # Dynamic Scene Props and Environment Object Management
 
 Signal Studio AI must provide a data-driven scene prop management system.
@@ -859,6 +861,31 @@ Manual gaze events take precedence over automatic listener behavior.
 ## 16. Camera Architecture
 
 Keep the editing camera separate from cinematic production cameras.
+
+### Cinematic Focus Architecture
+
+The system must separate:
+
+- Editor camera
+- Production camera
+- Camera shot configuration
+- Focus target
+- Depth-of-field settings
+- Camera timeline events
+- Character gaze and reaction states
+
+Focus targets must reference stable character instance IDs,
+prop instance IDs, or world-space anchors.
+
+Camera focus and character gaze are independent systems.
+
+Manual director instructions override automatic speaker-based
+camera and focus decisions.
+
+Missing or hidden focus targets must use safe fallbacks.
+
+Focus evaluation must be deterministic and compatible with
+offline frame-by-frame rendering.
 
 ### Editor Camera
 
