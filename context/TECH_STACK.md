@@ -142,6 +142,8 @@ Do not introduce a large UI component library without evaluating bundle size, RT
 
 ## 4. 3D Rendering Engine
 
+**Phase 03-A installation (2026-11-01):** `three` 0.187.0, `@react-three/fiber` 9.8.2, `@react-three/drei` 10.7.9, and development declarations `@types/three` 0.187.0 are pinned. Their npm peer requirements accept the existing React 19.3.1 and Three.js 0.187.0. The canvas uses demand rendering, DPR 1–1.5, no shadows or postprocessing, and a low-power WebGL preference. Browser/GPU behavior is pending real viewport verification.
+
 ### Three.js
 
 **Purpose:** Core 3D rendering technology.

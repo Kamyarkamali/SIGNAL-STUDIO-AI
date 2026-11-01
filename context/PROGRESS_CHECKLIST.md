@@ -88,14 +88,29 @@
 
 ## 5. Phase 03 — 3D Viewport & First Environment
 
-**Phase status:** Not started.
+**Phase status:** In progress. Phase 03-A was accepted after user-run browser checks on 2026-11-01. Phases 03-B and 03-C are not completed; overall Phase 03 remains open.
 
-- [ ] Build a stable Three.js / React Three Fiber viewport with camera controls.
+### Phase 03-A — Core 3D engine foundation (2026-11-01)
+
+- [x] Install and pin compatible Three.js, React Three Fiber, Drei, and Three type declarations. `npm ls` and typecheck confirmed the exact installed versions.
+- [x] Add a modular client-only Canvas with perspective editor camera, orbit/zoom, reference ground, lit test mesh, 16:9 container, demand rendering and DPR cap. The user confirmed visible 3D rendering, orbit, zoom, lighting and resizing in the manual browser acceptance run. The mesh is explicitly labeled temporary development content.
+- [x] Define and test a serializable production camera contract independent of editor controls. Camera validation tests passed.
+- [ ] Provide Persian WebGL-unavailable and initialization-failure states, context-loss handling and listener cleanup. Implemented and unit-tested; GPU failure appearance remains unverified in a browser.
+- [x] Verify actual Canvas rendering, orbit, zoom, lighting, resizing, navigation stability, project-management regression and absence of new browser console errors. The user confirmed all eight manual acceptance checks passed on 2026-11-01.
+
+**Evidence:** The user reported all eight Phase 03-A manual browser acceptance checks passed on 2026-11-01: 3D rendering, orbit, zoom, lighting, resizing, navigation stability, project-management regression and no new browser console errors. The final `npm run typecheck`, `npm run lint`, `npm test` (16/16), and `npm run build` all passed on 2026-11-01. WebGL-disabled fallback appearance and forced context-loss recovery were not part of the eight reported checks and remain unverified. **Phase 03-A accepted**; this does not close Phase 03.
+
+### Phase 03-B — First real environment (not started)
+
 - [ ] Register the initial **Podcast Studio** as a real environment asset.
-- [ ] Support resize, performance presets, fullscreen and missing-asset errors.
+- [ ] Implement an environment registry, real asset loading and missing-asset errors.
 - [ ] Do not present nonexistent alternative environments.
-- [ ] Verify viewport survives navigation, resize and reload without corrupting scene state.
-- [ ] Obtain Phase 03 approval.
+- [ ] Verify the real environment survives navigation, resize and reload without corrupting scene state.
+
+### Phase 03-C — Remaining Phase 03 integration (not started)
+
+- [ ] Complete and verify remaining Phase 03 viewport features and acceptance criteria after Phase 03-B, including quality and fullscreen behavior.
+- [ ] Obtain acceptance of the overall Phase 03 milestone.
 
 ## 6. Phase 04 — Character Models, Library & Scene Instances
 

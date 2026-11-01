@@ -5,7 +5,7 @@ import type { SectionId } from "@/config/navigation";
 import { MainNavigation } from "@/components/navigation/main-navigation";
 import { TopToolbar } from "./top-toolbar";
 import { SectionContent } from "./section-content";
-import { ViewportPlaceholder } from "./viewport-placeholder";
+import { StudioViewport } from "@/components/viewport/studio-viewport";
 import { PropertiesPanel } from "./properties-panel";
 import { TimelinePlaceholder } from "./timeline-placeholder";
 import { ProjectManager } from "@/components/projects/project-manager";
@@ -36,7 +36,7 @@ export function EditorShell() {
           <div className="grid grid-cols-[minmax(0,1fr)_260px] items-stretch gap-4 max-[1120px]:grid-cols-[minmax(0,1fr)_220px] max-[850px]:grid-cols-[minmax(0,1fr)_210px] max-[650px]:flex max-[650px]:flex-col max-[650px]:gap-2.5">
             <div className="flex min-w-0 flex-col gap-3.5">
               {activeSection === "projects" ? <ProjectManager projects={projects} /> : <SectionContent section={activeSection} />}
-              <ViewportPlaceholder />
+              <StudioViewport />
             </div>
             <PropertiesPanel section={activeSection} projectTitle={projects.active?.title} />
           </div>

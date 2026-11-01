@@ -1,7 +1,7 @@
 # Signal Studio AI — Bug Tracker
 
 **Path:** `context/BUG_TRACKER.md`  
-**Status:** Phase 02 accepted; remaining Phase 01 observations tracked  
+**Status:** Phase 03-A accepted; Phase 03 remains open
 **Product:** Local-only Windows 3D animation editor
 
 ## Purpose
@@ -19,6 +19,8 @@ Severity:
 - `P3`: cosmetic issue or minor usability defect.
 
 ## Bugs and observations — new project
+
+**Phase 03-A acceptance (2026-11-01):** The user reported all eight manual browser checks passed: visible 3D rendering, orbit, zoom, lighting, resizing, navigation stability, project-management regression, and no new browser console errors. No new Phase 03-A application defect was reported. The earlier browser-unavailable observation applied to the agent's environment before the user-run check. Forced WebGL failure/context-loss behavior was not included in the report and remains unverified. npm reported 16 moderate dependency advisories at installation; they were not triaged in this phase. Existing Phase 01 observations retain their recorded statuses unless independently rechecked.
 
 ### BUG-0001 — Mobile preview frame could lose 16:9 ratio
 

@@ -85,6 +85,8 @@ The architecture anticipates later features, but implementation must not build u
 
 ## 6. Phase 03 — 3D Viewport and First Environment
 
+**Approved split (2026-11-01):** Phase 03-A covers only the core interactive 3D engine: Three.js, React Three Fiber, Drei, WebGL canvas, editor orbit/zoom camera, serializable production camera contract, reference ground/test mesh, responsive 16:9 sizing, failure feedback, and resource cleanup. The test mesh is temporary development content. Phase 03-B is the first real Podcast Studio environment, environment registry and asset loading. Phase 03-C covers the remaining Phase 03 viewport features and integration acceptance. Completion of 03-A does not complete Phase 03.
+
 **Goal:** A stable real 3D canvas and reusable environment definition.
 
 **Scope:** React Three Fiber/Three.js, camera controls, 16:9 framing, quality presets, fullscreen and reliable click-to-play/pause shell (playback functionality grows later), asset loading, only the real podcast studio environment. Environment registry with stable IDs. Distinguish edit camera from output camera.

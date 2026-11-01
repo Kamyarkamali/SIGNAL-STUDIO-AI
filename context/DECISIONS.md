@@ -115,6 +115,14 @@ Use IDs `ADR-001`, `ADR-002`, etc. Each entry states **Decision**, **Reason**, *
 
 ## Pending decisions
 
+### ADR-016 — Phase 03-A viewport foundation
+- **Status:** ACCEPTED
+- **Decision:** Use pinned Three.js 0.187.0, React Three Fiber 9.8.2, Drei 10.7.9 and `@types/three` 0.187.0 with the existing React 19.3.1. Keep the Canvas in a client-only component, separate editor orbit controls from a validated serializable production camera configuration, and use demand rendering with bounded DPR. Render only a labeled temporary test mesh and reference ground in 03-A.
+- **Reason:** Establish and test the rendering boundary before adding environment assets or scene persistence.
+- **Trade-offs:** No real environment or production-camera preview yet; browser/GPU verification remains required.
+- **Revisit trigger:** Phase 03-B asset integration or observed compatibility/performance issue.
+
+
 
 - Confirm local runtime packaging/launch workflow (browser + localhost vs desktop wrapper) after a minimal proof.
 - Choose exact project storage format and backups in persistence phase.
