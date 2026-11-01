@@ -143,6 +143,13 @@ Use IDs `ADR-001`, `ADR-002`, etc. Each entry states **Decision**, **Reason**, *
 - **Trade-offs:** Only one arrangement per project is editable in 03-C; real viewport interaction, integrated-GPU performance, and fullscreen/quality behavior need browser acceptance evidence.
 - **Revisit trigger:** Phase 05 scene model and Phase 05-B scene-local arrangement migration.
 
+### ADR-020 — Phase 03-D Studio 01 visual treatment
+- **Status:** ACCEPTED after the user's 16/16 manual acceptance report (2026-11-02)
+- **Decision:** Refine the existing Studio 01 prop renderers and local light rig while keeping prop IDs, default transforms, project schema, editor camera and production-camera metadata unchanged. Use lightweight rounded furniture edges, layered surface detail and a separate laptop display mesh. Avoid postprocessing, shadow maps and large texture assets.
+- **Reason:** Improve wide and close-view readability without migrating saved arrangements or coupling the core viewport to one environment.
+- **Trade-offs:** Added meshes and rounded edges increase draw calls; measured integrated-GPU performance and final visual quality require browser review. Phase 05-B now focuses on scene-local arrangements rather than repeating this visual upgrade.
+- **Revisit trigger:** Browser acceptance reveals occlusion, aliasing or responsiveness problems on target hardware.
+
 ## Pending decisions
 
 

@@ -1,9 +1,9 @@
 # Signal Studio AI — Development Roadmap
 
 **Document:** `context/ROADMAP.md`  
-**Status:** Phases 03-A and 03-B accepted; later phases are planned and require separate approval
+**Status:** Phases 03-A through 03-D accepted; overall Phase 03 remains open; later phases require separate approval
 **Target:** Single-user Windows local application, Persian RTL editor  
-**Current stage:** Phase 03-C implementation under verification; overall Phase 03 remains open.
+**Current stage:** Phase 03-D accepted after the user's 16/16 manual acceptance report. Overall Phase 03 remains open because unrelated checks are pending.
 
 ## 1. Roadmap Rules
 
@@ -91,6 +91,8 @@ The architecture anticipates later features, but implementation must not build u
 
 **Approved split (2026-11-01; 03-C scope expanded by explicit user request on 2026-11-02):** Phase 03-A covers the core interactive 3D engine. Phase 03-B is the accepted Podcast Studio and environment registry. Phase 03-C adds a project-level editable arrangement with safe v1 migration, viewport/panel selection, prop add/remove/restore/visibility/transforms/duplication and actual local save/reload. Fullscreen, quality controls and remaining viewport integration checks from the original Phase 03 plan remain acceptance work unless separately verified. No scene-local editing is claimed before the scene system exists.
 
+**Phase 03-D (accepted 2026-11-02 after 16/16 user-reported manual checks):** Refine only Studio 01 geometry, materials and inexpensive lighting while retaining every prop ID, default transform, editor command and project schema. The user reported passing visual, laptop, editing, persistence, camera, performance and console checks. Exact per-test steps and FPS figures were not supplied; unrelated and more specific checks remain open in the progress checklist. Media playback and new environments remain out of scope.
+
 **Goal:** A stable real 3D canvas and reusable environment definition.
 
 **Scope:** React Three Fiber/Three.js, camera controls, 16:9 framing, quality presets, fullscreen and reliable click-to-play/pause shell (playback functionality grows later), asset loading, only the real podcast studio environment. Environment registry with stable IDs. Distinguish edit camera from output camera.
@@ -123,7 +125,7 @@ The architecture anticipates later features, but implementation must not build u
 
 **Goal:** Extend the 03-C project-level arrangement to independent scene arrangements after the scene system exists, while preserving reusable prop definitions and the accepted Studio 01 architecture.
 
-**Scope:** Add scene-local overrides and migration from the 03-C project-level arrangement; keep all existing prop operations independent per scene. Refine existing podcast furniture, laptop proportions, materials and lighting for visual consistency on integrated graphics without a needless renderer or schema redesign.
+**Scope:** Add scene-local overrides and migration from the 03-C project-level arrangement; keep all existing prop operations independent per scene. Preserve the Studio 01 visual work from Phase 03-D while adapting arrangements to scenes; any later visual adjustments require separate evidence and must not redesign the renderer or schema unnecessarily.
 
 **Acceptance:** A user edits the studio props in Scene 2, saves and reopens, and Scene 1 and reusable definitions remain unchanged. Duplicate instances move independently. Selection and transforms work from viewport and Persian controls, with no phantom assets. Before/after browser views verify the host-facing laptop and useful camera sightlines; performance is measured on target integrated graphics without an unjustified regression.
 

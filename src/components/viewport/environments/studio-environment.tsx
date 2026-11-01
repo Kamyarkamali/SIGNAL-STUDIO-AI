@@ -15,10 +15,11 @@ import { Laptop, Plant, PodcastMicrophone, PracticalLights, WallArt } from "./st
 
 function StudioLighting() {
   return <>
-    <ambientLight intensity={0.9} />
-    <hemisphereLight args={["#b9d9d4", "#4e3f36", 1.15]} />
-    <directionalLight position={[1, 5, 5]} intensity={1.6} color="#fff2dd" />
-    <directionalLight position={[-4, 3.2, 0]} intensity={0.75} color="#9bd5d5" />
+    <ambientLight intensity={0.55} />
+    <hemisphereLight args={["#b9d9d4", "#4e3f36", 0.86]} />
+    <directionalLight position={[1, 5, 5]} intensity={1.65} color="#fff1d8" />
+    <directionalLight position={[-4, 3.2, 0]} intensity={0.55} color="#9bd5d5" />
+    <directionalLight position={[1.5, 3.8, -3.5]} intensity={0.34} color="#a9d5ce" />
   </>;
 }
 

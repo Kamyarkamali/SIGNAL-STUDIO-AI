@@ -88,7 +88,7 @@
 
 ## 5. Phase 03 — 3D Viewport & First Environment
 
-**Phase status:** In progress. Phase 03-A and 03-B are accepted after user-run browser checks. Phase 03-C is implemented but browser acceptance is pending; overall Phase 03 remains open.
+**Phase status:** In progress. Phases 03-A, 03-B, 03-C and 03-D are accepted; individual unreported browser checks and overall Phase 03 acceptance remain open.
 
 ### Phase 03-A — Core 3D engine foundation (2026-11-01)
 
@@ -119,7 +119,7 @@
 
 **Future scope recorded, not implemented:** Phase 05-B is planned for independent scene props and Studio 01 visual refinement; 06-B for image/video/off display assignment and basic playback; 07 for deterministic display-state events and master-timeline source-video timing; 09 for cinematic camera modes and events; 11 for synchronized offline output. These phases require separate implementation and verification. None of their controls or acceptance criteria are checked by the 03-B report.
 
-### Phase 03-C — Project-level studio prop editor (implemented / partial user verification)
+### Phase 03-C — Project-level studio prop editor (accepted 2026-11-02; detailed checks pending)
 
 - [x] User confirmed that the dynamic prop editor works after opening an active project (2026-11-02). This is a general interactive check, not separate evidence for every operation below.
 
@@ -132,6 +132,22 @@
 - [ ] Obtain acceptance of the overall Phase 03 milestone.
 
 **Phase 03-C evidence (2026-11-02):** Source and test review confirm project-level schema v2, safe in-memory v1 migration, atomic save/backups and independent prop operations. `npm run typecheck`, `npm run lint`, `npm test` (27/27) and `npm run build` passed. The user confirmed that the dynamic prop editor works after opening an active project. The report did not identify which individual selection, visibility, transform, persistence, responsive, console or performance checks were exercised; these remain pending above. The agent's computer-use inventory exposed no apps or browsers for an independent check. No character, audio, educational display, cinematic camera or export feature was added. Overall Phase 03 acceptance remains pending.
+
+**Phase 03-C acceptance (2026-11-02):** The user explicitly accepted the committed Phase 03-C implementation (`b2c566b`) and authorized Phase 03-D. The acceptance does not supply results for the individual unchecked browser cases above; those remain pending. Overall Phase 03 is still open.
+
+### Phase 03-D — Studio 01 visual refinement (accepted 2026-11-02)
+
+- [x] User reported **16/16 manual acceptance tests passed** after the visual upgrade. Reported areas: studio visual quality, furniture proportions, materials, lighting, laptop orientation, object editing, persistence, camera functionality, performance and browser console. Exact per-test steps, screenshots and FPS measurements were not supplied.
+
+- [ ] Inspect refined room, furniture, laptop, microphones, bookshelf, plants and lights from wide and close camera angles in a real browser; judge proportions, material balance, intersections and sightlines.
+- [ ] Confirm the laptop display faces the host, the keyboard and hinge align, and future character seats and microphones remain usable in the rendered scene.
+- [ ] Recheck Phase 03-C selection, transform gizmos, visibility, add/duplicate/remove/restore, save/reopen and independent projects against the refined visuals.
+- [ ] Measure or observe responsiveness on integrated Radeon graphics and inspect the browser console for new errors.
+- [x] Obtain user visual acceptance for Phase 03-D. The user explicitly accepted the phase after reporting 16/16 manual checks passed.
+
+**Phase 03-D implementation evidence (2026-11-02, before user acceptance):** `npm run typecheck`, `npm run lint`, `npm test` (28/28) and `npm run build` passed. The new geometry test checks the unchanged laptop/desk origins, host-facing display placement, frame bounds and tilt. The computer-use inventory returned no browser or app, so the agent could not independently verify rendered appearance, editor interaction after refinement or target-GPU responsiveness. The later user report below supplies manual evidence for its stated areas.
+
+**Phase 03-D user acceptance (2026-11-02):** The user confirmed all **16/16 manual acceptance tests passed**, covering the reported visual, editing, persistence, camera, performance and console areas above. This supersedes the agent's browser-unavailable observation for those reported areas. The unchecked detailed cases above and unrelated WebGL failure, fullscreen/quality and overall Phase 03 checks stay open where the report gives no individual result. **Phase 03-D accepted.**
 
 ## 6. Phase 04 — Character Models, Library & Scene Instances
 

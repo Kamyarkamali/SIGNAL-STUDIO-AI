@@ -1,7 +1,7 @@
 # Signal Studio AI — Bug Tracker
 
 **Path:** `context/BUG_TRACKER.md`  
-**Status:** Phase 03-A and 03-B accepted; Phase 03 remains open
+**Status:** Phase 03-A, 03-B, 03-C and 03-D accepted; Phase 03 remains open
 **Product:** Local-only Windows 3D animation editor
 
 ## Purpose
@@ -19,6 +19,12 @@ Severity:
 - `P3`: cosmetic issue or minor usability defect.
 
 ## Bugs and observations — new project
+
+**Phase 03-C acceptance (2026-11-02):** The user explicitly accepted the committed implementation (`b2c566b`) after manual verification and authorized Phase 03-D. The report did not include separate outcomes for each interactive check listed in `PROGRESS_CHECKLIST.md`; those retain pending status. No additional defect was reported.
+
+**Phase 03-D implementation review (2026-11-02, before user acceptance):** Studio 01 geometry and lighting were refined without changing stored prop identities or project schema. Typecheck, lint, 28/28 tests and production build passed. The computer-use inventory returned no browser or app, so source and automated tests alone could not establish rendered appearance or GPU performance. The later user report below supersedes this limit for its stated checks.
+
+**Phase 03-D user verification (2026-11-02):** The user reported **16/16 manual acceptance checks passed**, including visual quality, furniture proportions, materials, lighting, host-facing laptop, object editing, persistence, camera behavior, performance and browser console. No new defect was reported. This verifies those reported areas despite the agent's unavailable browser; exact per-test steps, screenshots and FPS figures were not supplied. Unreported detailed and unrelated checks remain pending in `PROGRESS_CHECKLIST.md`. Phase 03-D is accepted; overall Phase 03 remains open.
 
 **Phase 03-C interactive report (2026-11-02):** The user confirmed that the dynamic prop editor works after opening an active project. No new application defect was reported. This does not establish separate results for each selection, gizmo, visibility, save/reopen, responsive, console or integrated-GPU check; those remain pending in `PROGRESS_CHECKLIST.md`. The agent's computer-use inventory exposed no browser for independent verification.
 

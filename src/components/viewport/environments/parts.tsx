@@ -1,4 +1,5 @@
 import type { Vec3 } from "@/lib/environments/environment-registry";
+import { RoundedBox } from "@react-three/drei";
 
 type Finish = {
   color: string;
@@ -50,4 +51,18 @@ export function CylinderPart({
       <meshStandardMaterial {...finish} />
     </mesh>
   );
+}
+
+export function RoundedBoxPart({
+  size, position, rotation, finish, radius = 0.04,
+}: {
+  size: Vec3;
+  position: Vec3;
+  rotation?: Vec3;
+  finish: Finish;
+  radius?: number;
+}) {
+  return <RoundedBox args={size} radius={radius} smoothness={2} position={position} rotation={rotation}>
+    <meshStandardMaterial {...finish} />
+  </RoundedBox>;
 }

@@ -1,7 +1,7 @@
 import { BoxPart, CylinderPart } from "./parts";
 
-const wall = { color: "#242b32", roughness: 0.92 };
-const walnut = { color: "#634836", roughness: 0.78 };
+const wall = { color: "#293239", roughness: 0.94 };
+const walnut = { color: "#72513c", roughness: 0.76 };
 const trim = { color: "#101b22", roughness: 0.64, metalness: 0.3 };
 
 export function RoomShell() {
@@ -9,11 +9,14 @@ export function RoomShell() {
     <BoxPart size={[11.2, 0.18, 8.9]} position={[0, -0.12, 0]} finish={{ color: "#17252b", roughness: 0.95 }} />
     {Array.from({ length: 11 }, (_, index) => <BoxPart key={index} size={[0.995, 0.025, 8.72]}
       position={[-5.0 + index, -0.015, 0]} finish={{ color: index % 3 === 0 ? "#59493c" : "#6c5543", roughness: 0.83 }} />)}
+    {Array.from({ length: 11 }, (_, index) => <BoxPart key={`seam-${index}`} size={[0.008, 0.004, 8.7]}
+      position={[-4.5 + index, 0.002, 0]} finish={{ color: "#3b332d", roughness: 1 }} />)}
     <BoxPart size={[11.2, 4.8, 0.18]} position={[0, 2.35, -4.43]} finish={wall} />
     <BoxPart size={[0.18, 4.8, 8.9]} position={[-5.58, 2.35, 0]} finish={wall} />
     {[-3.35, -2.25, -1.15, -0.05, 1.05, 2.15, 3.25].map((z) => <BoxPart key={z}
       size={[0.09, 2.95, 0.25]} position={[-5.44, 2.35, z]} finish={walnut} />)}
     <BoxPart size={[11.2, 0.13, 0.24]} position={[0, 0.13, -4.27]} finish={trim} />
+    <BoxPart size={[11.0, 0.025, 0.04]} position={[0, 0.23, -4.16]} finish={{ color: "#926c4d", roughness: 0.68 }} />
     <BoxPart size={[11.2, 0.14, 0.26]} position={[0, 4.68, -4.25]} finish={trim} />
     <BoxPart size={[0.22, 4.7, 0.22]} position={[-5.44, 2.35, -4.26]} finish={trim} />
     <BoxPart size={[0.22, 4.7, 0.22]} position={[5.44, 2.35, -4.26]} finish={trim} />
@@ -23,6 +26,8 @@ export function RoomShell() {
 export function AcousticWall() {
   return <group>
     <BoxPart size={[5.8, 3.65, 0.1]} position={[0, 2.55, -4.3]} finish={{ color: "#17262c", roughness: 0.98 }} />
+    {[-1.9, -0.95, 0, 0.95, 1.9].map((x) => <BoxPart key={`felt-${x}`} size={[0.78, 2.9, 0.045]}
+      position={[x, 2.55, -4.235]} finish={{ color: x === 0 ? "#263c41" : "#23343a", roughness: 1 }} />)}
     {Array.from({ length: 19 }, (_, index) => <BoxPart key={index} size={[0.12, 3.42, 0.095]}
       position={[-2.65 + index * 0.295, 2.52, -4.2]} finish={walnut} />)}
     <BoxPart size={[5.95, 0.08, 0.15]} position={[0, 4.43, -4.17]} finish={trim} />

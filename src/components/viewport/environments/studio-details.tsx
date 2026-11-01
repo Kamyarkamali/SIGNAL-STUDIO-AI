@@ -1,22 +1,32 @@
-import { BoxPart, CylinderPart } from "./parts";
+import { BoxPart, CylinderPart, RoundedBoxPart } from "./parts";
+import { laptopVisualSpec } from "@/lib/environments/studio-visual-spec";
 
 const graphite = { color: "#1b252b", roughness: 0.56, metalness: 0.45 };
 
 export function Laptop() {
   return <group>
-    <BoxPart size={[0.93, 0.045, 0.62]} position={[0, 0.045, 0.03]} finish={{ color: "#65747a", roughness: 0.42, metalness: 0.55 }} />
-    <BoxPart size={[0.86, 0.009, 0.4]} position={[0, 0.072, 0.08]} finish={{ color: "#293339", roughness: 0.63 }} />
-    <BoxPart size={[0.24, 0.008, 0.12]} position={[0, 0.078, 0.27]} finish={{ color: "#819095", roughness: 0.5 }} />
-    <group position={[0, 0.11, -0.29]} rotation={[-0.16, 0, 0]}>
-      <BoxPart size={[0.9, 0.44, 0.035]} position={[0, 0.22, 0]}
-        finish={{ color: "#37444a", roughness: 0.45, metalness: 0.4 }} />
+    <RoundedBoxPart size={laptopVisualSpec.baseSize} position={[0, 0.045, 0.03]} radius={0.017}
+      finish={{ color: "#68777d", roughness: 0.39, metalness: 0.62 }} />
+    <RoundedBoxPart size={[0.88, 0.009, 0.42]} position={[0, 0.072, 0.075]} radius={0.004}
+      finish={{ color: "#253036", roughness: 0.7 }} />
+    {Array.from({ length: 5 }, (_, row) => <BoxPart key={row} size={[0.78, 0.004, 0.052]}
+      position={[0, 0.079, laptopVisualSpec.keyboardCenterZ - 0.162 + row * 0.07]} finish={{ color: "#3d4a50", roughness: 0.72 }} />)}
+    {Array.from({ length: 10 }, (_, column) => <BoxPart key={`key-gap-${column}`} size={[0.004, 0.005, 0.34]}
+      position={[-0.317 + column * 0.07, 0.082, laptopVisualSpec.keyboardCenterZ - 0.022]} finish={{ color: "#253036", roughness: 0.75 }} />)}
+    <RoundedBoxPart size={[0.24, 0.004, 0.12]} position={[0, 0.079, 0.27]} radius={0.002}
+      finish={{ color: "#89979a", roughness: 0.47, metalness: 0.42 }} />
+    <CylinderPart radiusTop={0.014} height={0.84} position={[0, 0.09, laptopVisualSpec.hingeZ + 0.005]} rotation={[0, 0, Math.PI / 2]}
+      finish={{ color: "#404c52", roughness: 0.4, metalness: 0.75 }} />
+    <group position={[0, 0.11, laptopVisualSpec.hingeZ]} rotation={[laptopVisualSpec.screenTilt, 0, 0]}>
+      <RoundedBoxPart size={laptopVisualSpec.screenFrameSize} position={[0, laptopVisualSpec.screenCenter[1], 0]} radius={0.014}
+        finish={{ color: "#36434a", roughness: 0.42, metalness: 0.5 }} />
       {/* The display is on local +Z, facing the seated user after the laptop's 180° turn. */}
-      <BoxPart size={[0.8, 0.35, 0.007]} position={[0, 0.22, 0.022]}
-        finish={{ color: "#182e39", emissive: "#173f4b", emissiveIntensity: 0.32, roughness: 0.5 }} />
-      <BoxPart size={[0.5, 0.025, 0.008]} position={[0, 0.27, 0.027]}
-        finish={{ color: "#65ada9", emissive: "#2b7f7c", emissiveIntensity: 0.7 }} />
-      <BoxPart size={[0.3, 0.018, 0.008]} position={[-0.1, 0.18, 0.027]}
-        finish={{ color: "#b4bbb2", roughness: 0.7 }} />
+      <mesh name="display-surface" position={laptopVisualSpec.screenCenter}>
+        <planeGeometry args={laptopVisualSpec.screenSurfaceSize} />
+        <meshStandardMaterial color="#122a34" emissive="#17414a" emissiveIntensity={0.24} roughness={0.47} metalness={0.08} />
+      </mesh>
+      <CylinderPart radiusTop={0.006} height={0.003} position={[0, 0.453, 0.023]} rotation={[Math.PI / 2, 0, 0]}
+        finish={{ color: "#687b81", roughness: 0.48 }} />
     </group>
   </group>;
 }
@@ -25,11 +35,14 @@ export function PodcastMicrophone() {
   return <group>
     <CylinderPart radiusTop={0.14} height={0.035} position={[0, 0.025, 0]} finish={graphite} />
     <CylinderPart radiusTop={0.025} height={0.4} position={[0, 0.23, 0]} finish={graphite} />
+    <CylinderPart radiusTop={0.036} height={0.045} position={[0, 0.42, 0]} finish={{ color: "#889b9d", roughness: 0.36, metalness: 0.7 }} />
     <CylinderPart radiusTop={0.024} height={0.5} position={[0, 0.43, -0.23]} rotation={[Math.PI / 2, 0, 0]} finish={graphite} />
     <CylinderPart radiusTop={0.09} radiusBottom={0.075} height={0.24} position={[0, 0.43, -0.49]} rotation={[Math.PI / 2, 0, 0]}
       finish={{ color: "#36434a", roughness: 0.73, metalness: 0.35 }} />
     <CylinderPart radiusTop={0.095} height={0.035} position={[0, 0.43, -0.61]} rotation={[Math.PI / 2, 0, 0]}
       finish={{ color: "#a0a9a4", roughness: 0.4, metalness: 0.6 }} />
+    <CylinderPart radiusTop={0.077} height={0.006} position={[0, 0.43, -0.635]} rotation={[Math.PI / 2, 0, 0]}
+      finish={{ color: "#202d32", roughness: 0.85 }} />
   </group>;
 }
 
@@ -41,7 +54,7 @@ export function PracticalLights() {
         finish={{ color: "#6f513d", roughness: 0.6, metalness: 0.22 }} />
       <CylinderPart radiusTop={0.245} height={0.035} position={[x, 3.61, -1.7]}
         finish={{ color: "#e1ad70", emissive: "#d68d43", emissiveIntensity: 1.2, roughness: 0.5 }} />
-      <pointLight position={[x, 3.46, -1.7]} color="#ffca88" intensity={0.7} distance={4} decay={2} />
+      <pointLight position={[x, 3.46, -1.7]} color="#ffca88" intensity={0.48} distance={3.5} decay={2} />
     </group>)}
     <BoxPart size={[2.7, 0.05, 0.12]} position={[0, 4.23, -4.12]}
       finish={{ color: "#a9dad2", emissive: "#479e9b", emissiveIntensity: 0.8 }} />
@@ -52,11 +65,13 @@ export function Plant() {
   return <group>
     <CylinderPart radiusTop={0.31} radiusBottom={0.24} height={0.55} position={[0, 0.3, 0]}
       finish={{ color: "#9b8977", roughness: 0.95 }} />
+    <CylinderPart radiusTop={0.285} height={0.045} position={[0, 0.55, 0]}
+      finish={{ color: "#b1a08a", roughness: 0.78 }} />
     <CylinderPart radiusTop={0.045} height={1.0} position={[0, 0.92, 0]} finish={{ color: "#3f5b3b", roughness: 1 }} />
-    {[-0.65, 0, 0.65].map((angle, index) => <group key={index} rotation={[0, angle, 0]}>
-      <mesh position={[0.22, 1.25 + index * 0.13, 0]} rotation={[0, 0, -0.42]}>
-        <coneGeometry args={[0.31, 0.8, 6]} />
-        <meshStandardMaterial color={index === 1 ? "#4d7963" : "#426c58"} roughness={1} />
+    {[-1.2, -0.6, 0, 0.6, 1.2].map((angle, index) => <group key={index} rotation={[0, angle, 0]}>
+      <mesh position={[0.24, 1.06 + index * 0.095, 0]} rotation={[0, 0, -0.58]}>
+        <coneGeometry args={[0.22, 0.7, 5]} />
+        <meshStandardMaterial color={index % 2 ? "#4d7963" : "#426c58"} roughness={1} side={2} />
       </mesh>
     </group>)}
   </group>;

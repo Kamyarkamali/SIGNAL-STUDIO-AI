@@ -4,6 +4,7 @@ import { createEnvironmentRegistry, copyDefaultProps } from "../src/lib/environm
 import { environmentRegistry } from "../src/lib/environments/registry.ts";
 import { STUDIO_01, STUDIO_01_ID } from "../src/lib/environments/studio-01.ts";
 import { productionCameraSchema } from "../src/lib/camera/production-camera.ts";
+import { laptopVisualSpec } from "../src/lib/environments/studio-visual-spec.ts";
 
 test("only the real studio is registered with a stable environment ID", () => {
   assert.equal(environmentRegistry.list().length, 1);
@@ -77,6 +78,21 @@ test("host laptop and microphones serve the seated participants, not the audienc
   assert.ok(byId("guest-table"), "guest microphone has a dedicated support surface");
 });
 
+test("refined laptop keeps a usable host-facing display inside its frame and preserves saved prop origins", () => {
+  const laptop = STUDIO_01.defaultProps.find((prop) => prop.id === "studio-01:laptop");
+  const desk = STUDIO_01.defaultProps.find((prop) => prop.id === "studio-01:desk");
+  assert.deepEqual(laptop.transform.position, [-1.4, 1.18, -0.43]);
+  assert.deepEqual(laptop.transform.rotation, [0, Math.PI, 0]);
+  assert.deepEqual(desk.transform.position, [0, 0, 0]);
+  assert.ok(laptopVisualSpec.keyboardCenterZ > laptopVisualSpec.hingeZ);
+  assert.ok(laptopVisualSpec.screenCenter[2] > laptopVisualSpec.screenFrameSize[2] / 2,
+    "screen surface must sit in front of the bezel toward the host");
+  assert.ok(laptopVisualSpec.screenSurfaceSize[0] < laptopVisualSpec.screenFrameSize[0]);
+  assert.ok(laptopVisualSpec.screenSurfaceSize[1] < laptopVisualSpec.screenFrameSize[1]);
+  assert.ok(Math.abs(laptopVisualSpec.screenTilt) < 0.35);
+  assert.ok(laptopVisualSpec.baseSize[2] / 2 > Math.abs(laptopVisualSpec.hingeZ));
+});
+
 test("camera and future character anchors are finite and separated", () => {
   for (const camera of Object.values(STUDIO_01.cameraAnchors)) {
     assert.equal(productionCameraSchema.safeParse(camera).success, true);
@@ -127,8 +143,8 @@ test("left-seat close-up eye line clears the host-facing laptop display", () => 
   const laptop = STUDIO_01.defaultProps.find((prop) => prop.id === "studio-01:laptop");
   const camera = STUDIO_01.cameraAnchors["seat-left-close"];
   // Laptop display top is local base + hinge height + panel height; this is a coarse geometry guard.
-  const displayTop = laptop.transform.position[1] + 0.11 + 0.44;
-  const displayZ = laptop.transform.position[2] + 0.29;
+  const displayTop = laptop.transform.position[1] + 0.11 + laptopVisualSpec.screenFrameSize[1];
+  const displayZ = laptop.transform.position[2] - laptopVisualSpec.hingeZ;
   const progress = (camera.position[2] - displayZ) / (camera.position[2] - camera.target[2]);
   const sightlineY = camera.position[1] + (camera.target[1] - camera.position[1]) * progress;
   assert.ok(sightlineY > displayTop + 0.08, "the laptop must stay below the close-up face sightline");
