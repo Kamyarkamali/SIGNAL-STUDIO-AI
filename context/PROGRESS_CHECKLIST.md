@@ -117,7 +117,7 @@
 
 **User manual acceptance (2026-11-02):** The user confirmed **12/12 Phase 03-B browser checks passed**. Reported checks cover the studio composition, host-facing laptop, furniture arrangement, lighting, character placement space, orbit and zoom, 16:9 resize behavior, project regressions, browser console and performance. This supersedes the agent's earlier browser-unavailable limit for those tested areas. No screenshots, console transcript, FPS figures or separate 9:16/cinematic-camera test evidence were supplied. **Phase 03-B accepted**; Phase 03-C and overall Phase 03 remain open.
 
-**Future scope recorded, not implemented:** Phase 05-B is planned for independent scene props and Studio 01 visual refinement; 06-B for image/video/off display assignment and basic playback; 07 for deterministic display-state events and master-timeline source-video timing; 09 for cinematic camera modes and events; 11 for synchronized offline output. These phases require separate implementation and verification. None of their controls or acceptance criteria are checked by the 03-B report.
+**Future scope recorded, not implemented at that review:** Phase 05-B remains scene-local arrangements; Phase 03-E now implements basic image/video/off display on the laptop only; Phase 06-B extends media display to additional props; Phase 07 covers deterministic display-state timeline events and master-timeline source-video timing; Phase 09 covers cinematic camera modes/events; Phase 11 covers synchronized offline output. These are independent scopes and none of the latter features are implied by basic laptop display playback.
 
 ### Phase 03-C — Project-level studio prop editor (accepted 2026-11-02; detailed checks pending)
 
@@ -148,6 +148,22 @@
 **Phase 03-D implementation evidence (2026-11-02, before user acceptance):** `npm run typecheck`, `npm run lint`, `npm test` (28/28) and `npm run build` passed. The new geometry test checks the unchanged laptop/desk origins, host-facing display placement, frame bounds and tilt. The computer-use inventory returned no browser or app, so the agent could not independently verify rendered appearance, editor interaction after refinement or target-GPU responsiveness. The later user report below supplies manual evidence for its stated areas.
 
 **Phase 03-D user acceptance (2026-11-02):** The user confirmed all **16/16 manual acceptance tests passed**, covering the reported visual, editing, persistence, camera, performance and console areas above. This supersedes the agent's browser-unavailable observation for those reported areas. The unchecked detailed cases above and unrelated WebGL failure, fullscreen/quality and overall Phase 03 checks stay open where the report gives no individual result. **Phase 03-D accepted.**
+
+### Phase 03-E — Laptop educational display
+
+- [x] Implement project schema v3 with safe v1/v2 in-memory migration; persist display assignments separately from prop definitions; preserve associated image/video asset IDs while off.
+- [x] Import PNG/JPEG/WebP and MP4/WebM into project-local managed asset directories, validate MIME signatures and size, and serve media through local project-scoped routes with byte-range support.
+- [x] Render media texture on the actual named laptop screen surface under its parent transform; implement contain/cover fitting, brightness, low-cost reflection, and basic video play/pause.
+- [x] Add editor-only close-up inspection that saves/restores editor camera and leaves production camera metadata unchanged.
+- [x] Add automated schema migration, off-state retention, aspect-fit and project asset-directory tests.
+- [x] User confirmed all 13 Phase 03-E manual browser acceptance tests passed, including the image, video, off-state, transform, inspection and rendered behavior criteria. Individual test names/results were not enumerated in the report.
+- [x] User explicitly accepted Phase 03-E (2026-11-03).
+
+**Phase 03-E implementation evidence (2026-11-02):** Project schema v3, project-local image/video management and the R3F laptop display surface are implemented. Automated tests cover contain/cover geometry, v2 migration, off-state retention, managed upload, save/reopen and project duplication. The earlier computer-use inventory had no available browser/apps; the later user run recorded below supersedes that limitation for its reported tests.
+
+**Phase 03-E user acceptance (2026-11-03):** The user explicitly confirmed **all 13/13 manual browser acceptance tests passed** and accepted Phase 03-E. This confirms the phase's required browser acceptance as reported. The user did not provide individual test names, screenshots, console transcript or performance measurements; no extra detail beyond the 13/13 result is inferred. **Phase 03-E accepted.** Unrelated Phase 03 checks above remain open, and overall Phase 03 is not marked complete.
+
+**Phase 03-E finalization checks (2026-11-03):** `npm run typecheck`, `npm run lint`, `npm test` (33/33) and `npm run build` passed after acceptance. `git diff --check` passed. `.env`/`.env.local`, `node_modules`, and `.next` match `.gitignore`; no user project data, secrets, caches or temporary files appeared in the working tree.
 
 ## 6. Phase 04 — Character Models, Library & Scene Instances
 

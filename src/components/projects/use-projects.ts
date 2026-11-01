@@ -15,19 +15,23 @@ export function useProjects() {
   const [active, setActive] = useState<ProjectDocument | null>(null);
   const [draftName, setDraftName] = useState("");
   const [arrangement, setArrangement] = useState<EnvironmentArrangement | null>(null);
+  const [displayAssignments, setDisplayAssignments] = useState<ProjectDocument["displayAssignments"]>({});
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const activeRef = useRef<ProjectDocument | null>(null);
   const draftRef = useRef("");
   const arrangementRef = useRef<EnvironmentArrangement | null>(null);
+  const displayRef = useRef<ProjectDocument["displayAssignments"]>({});
   const pendingSave = useRef<Promise<void> | null>(null);
 
   const select = useCallback((project: ProjectDocument | null) => {
     activeRef.current = project;
     draftRef.current = project?.title ?? "";
     arrangementRef.current = project?.environmentArrangement ?? null;
+    displayRef.current = project?.displayAssignments ?? {};
     setActive(project);
     setDraftName(project?.title ?? "");
     setArrangement(project?.environmentArrangement ?? null);
+    setDisplayAssignments(project?.displayAssignments ?? {});
     setSaveStatus("saved");
     try {
       if (project) sessionStorage.setItem("signal-studio-active-project", project.id);
@@ -74,8 +78,17 @@ export function useProjects() {
     setSaveStatus("dirty");
   };
 
+  const editDisplay = (propId: string, assignment: ProjectDocument["displayAssignments"][string]) => {
+    if (!activeRef.current) return;
+    const next = { ...displayRef.current, [propId]: assignment };
+    displayRef.current = next;
+    setDisplayAssignments(next);
+    setSaveStatus("dirty");
+  };
+
   const hasChanges = () => activeRef.current && (draftRef.current.trim() !== activeRef.current.title ||
-    JSON.stringify(arrangementRef.current) !== JSON.stringify(activeRef.current.environmentArrangement));
+    JSON.stringify(arrangementRef.current) !== JSON.stringify(activeRef.current.environmentArrangement) ||
+    JSON.stringify(displayRef.current) !== JSON.stringify(activeRef.current.displayAssignments));
 
   const saveNow = useCallback(async () => {
     if (pendingSave.current) await pendingSave.current.catch(() => undefined);
@@ -89,15 +102,18 @@ export function useProjects() {
     }
     const title = draftRef.current.trim();
     const snapshot = arrangementRef.current;
+    const displaySnapshot = displayRef.current;
     const operation = (async () => {
       setSaveStatus("saving");
       try {
-        const saved = await projectRequest<ProjectDocument>(projectUrl(project.id), "PATCH", { title, expectedRevision: project.revision, environmentArrangement: snapshot });
+        const saved = await projectRequest<ProjectDocument>(projectUrl(project.id), "PATCH", { title, expectedRevision: project.revision,
+          environmentArrangement: snapshot, displayAssignments: displaySnapshot });
         if (activeRef.current?.id === saved.id) {
           activeRef.current = saved;
           setActive(saved);
           setSaveStatus(statusAfterSave(saved.title, draftRef.current) === "saved" &&
-            JSON.stringify(snapshot) === JSON.stringify(arrangementRef.current) ? "saved" : "dirty");
+            JSON.stringify(snapshot) === JSON.stringify(arrangementRef.current) &&
+            JSON.stringify(displaySnapshot) === JSON.stringify(displayRef.current) ? "saved" : "dirty");
         }
         await refresh().catch(() => setError("پروژه ذخیره شد، اما تازه‌سازی فهرست ممکن نشد."));
       } catch (cause) {
@@ -115,7 +131,27 @@ export function useProjects() {
     if (!active || saveStatus !== "dirty") return;
     const timer = setTimeout(() => { void saveNow().catch(() => undefined); }, 800);
     return () => clearTimeout(timer);
-  }, [active, draftName, arrangement, saveStatus, saveNow]);
+  }, [active, draftName, arrangement, displayAssignments, saveStatus, saveNow]);
+
+  const uploadDisplay = async (file: File): Promise<string | null> => {
+    const project = activeRef.current;
+    if (!project) return null;
+    setBusy(true); setError("");
+    try {
+      if (hasChanges()) await saveNow();
+      const current = activeRef.current!;
+      const form = new FormData(); form.set("file", file);
+      const response = await fetch(`${projectUrl(current.id)}/display-assets`, { method: "POST", body: form });
+      const data: unknown = await response.json();
+      if (!response.ok) throw new Error((data as { error?: { message?: string } }).error?.message || "بارگذاری رسانه ممکن نشد.");
+      const updated = data as ProjectDocument;
+      const addedId = Object.keys(updated.assetManifest).find((id) => !current.assetManifest[id]);
+      select(updated);
+      await refresh();
+      return addedId ?? null;
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "بارگذاری رسانه ممکن نشد."); return null; }
+    finally { setBusy(false); }
+  };
 
   const run = async (action: () => Promise<void>): Promise<boolean> => {
     setBusy(true);
@@ -156,5 +192,6 @@ export function useProjects() {
     select(null);
   });
 
-  return { list, loading, busy, error, setError, active, arrangement, editArrangement, draftName, saveStatus, refresh, editName, saveNow, create, open, rename, duplicate, remove, close };
+  return { list, loading, busy, error, setError, active, arrangement, editArrangement, displayAssignments, editDisplay,
+    uploadDisplay, draftName, saveStatus, refresh, editName, saveNow, create, open, rename, duplicate, remove, close };
 }

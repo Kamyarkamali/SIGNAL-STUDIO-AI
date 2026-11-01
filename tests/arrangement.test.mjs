@@ -58,17 +58,20 @@ test("arrangement rejects invalid transforms, duplicate IDs and modified room sh
 
 test("v1 migration is read-only until save, then backs up original and persists independent arrangements", async () => withStore(async (store, root) => {
   const created = await store.create("قدیمی");
+  const environmentArrangement = created.environmentArrangement;
   const file = join(root, "projects", created.id, "project.json");
-  const { environmentArrangement, ...rest } = created;
+  const rest = { ...created };
+  delete rest.environmentArrangement;
+  delete rest.displayAssignments;
   const legacy = { ...rest, schemaVersion: 1 };
   await writeFile(file, JSON.stringify(legacy));
   const opened = await store.open(created.id);
-  assert.equal(opened.schemaVersion, 2);
+  assert.equal(opened.schemaVersion, 3);
   assert.equal(opened.environmentArrangement.props.length, environmentArrangement.props.length);
   assert.equal(JSON.parse(await readFile(file, "utf8")).schemaVersion, 1);
   const changed = updateProp(opened.environmentArrangement, "studio-01:laptop", { visible: false });
   const saved = await store.save(created.id, created.title, opened.revision, changed);
-  assert.equal(saved.schemaVersion, 2);
+  assert.equal(saved.schemaVersion, 3);
   assert.equal(saved.revision, 1);
   assert.equal((await new ProjectService(root).open(created.id)).environmentArrangement.props.find((prop) => prop.id === "studio-01:laptop").visible, false);
   const { readdir } = await import("node:fs/promises");

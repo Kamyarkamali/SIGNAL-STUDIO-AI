@@ -9,6 +9,7 @@ import { environmentRegistry } from "@/lib/environments/registry";
 import { STUDIO_01_ID } from "@/lib/environments/studio-01";
 import type { EnvironmentArrangement } from "@/lib/environments/arrangement";
 import type { TransformMode } from "@/components/layout/properties-panel";
+import type { ProjectDocument } from "@/lib/projects/project-schema";
 import { AcousticWall, RoomShell, Rug } from "./room-architecture";
 import { Bookshelf, PodcastDesk, SideTable, StudioChair } from "./furniture";
 import { Laptop, Plant, PodcastMicrophone, PracticalLights, WallArt } from "./studio-details";
@@ -23,14 +24,21 @@ function StudioLighting() {
   </>;
 }
 
-function PropVisual({ rendererKey, definition }: { rendererKey: PropRendererKey; definition: PropDefinition }) {
+function PropVisual({ rendererKey, definition, assignment, projectId, playing }: {
+  rendererKey: PropRendererKey; definition: PropDefinition;
+  assignment?: ProjectDocument["displayAssignments"][string]; projectId: string | null; playing: boolean;
+}) {
   switch (rendererKey) {
     case "room-shell": return <RoomShell />;
     case "acoustic-wall": return <AcousticWall />;
     case "desk": return <PodcastDesk material={definition.material} />;
     case "chair": return <StudioChair />;
     case "bookshelf": return <Bookshelf />;
-    case "laptop": return <Laptop />;
+    case "laptop": {
+      const assetId = assignment?.state === "image" ? assignment.imageAssetId : assignment?.state === "video" ? assignment.videoAssetId : undefined;
+      const url = projectId && assetId ? `/api/projects/${projectId}/display-assets/${assetId}` : undefined;
+      return <Laptop assignment={assignment} url={url} playing={playing} />;
+    }
     case "microphone": return <PodcastMicrophone />;
     case "side-table": return <SideTable />;
     case "practical-lights": return <PracticalLights />;
@@ -49,9 +57,10 @@ const outlineSize: Partial<Record<PropRendererKey, { size: [number, number, numb
   "practical-lights": { size: [6.2, 4.8, 3], y: 2.4 }, "wall-art": { size: [5.6, 1.4, 0.3], y: 2.8 },
 };
 
-function PropInstance({ instance, definition, selected, onSelect, onCommit, mode }: {
+function PropInstance({ instance, definition, selected, onSelect, onCommit, mode, assignment, projectId, playing }: {
   instance: EnvironmentArrangement["props"][number]; definition: PropDefinition; selected: boolean;
   onSelect: (id: string | null) => void; onCommit: (id: string, transform: TransformConfig) => void; mode: TransformMode;
+  assignment?: ProjectDocument["displayAssignments"][string]; projectId: string | null; playing: boolean;
 }) {
   const group = useRef<Group>(null!);
   const dragging = useRef(false);
@@ -81,7 +90,7 @@ function PropInstance({ instance, definition, selected, onSelect, onCommit, mode
   return <>
     <group ref={group} name={instance.id} position={instance.transform.position} rotation={instance.transform.rotation} scale={instance.transform.scale}
       onClick={(event) => { event.stopPropagation(); onSelect(definition.editable === false ? null : instance.id); }}>
-      <PropVisual rendererKey={definition.rendererKey} definition={definition} />
+      <PropVisual rendererKey={definition.rendererKey} definition={definition} assignment={assignment} projectId={projectId} playing={playing} />
       {selected && outline && <mesh position={[0, outline.y, 0]} raycast={() => null}><boxGeometry args={outline.size} /><meshBasicMaterial color="#5ee0ce" wireframe depthTest={false} transparent opacity={0.8} /></mesh>}
     </group>
     {selected && definition.editable !== false && <TransformControls object={group} mode={mode} size={0.75}
@@ -89,9 +98,10 @@ function PropInstance({ instance, definition, selected, onSelect, onCommit, mode
   </>;
 }
 
-export function StudioEnvironment({ environmentId = STUDIO_01_ID, arrangement, selectedId, onSelect, onCommit, mode }: {
+export function StudioEnvironment({ environmentId = STUDIO_01_ID, arrangement, selectedId, onSelect, onCommit, mode, projectId, displayAssignments, playing }: {
   environmentId?: string; arrangement: EnvironmentArrangement; selectedId: string | null;
   onSelect: (id: string | null) => void; onCommit: (id: string, transform: TransformConfig) => void; mode: TransformMode;
+  projectId: string | null; displayAssignments: ProjectDocument["displayAssignments"]; playing: boolean;
 }) {
   const environment: EnvironmentDefinition | undefined = environmentRegistry.get(environmentId);
   if (!environment) throw new Error(`Environment is not registered: ${environmentId}`);
@@ -102,8 +112,9 @@ export function StudioEnvironment({ environmentId = STUDIO_01_ID, arrangement, s
     {arrangement.props.map((instance) => {
       const definition = propDefinitions.get(instance.definitionId);
       if (!definition) throw new Error(`Prop definition is missing: ${instance.definitionId}`);
+      const assignment = displayAssignments[instance.id];
       return <PropInstance key={instance.id} instance={instance} definition={definition} selected={selectedId === instance.id}
-        onSelect={onSelect} onCommit={onCommit} mode={mode} />;
+        onSelect={onSelect} onCommit={onCommit} mode={mode} assignment={assignment} projectId={projectId} playing={playing} />;
     })}
   </group>;
 }

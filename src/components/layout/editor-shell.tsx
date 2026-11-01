@@ -19,8 +19,14 @@ export function EditorShell() {
   const projects = useProjects();
   const [selection, setSelection] = useState<{ projectId: string; propId: string } | null>(null);
   const [mode, setMode] = useState<TransformMode>("translate");
+  const [inspectPropId, setInspectPropId] = useState<string | null>(null);
+  const [mediaPlaying, setMediaPlaying] = useState(true);
   const selectedId = selection && selection.projectId === projects.active?.id ? selection.propId : null;
-  const selectProp = (id: string | null) => { setSelection(id && projects.active ? { projectId: projects.active.id, propId: id } : null); if (id) setActiveSection("environments"); };
+  const selectProp = (id: string | null) => {
+    setSelection(id && projects.active ? { projectId: projects.active.id, propId: id } : null);
+    if (id) setActiveSection("environments");
+    if (!id || projects.arrangement?.props.find((prop) => prop.id === id)?.definitionId !== "prop:laptop") setInspectPropId(null);
+  };
   const commitTransform = (id: string, transform: TransformConfig) => projects.editArrangement((current) => updateProp(current, id, { transform }));
 
   return (
@@ -47,11 +53,15 @@ export function EditorShell() {
                 ? <EnvironmentEditor arrangement={projects.arrangement} selectedId={selectedId} onSelect={selectProp}
                     onEdit={projects.editArrangement} saveStatus={projects.saveStatus} onSave={() => { void projects.saveNow().catch(() => undefined); }} />
                 : <SectionContent section={activeSection} />}
-              <StudioViewport arrangement={projects.arrangement} selectedId={selectedId} onSelect={selectProp} onCommit={commitTransform} mode={mode} />
+              <StudioViewport arrangement={projects.arrangement} selectedId={selectedId} onSelect={selectProp} onCommit={commitTransform} mode={mode}
+                projectId={projects.active?.id ?? null} displayAssignments={projects.displayAssignments} mediaPlaying={mediaPlaying} inspectPropId={inspectPropId} />
             </div>
             <PropertiesPanel section={activeSection} projectTitle={projects.active?.title}
               arrangement={activeSection === "environments" ? projects.arrangement : null} selectedId={selectedId}
-              onEdit={projects.editArrangement} mode={mode} onModeChange={setMode} />
+              onEdit={projects.editArrangement} mode={mode} onModeChange={setMode} project={projects.active}
+              displayAssignments={projects.displayAssignments} onDisplayChange={projects.editDisplay} onUploadDisplay={projects.uploadDisplay}
+              inspecting={inspectPropId === selectedId} onInspect={() => setInspectPropId(inspectPropId === selectedId ? null : selectedId)}
+              mediaPlaying={mediaPlaying} onTogglePlayback={() => setMediaPlaying((current) => !current)} />
           </div>
           <TimelinePlaceholder />
         </main>

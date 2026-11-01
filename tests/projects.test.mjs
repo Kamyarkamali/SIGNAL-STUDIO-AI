@@ -19,13 +19,13 @@ async function withStore(action) {
 test("create validates name and initializes empty versioned data and managed folders", async () => withStore(async (store, root) => {
   const project = await store.create("  آزمون  ");
   assert.equal(project.title, "آزمون");
-  assert.equal(project.schemaVersion, 2);
+  assert.equal(project.schemaVersion, 3);
   assert.equal(project.environmentArrangement.props.length, 16);
   assert.deepEqual(project.sceneOrder, []);
   assert.deepEqual(project.assetManifest, {});
   const directory = join(root, "projects", project.id);
   assert.equal((await stat(join(directory, "project.json"))).isFile(), true);
-  for (const folder of ["audio", "character-models", "environment-models", "prop-models", "textures", "animations", "thumbnails"]) {
+  for (const folder of ["audio", "character-models", "environment-models", "prop-models", "textures", "display-images", "display-videos", "animations", "thumbnails"]) {
     assert.equal((await stat(join(directory, "assets", folder))).isDirectory(), true);
   }
   await assert.rejects(store.create(" "), { code: "INVALID_NAME" });

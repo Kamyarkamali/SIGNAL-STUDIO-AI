@@ -1,9 +1,13 @@
 import { BoxPart, CylinderPart, RoundedBoxPart } from "./parts";
 import { laptopVisualSpec } from "@/lib/environments/studio-visual-spec";
+import { DisplaySurface } from "./display-surface";
+import type { ProjectDocument } from "@/lib/projects/project-schema";
 
 const graphite = { color: "#1b252b", roughness: 0.56, metalness: 0.45 };
 
-export function Laptop() {
+export function Laptop({ assignment, url, playing = true }: {
+  assignment?: ProjectDocument["displayAssignments"][string]; url?: string; playing?: boolean;
+}) {
   return <group>
     <RoundedBoxPart size={laptopVisualSpec.baseSize} position={[0, 0.045, 0.03]} radius={0.017}
       finish={{ color: "#68777d", roughness: 0.39, metalness: 0.62 }} />
@@ -23,8 +27,11 @@ export function Laptop() {
       {/* The display is on local +Z, facing the seated user after the laptop's 180° turn. */}
       <mesh name="display-surface" position={laptopVisualSpec.screenCenter}>
         <planeGeometry args={laptopVisualSpec.screenSurfaceSize} />
-        <meshStandardMaterial color="#122a34" emissive="#17414a" emissiveIntensity={0.24} roughness={0.47} metalness={0.08} />
+        <meshStandardMaterial color={!assignment || assignment.state === "off" ? "#050709" : "#122a34"}
+          emissive={!assignment || assignment.state === "off" ? "#000000" : "#17414a"}
+          emissiveIntensity={assignment?.state === "off" ? 0 : 0.12} roughness={0.47} metalness={0.08} />
       </mesh>
+      <DisplaySurface assignment={assignment} url={url} playing={playing} />
       <CylinderPart radiusTop={0.006} height={0.003} position={[0, 0.453, 0.023]} rotation={[Math.PI / 2, 0, 0]}
         finish={{ color: "#687b81", roughness: 0.48 }} />
     </group>

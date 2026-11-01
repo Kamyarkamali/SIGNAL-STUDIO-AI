@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { copyFile, lstat, mkdir, open, readFile, readdir, rename, stat, unlink } from "node:fs/promises";
 import { constants } from "node:fs";
 import { homedir, platform } from "node:os";
@@ -8,6 +8,8 @@ import {
   PROJECT_MAX_BYTES, type AssetRecord, type ProjectDocument, type ProjectSummary,
 } from "./project-schema.ts";
 import type { EnvironmentArrangement } from "../environments/arrangement.ts";
+import type { z } from "zod";
+import { displayAssignmentsSchema } from "./project-schema.ts";
 
 export class ProjectError extends Error {
   readonly code: string;
@@ -97,7 +99,7 @@ export class ProjectService {
     let value: unknown;
     try { value = JSON.parse(content); }
     catch { throw new ProjectError("CORRUPT", "فایل پروژه آسیب دیده است.", 422); }
-    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2) {
+    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3) {
       throw new ProjectError("UNSUPPORTED_VERSION", "نسخهٔ این پروژه پشتیبانی نمی‌شود؛ فایل اصلی تغییر نکرده است.", 422);
     }
     const parsed = migrateProject(value);
@@ -154,7 +156,8 @@ export class ProjectService {
 
   async open(id: string): Promise<ProjectDocument> { return this.readProject(projectId(id)); }
 
-  async save(id: string, name: string, expectedRevision: number, environmentArrangement?: EnvironmentArrangement): Promise<ProjectDocument> {
+  async save(id: string, name: string, expectedRevision: number, environmentArrangement?: EnvironmentArrangement,
+    displayAssignments?: z.infer<typeof displayAssignmentsSchema>): Promise<ProjectDocument> {
     id = projectId(id);
     const title = projectName(name);
     if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new ProjectError("INVALID_REVISION", "شمارهٔ بازبینی نامعتبر است.");
@@ -162,12 +165,50 @@ export class ProjectService {
       const current = await this.readProject(id);
       if (current.revision !== expectedRevision) throw new ProjectError("STALE_WRITE", "پروژه در جای دیگری تغییر کرده است؛ دوباره آن را باز کنید.", 409);
       const arrangement = environmentArrangement ?? current.environmentArrangement;
+      const displays = displayAssignments ?? current.displayAssignments;
       const raw = JSON.parse(await readFile(this.projectFile(id), "utf8")) as { schemaVersion?: number };
-      if (current.title === title && JSON.stringify(current.environmentArrangement) === JSON.stringify(arrangement) && raw.schemaVersion === 2) return current;
-      const updated = projectSchema.parse({ ...current, title, environmentArrangement: arrangement, revision: current.revision + 1, updatedAt: new Date().toISOString() });
+      if (current.title === title && JSON.stringify(current.environmentArrangement) === JSON.stringify(arrangement) &&
+        JSON.stringify(current.displayAssignments) === JSON.stringify(displays) && raw.schemaVersion === 3) return current;
+      const updated = projectSchema.parse({ ...current, title, environmentArrangement: arrangement, displayAssignments: displays,
+        revision: current.revision + 1, updatedAt: new Date().toISOString() });
       const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
       await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
       await this.atomicWrite(this.projectFile(id), updated);
+      return updated;
+    });
+  }
+
+  async importDisplayAsset(id: string, name: string, mediaType: string, bytes: Uint8Array): Promise<ProjectDocument> {
+    id = projectId(id);
+    const formats = {
+      "image/png": { kind: "display-image", ext: "png", valid: Buffer.from(bytes.subarray(0, 8)).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) },
+      "image/jpeg": { kind: "display-image", ext: "jpg", valid: bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 },
+      "image/webp": { kind: "display-image", ext: "webp", valid: Buffer.from(bytes).toString("ascii", 0, 4) === "RIFF" && Buffer.from(bytes).toString("ascii", 8, 12) === "WEBP" },
+      "video/mp4": { kind: "display-video", ext: "mp4", valid: Buffer.from(bytes).toString("ascii", 4, 8) === "ftyp" },
+      "video/webm": { kind: "display-video", ext: "webm", valid: bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3 },
+    } as const;
+    const format = formats[mediaType as keyof typeof formats];
+    if (!format?.valid || bytes.length === 0 || bytes.length > 64 * 1024 * 1024) {
+      throw new ProjectError("INVALID_MEDIA", "فرمت یا اندازهٔ رسانه پشتیبانی نمی‌شود. تصویر PNG/JPEG/WebP یا ویدیوی MP4/WebM تا ۶۴ مگابایت انتخاب کنید.", 415);
+    }
+    return this.lock(id, async () => {
+      const current = await this.readProject(id);
+      const assetId = randomUUID();
+      const relativePath = `assets/${assetDirectories[format.kind]}/${assetId}.${format.ext}`;
+      const target = join(this.projectDir(id), ...relativePath.split("/"));
+      await mkdir(dirname(target), { recursive: true });
+      const asset: AssetRecord = { id: assetId, kind: format.kind, displayName: name.slice(0, 120) || "رسانهٔ نمایشگر",
+        mediaType, relativePath, fileSizeBytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), origin: "imported" };
+      const updated = projectSchema.parse({ ...current, assetManifest: { ...current.assetManifest, [assetId]: asset },
+        revision: current.revision + 1, updatedAt: new Date().toISOString() });
+      const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
+      await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
+      const handle = await open(target, "wx", 0o600);
+      try { await handle.writeFile(bytes); await handle.sync(); }
+      catch (error) { await handle.close(); await unlink(target).catch(() => undefined); throw error; }
+      await handle.close();
+      try { await this.atomicWrite(this.projectFile(id), updated); }
+      catch (error) { await unlink(target).catch(() => undefined); throw error; }
       return updated;
     });
   }

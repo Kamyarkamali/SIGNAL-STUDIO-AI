@@ -470,11 +470,11 @@ Do not implement it during Phase 01.
 
 Implement basic scene-prop management in planned Phase 05-B after saved scenes exist; expand reusable environment composition and external prop import in Phase 12. Refine Studio 01 geometry/materials/lighting in 05-B without replacing its verified registry or exceeding integrated-GPU capacity.
 
-### Educational display boundary (planned Phase 06-B onward)
+### Educational display boundary (Phase 03-E implementation and future extensions)
 
 A laptop, monitor or digital display remains a reusable 3D prop. Its screen surface reads a scene-local display assignment referencing a managed image or video asset; neither the media file nor playback state is baked into the prop definition. The display has three explicit states: image, video and off/blank. Off hides content while retaining the assigned asset and source timing for later reuse. Correct aspect ratio and screen orientation are renderer concerns; validated asset references and time mapping are domain concerns.
 
-Phase 06-B provides local import, assignment and basic preview playback. Phase 07 adds repeatable scene-local display-state events and derives video source time from the master frame, including seek/pause; the runtime decoder may cache frames but cannot become the timeline authority. Camera events are a separate track and never mutate display assignment or playback position. Phase 09 supplies cinematic angle changes; Phase 11 resolves the same display and camera state per output frame and validates synchronized media export. A scene may contain multiple independent changes of either kind.
+Phase 03-E implements managed image/video import and basic preview on the actual Studio 01 laptop display, including off state, fit, brightness and an editor-only inspection camera. Phase 06-B may extend the same contract to additional display-capable props. Phase 07 adds repeatable scene-local display-state events and derives video source time from the master frame, including seek/pause; the runtime decoder may cache frames but cannot become the timeline authority. Camera events are a separate track and never mutate display assignment or playback position. Phase 09 supplies cinematic angle changes; Phase 11 resolves the same display and camera state per output frame and validates synchronized media export. A scene may contain multiple independent changes of either kind.
 
 An environment must be represented independently from the scenes using it.
 

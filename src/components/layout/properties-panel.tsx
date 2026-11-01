@@ -6,6 +6,8 @@ import type { EnvironmentArrangement } from "@/lib/environments/arrangement";
 import { initialTransformFor, propDisplayLabel, updateProp } from "@/lib/environments/arrangement";
 import { STUDIO_01 } from "@/lib/environments/studio-01";
 import type { Vec3 } from "@/lib/environments/environment-registry";
+import type { ProjectDocument } from "@/lib/projects/project-schema";
+import { DisplayEditor } from "@/components/viewport/display-editor";
 
 export type TransformMode = "translate" | "rotate" | "scale";
 const modes: { id: TransformMode; label: string }[] = [
@@ -41,10 +43,15 @@ function TransformFields({ id, arrangement, onEdit, mode }: { id: string; arrang
   </div>;
 }
 
-export function PropertiesPanel({ section, projectTitle, arrangement, selectedId, onEdit, mode, onModeChange }: {
+export function PropertiesPanel({ section, projectTitle, arrangement, selectedId, onEdit, mode, onModeChange,
+  project, displayAssignments, onDisplayChange, onUploadDisplay, inspecting, onInspect, mediaPlaying, onTogglePlayback }: {
   section: SectionId; projectTitle?: string; arrangement: EnvironmentArrangement | null; selectedId: string | null;
   onEdit: (change: (current: EnvironmentArrangement) => EnvironmentArrangement) => void;
   mode: TransformMode; onModeChange: (mode: TransformMode) => void;
+  project: ProjectDocument | null; displayAssignments: ProjectDocument["displayAssignments"];
+  onDisplayChange: (propId: string, assignment: ProjectDocument["displayAssignments"][string]) => void;
+  onUploadDisplay: (file: File) => Promise<string | null>; inspecting: boolean; onInspect: () => void;
+  mediaPlaying: boolean; onTogglePlayback: () => void;
 }) {
   const selected = arrangement?.props.find((item) => item.id === selectedId);
   const definition = STUDIO_01.propDefinitions.find((item) => item.id === selected?.definitionId);
@@ -56,6 +63,9 @@ export function PropertiesPanel({ section, projectTitle, arrangement, selectedId
       <div className="mt-3 flex flex-wrap gap-1">{modes.map((item) => <button key={item.id} type="button" aria-pressed={mode === item.id} className={`${button} ${mode === item.id ? "border-accent bg-[#19433f]" : ""}`} onClick={() => onModeChange(item.id)}>{item.label}</button>)}</div>
       <TransformFields key={`${selected.id}-${mode}-${JSON.stringify(selected.transform)}`} id={selected.id} arrangement={arrangement!} onEdit={onEdit} mode={mode} />
       <button type="button" className={`${button} mt-3`} onClick={() => onEdit((current) => updateProp(current, selected.id, { transform: initialTransformFor(selected) }))}>بازنشانی موقعیت</button>
+      {selected.definitionId === "prop:laptop" && project && <DisplayEditor project={project}
+        assignment={displayAssignments[selected.id]} onChange={(assignment) => onDisplayChange(selected.id, assignment)}
+        onUpload={onUploadDisplay} inspecting={inspecting} onInspect={onInspect} playing={mediaPlaying} onTogglePlayback={onTogglePlayback} />}
       <p className="mt-3 text-xs leading-6 text-muted">برای تغییر در نما از ابزار انتخاب‌شده استفاده کنید. تغییر عددی پس از خروج از کادر ثبت می‌شود.</p>
     </div> : <div className="flex flex-1 flex-col items-center justify-center p-5 text-center"><h2 className="text-sm font-bold">{section === "projects" && projectTitle ? projectTitle : "چیزی انتخاب نشده است"}</h2><p className="mt-2 text-xs leading-7 text-muted">{section === "environments" ? "وسیله‌ای را در نمای سه‌بعدی یا فهرست وسایل انتخاب کنید." : "برای ویرایش وسایل، پروژه‌ای باز کنید و به بخش محیط‌ها بروید."}</p></div>}
   </aside>;

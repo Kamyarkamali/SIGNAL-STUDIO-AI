@@ -6,6 +6,7 @@ import { hasWebGL } from "./webgl-support";
 import { defaultArrangement, type EnvironmentArrangement } from "@/lib/environments/arrangement";
 import type { TransformConfig } from "@/lib/environments/environment-registry";
 import type { TransformMode } from "@/components/layout/properties-panel";
+import type { ProjectDocument } from "@/lib/projects/project-schema";
 
 const SceneCanvas = dynamic(() => import("./scene-canvas"), { ssr: false });
 
@@ -29,9 +30,10 @@ class CanvasErrorBoundary extends Component<{ children: ReactNode }, { failed: b
 
 const previewArrangement = defaultArrangement();
 
-export function StudioViewport({ arrangement, selectedId, onSelect, onCommit, mode }: {
+export function StudioViewport({ arrangement, selectedId, onSelect, onCommit, mode, projectId, displayAssignments, mediaPlaying, inspectPropId }: {
   arrangement: EnvironmentArrangement | null; selectedId: string | null;
   onSelect: (id: string | null) => void; onCommit: (id: string, transform: TransformConfig) => void; mode: TransformMode;
+  projectId: string | null; displayAssignments: ProjectDocument["displayAssignments"]; mediaPlaying: boolean; inspectPropId: string | null;
 }) {
   const [status, setStatus] = useState<"checking" | "ready" | "unavailable" | "failed">("checking");
   useEffect(() => {
@@ -49,7 +51,9 @@ export function StudioViewport({ arrangement, selectedId, onSelect, onCommit, mo
     <div className="relative aspect-video w-full overflow-hidden bg-[#14212c]">
       {status === "ready" && <CanvasErrorBoundary><SceneCanvas onFailure={() => setStatus("failed")}
         arrangement={arrangement ?? previewArrangement} selectedId={arrangement ? selectedId : null}
-        onSelect={arrangement ? onSelect : () => undefined} onCommit={onCommit} mode={mode} /></CanvasErrorBoundary>}
+        onSelect={arrangement ? onSelect : () => undefined} onCommit={onCommit} mode={mode}
+        projectId={arrangement ? projectId : null} displayAssignments={arrangement ? displayAssignments : {}}
+        mediaPlaying={mediaPlaying && Boolean(arrangement)} inspectPropId={arrangement ? inspectPropId : null} /></CanvasErrorBoundary>}
       {status === "checking" && <div role="status" className="grid h-full place-items-center text-xs text-muted">در حال آماده‌سازی نمای سه‌بعدی…</div>}
       {(status === "unavailable" || status === "failed") && <WebGLFallback unavailable={status === "unavailable"} />}
     </div>

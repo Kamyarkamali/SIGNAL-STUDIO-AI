@@ -1,7 +1,7 @@
 # Signal Studio AI — Bug Tracker
 
 **Path:** `context/BUG_TRACKER.md`  
-**Status:** Phase 03-A, 03-B, 03-C and 03-D accepted; Phase 03 remains open
+**Status:** Phase 03-A through 03-E accepted; overall Phase 03 remains open pending unrelated checks
 **Product:** Local-only Windows 3D animation editor
 
 ## Purpose
@@ -25,6 +25,12 @@ Severity:
 **Phase 03-D implementation review (2026-11-02, before user acceptance):** Studio 01 geometry and lighting were refined without changing stored prop identities or project schema. Typecheck, lint, 28/28 tests and production build passed. The computer-use inventory returned no browser or app, so source and automated tests alone could not establish rendered appearance or GPU performance. The later user report below supersedes this limit for its stated checks.
 
 **Phase 03-D user verification (2026-11-02):** The user reported **16/16 manual acceptance checks passed**, including visual quality, furniture proportions, materials, lighting, host-facing laptop, object editing, persistence, camera behavior, performance and browser console. No new defect was reported. This verifies those reported areas despite the agent's unavailable browser; exact per-test steps, screenshots and FPS figures were not supplied. Unreported detailed and unrelated checks remain pending in `PROGRESS_CHECKLIST.md`. Phase 03-D is accepted; overall Phase 03 remains open.
+
+**Phase 03-E implementation review (2026-11-02):** Added a schema v3 project-level display assignment model and migrations from v1/v2; managed local image/video import and byte-range media delivery; a texture plane on the laptop's actual screen surface; image contain/cover, brightness and basic video play/pause; retained media references for screen-off; and an editor-only close-up camera restore path. Automated aspect, migration, retention, upload, save/reopen and duplication tests were added. No timeline switching or cinematic camera automation was implemented.
+
+**Phase 03-E user verification and acceptance (2026-11-03):** The user explicitly confirmed **all 13/13 manual browser acceptance tests passed** and accepted the phase. No defect was reported. The report did not enumerate individual test steps or provide screenshots, console transcript or performance measurements, so no additional evidence is claimed. Unrelated acceptance items remain open in `PROGRESS_CHECKLIST.md`.
+
+**Phase 03-E final checks (2026-11-03):** `npm run typecheck`, `npm run lint`, `npm test` (33/33), `npm run build` and `git diff --check` passed. `.env`/`.env.local`, dependency and build caches are ignored; no project data or temporary files were included.
 
 **Phase 03-C interactive report (2026-11-02):** The user confirmed that the dynamic prop editor works after opening an active project. No new application defect was reported. This does not establish separate results for each selection, gizmo, visibility, save/reopen, responsive, console or integrated-GPU check; those remain pending in `PROGRESS_CHECKLIST.md`. The agent's computer-use inventory exposed no browser for independent verification.
 

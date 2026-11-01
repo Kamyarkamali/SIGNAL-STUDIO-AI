@@ -150,6 +150,13 @@ Use IDs `ADR-001`, `ADR-002`, etc. Each entry states **Decision**, **Reason**, *
 - **Trade-offs:** Added meshes and rounded edges increase draw calls; measured integrated-GPU performance and final visual quality require browser review. Phase 05-B now focuses on scene-local arrangements rather than repeating this visual upgrade.
 - **Revisit trigger:** Browser acceptance reveals occlusion, aliasing or responsiveness problems on target hardware.
 
+### ADR-021 — Phase 03-E laptop display data and rendering
+- **Status:** ACCEPTED after user-confirmed 13/13 manual browser tests (2026-11-03)
+- **Decision:** Keep media assignment per laptop prop instance and separate from the reusable laptop definition. Store asset IDs, state, fit and brightness in versioned project JSON; store image/video bytes in existing project-managed asset directories. Render textures on the named screen surface under the laptop transform. Keep inspection camera state editor-only and restore the prior editor pose on exit.
+- **Reason:** A display must behave as part of the physical laptop while allowing media replacement without rebuilding the prop; off state must preserve its media configuration.
+- **Trade-offs:** Schema v3 migration is required for older projects. Basic browser video playback does not provide deterministic arbitrary-time seeking; that remains Phase 07. Real hardware and browser verification remain acceptance gates.
+- **Revisit trigger:** Browser tests expose texture alignment, decoder, readability, camera restoration or integrated-GPU issues.
+
 ## Pending decisions
 
 

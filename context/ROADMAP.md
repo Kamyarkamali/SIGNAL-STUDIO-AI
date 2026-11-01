@@ -1,9 +1,9 @@
 # Signal Studio AI — Development Roadmap
 
 **Document:** `context/ROADMAP.md`  
-**Status:** Phases 03-A through 03-D accepted; overall Phase 03 remains open; later phases require separate approval
+**Status:** Phases 03-A through 03-E accepted; overall Phase 03 remains open; later phases require separate approval
 **Target:** Single-user Windows local application, Persian RTL editor  
-**Current stage:** Phase 03-D accepted after the user's 16/16 manual acceptance report. Overall Phase 03 remains open because unrelated checks are pending.
+**Current stage:** Phase 03-E accepted after the user's 13/13 manual browser acceptance report. Overall Phase 03 remains open pending unrelated checks.
 
 ## 1. Roadmap Rules
 
@@ -93,6 +93,16 @@ The architecture anticipates later features, but implementation must not build u
 
 **Phase 03-D (accepted 2026-11-02 after 16/16 user-reported manual checks):** Refine only Studio 01 geometry, materials and inexpensive lighting while retaining every prop ID, default transform, editor command and project schema. The user reported passing visual, laptop, editing, persistence, camera, performance and console checks. Exact per-test steps and FPS figures were not supplied; unrelated and more specific checks remain open in the progress checklist. Media playback and new environments remain out of scope.
 
+### Phase 03-E — Laptop educational display (accepted 2026-11-03)
+
+**Goal:** Show educational media on the actual laptop display mesh in the accepted Studio 01.
+
+**Scope:** Import locally managed PNG/JPEG/WebP images and MP4/WebM videos up to 64 MiB; assign an image or video independently of the laptop prop definition; support contain/cover, brightness, image/video/off states, retained assignments while off, basic play/pause, stable prop transforms, and a non-destructive editor-only close-up that restores editor camera state. Add versioned project migration and persist display references with project data. This phase is limited to the existing laptop.
+
+**Acceptance:** The user confirmed all 13/13 manual browser acceptance tests passed on 2026-11-03. Individual test names and measurements were not supplied; no additional item-level evidence is implied.
+
+**Out of scope:** Timeline media events and deterministic source-time seeking (Phase 07), display assignment to additional prop types (Phase 06-B extension), cinematic camera automation (Phase 09), and export (Phase 11).
+
 **Goal:** A stable real 3D canvas and reusable environment definition.
 
 **Scope:** React Three Fiber/Three.js, camera controls, 16:9 framing, quality presets, fullscreen and reliable click-to-play/pause shell (playback functionality grows later), asset loading, only the real podcast studio environment. Environment registry with stable IDs. Distinguish edit camera from output camera.
@@ -141,13 +151,13 @@ The architecture anticipates later features, but implementation must not build u
 
 **Out of scope:** Automatic diarization, TTS, lip sync.
 
-### Phase 06-B — Educational Display Media (planned, not started)
+### Phase 06-B — Extend Educational Displays (planned, not started)
 
-**Goal:** Show locally uploaded educational content on a real laptop, monitor or digital display prop.
+**Goal:** Extend the Phase 03-E laptop display system to supported monitor and digital-display props when they are introduced, using the same reusable media assignment model.
 
-**Scope:** Import supported images/screenshots and video files into managed local assets; assign a separate media reference to a display surface without changing the underlying prop definition; select image, video or screen-off state; preserve aspect ratio and host-facing screen orientation; basic video playback, pause, seek and visibility in preview; retain media configuration while the screen is off. Validate formats, sizes, missing files, decoding and GPU cleanup. A blank/off display must be a real state, not a deleted asset.
+**Scope:** Add display-surface support to additional reusable props and environments, reusing local image/video assets, independent assignment state, image/video/off modes, aspect fitting, brightness, playback lifecycle and managed persistence established in 03-E. Validate formats, sizes, missing files, decoding and GPU cleanup for each new surface.
 
-**Acceptance:** Import a programming screenshot and a supported tutorial video, alternate each with off/blank on one display, save/reopen and recover the same assignments. Video can play, pause and seek on the selected display, while an unrelated camera choice leaves media state unchanged. Unsupported media reports a Persian error and does not corrupt the project. Browser tests verify aspect ratio, orientation and integrated-GPU behavior.
+**Acceptance:** Assign existing image and video assets to each newly supported display type, switch to off without losing references, save/reopen, and verify correct aspect ratio, orientation, interaction and performance in a browser. Timeline switching and master-frame video seeking remain Phase 07 criteria.
 
 **Out of scope:** Timeline scheduling of display changes, cinematic camera editor, offline export. Those depend on Phases 07, 09 and 11.
 
