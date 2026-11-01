@@ -88,7 +88,7 @@
 
 ## 5. Phase 03 — 3D Viewport & First Environment
 
-**Phase status:** In progress. Phase 03-A and 03-B are accepted after user-run browser checks. Phase 03-C is not started; overall Phase 03 remains open.
+**Phase status:** In progress. Phase 03-A and 03-B are accepted after user-run browser checks. Phase 03-C is implemented but browser acceptance is pending; overall Phase 03 remains open.
 
 ### Phase 03-A — Core 3D engine foundation (2026-11-01)
 
@@ -119,10 +119,19 @@
 
 **Future scope recorded, not implemented:** Phase 05-B is planned for independent scene props and Studio 01 visual refinement; 06-B for image/video/off display assignment and basic playback; 07 for deterministic display-state events and master-timeline source-video timing; 09 for cinematic camera modes and events; 11 for synchronized offline output. These phases require separate implementation and verification. None of their controls or acceptance criteria are checked by the 03-B report.
 
-### Phase 03-C — Remaining Phase 03 integration (not started)
+### Phase 03-C — Project-level studio prop editor (implemented / partial user verification)
 
-- [ ] Complete and verify remaining Phase 03 viewport features and acceptance criteria after Phase 03-B, including quality and fullscreen behavior.
+- [x] User confirmed that the dynamic prop editor works after opening an active project (2026-11-02). This is a general interactive check, not separate evidence for every operation below.
+
+- [ ] Select, add, remove, restore, hide, show and duplicate supported prop instances through Persian controls and the live viewport. Implemented; viewport interaction is **UNVERIFIED** in a real browser.
+- [ ] Move, rotate and scale the selected prop with numerical fields and Drei gizmos, keep orbit controls from competing during drag, and show a selection outline. Implemented; gizmo/selection visual behavior is **UNVERIFIED** in a real browser.
+- [x] Validate project-level prop IDs, references, finite transforms and positive scales; protect structural room props. Domain tests pass. This does not claim scene-local independence.
+- [x] Read v1 projects without modifying their files, back up before first v2 write, and persist/reopen/duplicate independent v2 project arrangements. Temporary-store service tests pass.
+- [ ] Verify autosave status, refresh/reopen, project switching, responsive layout, console state and integrated-GPU performance in a browser. Automated persistence tests do not replace this check.
+- [ ] Complete and verify remaining original Phase 03 viewport features, including quality and fullscreen behavior.
 - [ ] Obtain acceptance of the overall Phase 03 milestone.
+
+**Phase 03-C evidence (2026-11-02):** Source and test review confirm project-level schema v2, safe in-memory v1 migration, atomic save/backups and independent prop operations. `npm run typecheck`, `npm run lint`, `npm test` (27/27) and `npm run build` passed. The user confirmed that the dynamic prop editor works after opening an active project. The report did not identify which individual selection, visibility, transform, persistence, responsive, console or performance checks were exercised; these remain pending above. The agent's computer-use inventory exposed no apps or browsers for an independent check. No character, audio, educational display, cinematic camera or export feature was added. Overall Phase 03 acceptance remains pending.
 
 ## 6. Phase 04 — Character Models, Library & Scene Instances
 

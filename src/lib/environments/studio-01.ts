@@ -3,8 +3,8 @@ import type { EnvironmentDefinition, EnvironmentPropInstance, PropDefinition, Tr
 export const STUDIO_01_ID = "environment:studio-01";
 
 const props: PropDefinition[] = [
-  { id: "prop:room-shell", displayName: "ساختار اتاق", rendererKey: "room-shell" },
-  { id: "prop:acoustic-wall", displayName: "دیوار آکوستیک", rendererKey: "acoustic-wall" },
+  { id: "prop:room-shell", displayName: "ساختار اتاق", rendererKey: "room-shell", editable: false },
+  { id: "prop:acoustic-wall", displayName: "دیوار آکوستیک", rendererKey: "acoustic-wall", editable: false },
   { id: "prop:desk", displayName: "میز پادکست", rendererKey: "desk", material: { color: "#81543b", roughness: 0.63, metalness: 0 } },
   { id: "prop:chair", displayName: "صندلی", rendererKey: "chair" },
   { id: "prop:bookshelf", displayName: "قفسهٔ کتاب", rendererKey: "bookshelf" },

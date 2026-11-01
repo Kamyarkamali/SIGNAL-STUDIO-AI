@@ -3,6 +3,9 @@
 import dynamic from "next/dynamic";
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { hasWebGL } from "./webgl-support";
+import { defaultArrangement, type EnvironmentArrangement } from "@/lib/environments/arrangement";
+import type { TransformConfig } from "@/lib/environments/environment-registry";
+import type { TransformMode } from "@/components/layout/properties-panel";
 
 const SceneCanvas = dynamic(() => import("./scene-canvas"), { ssr: false });
 
@@ -24,7 +27,12 @@ class CanvasErrorBoundary extends Component<{ children: ReactNode }, { failed: b
   render() { return this.state.failed ? <WebGLFallback unavailable={false} /> : this.props.children; }
 }
 
-export function StudioViewport() {
+const previewArrangement = defaultArrangement();
+
+export function StudioViewport({ arrangement, selectedId, onSelect, onCommit, mode }: {
+  arrangement: EnvironmentArrangement | null; selectedId: string | null;
+  onSelect: (id: string | null) => void; onCommit: (id: string, transform: TransformConfig) => void; mode: TransformMode;
+}) {
   const [status, setStatus] = useState<"checking" | "ready" | "unavailable" | "failed">("checking");
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -39,7 +47,9 @@ export function StudioViewport() {
       <span className="text-xs font-normal text-[#a8b8c8]">استودیوی پادکست مدرن · ۰۱</span>
     </div>
     <div className="relative aspect-video w-full overflow-hidden bg-[#14212c]">
-      {status === "ready" && <CanvasErrorBoundary><SceneCanvas onFailure={() => setStatus("failed")} /></CanvasErrorBoundary>}
+      {status === "ready" && <CanvasErrorBoundary><SceneCanvas onFailure={() => setStatus("failed")}
+        arrangement={arrangement ?? previewArrangement} selectedId={arrangement ? selectedId : null}
+        onSelect={arrangement ? onSelect : () => undefined} onCommit={onCommit} mode={mode} /></CanvasErrorBoundary>}
       {status === "checking" && <div role="status" className="grid h-full place-items-center text-xs text-muted">در حال آماده‌سازی نمای سه‌بعدی…</div>}
       {(status === "unavailable" || status === "failed") && <WebGLFallback unavailable={status === "unavailable"} />}
     </div>

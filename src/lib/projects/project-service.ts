@@ -4,9 +4,10 @@ import { constants } from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import {
-  assetDirectories, projectIdSchema, projectNameSchema, projectSchema, newProject,
+  assetDirectories, projectIdSchema, projectNameSchema, projectSchema, migrateProject, newProject,
   PROJECT_MAX_BYTES, type AssetRecord, type ProjectDocument, type ProjectSummary,
 } from "./project-schema.ts";
+import type { EnvironmentArrangement } from "../environments/arrangement.ts";
 
 export class ProjectError extends Error {
   readonly code: string;
@@ -96,12 +97,12 @@ export class ProjectService {
     let value: unknown;
     try { value = JSON.parse(content); }
     catch { throw new ProjectError("CORRUPT", "فایل پروژه آسیب دیده است.", 422); }
-    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1) {
+    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2) {
       throw new ProjectError("UNSUPPORTED_VERSION", "نسخهٔ این پروژه پشتیبانی نمی‌شود؛ فایل اصلی تغییر نکرده است.", 422);
     }
-    const parsed = projectSchema.safeParse(value);
-    if (!parsed.success || parsed.data.id !== id) throw new ProjectError("CORRUPT", "دادهٔ پروژه معتبر نیست.", 422);
-    return parsed.data;
+    const parsed = migrateProject(value);
+    if (!parsed || parsed.id !== id) throw new ProjectError("CORRUPT", "دادهٔ پروژه معتبر نیست.", 422);
+    return parsed;
   }
 
   private async atomicWrite(file: string, project: ProjectDocument) {
@@ -153,15 +154,17 @@ export class ProjectService {
 
   async open(id: string): Promise<ProjectDocument> { return this.readProject(projectId(id)); }
 
-  async save(id: string, name: string, expectedRevision: number): Promise<ProjectDocument> {
+  async save(id: string, name: string, expectedRevision: number, environmentArrangement?: EnvironmentArrangement): Promise<ProjectDocument> {
     id = projectId(id);
     const title = projectName(name);
     if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new ProjectError("INVALID_REVISION", "شمارهٔ بازبینی نامعتبر است.");
     return this.lock(id, async () => {
       const current = await this.readProject(id);
       if (current.revision !== expectedRevision) throw new ProjectError("STALE_WRITE", "پروژه در جای دیگری تغییر کرده است؛ دوباره آن را باز کنید.", 409);
-      if (current.title === title) return current;
-      const updated = projectSchema.parse({ ...current, title, revision: current.revision + 1, updatedAt: new Date().toISOString() });
+      const arrangement = environmentArrangement ?? current.environmentArrangement;
+      const raw = JSON.parse(await readFile(this.projectFile(id), "utf8")) as { schemaVersion?: number };
+      if (current.title === title && JSON.stringify(current.environmentArrangement) === JSON.stringify(arrangement) && raw.schemaVersion === 2) return current;
+      const updated = projectSchema.parse({ ...current, title, environmentArrangement: arrangement, revision: current.revision + 1, updatedAt: new Date().toISOString() });
       const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
       await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
       await this.atomicWrite(this.projectFile(id), updated);

@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { arrangementSchema, defaultArrangement } from "../environments/arrangement.ts";
 
-export const PROJECT_SCHEMA_VERSION = 1;
+export const PROJECT_SCHEMA_VERSION = 2;
 export const PROJECT_MAX_BYTES = 1024 * 1024;
-export const REQUEST_MAX_BYTES = 16 * 1024;
+export const REQUEST_MAX_BYTES = 256 * 1024;
 
 export const projectIdSchema = z.uuid();
 export const projectNameSchema = z.string().trim().min(1, "نام پروژه لازم است.").max(80, "نام پروژه نباید بیش از ۸۰ نویسه باشد.")
@@ -41,8 +42,8 @@ const assetRecordSchema = z.object({
 export type AssetRecord = z.infer<typeof assetRecordSchema>;
 
 const emptyCollection = z.record(z.string(), z.never());
-export const projectSchema = z.object({
-  schemaVersion: z.literal(PROJECT_SCHEMA_VERSION),
+const baseProjectSchema = z.object({
+  schemaVersion: z.union([z.literal(1), z.literal(2)]),
   id: projectIdSchema,
   title: projectNameSchema,
   createdAt: z.iso.datetime(),
@@ -65,11 +66,18 @@ export const projectSchema = z.object({
   }
 });
 
+export const legacyProjectSchema = baseProjectSchema.safeExtend({ schemaVersion: z.literal(1) });
+
+export const projectSchema = baseProjectSchema.safeExtend({
+  schemaVersion: z.literal(PROJECT_SCHEMA_VERSION),
+  environmentArrangement: arrangementSchema,
+});
+
 export type ProjectDocument = z.infer<typeof projectSchema>;
 export type ProjectSummary = Pick<ProjectDocument, "id" | "title" | "createdAt" | "updatedAt" | "revision">;
 
 export const createInputSchema = z.object({ title: projectNameSchema }).strict();
-export const saveInputSchema = z.object({ title: projectNameSchema, expectedRevision: z.number().int().nonnegative() }).strict();
+export const saveInputSchema = z.object({ title: projectNameSchema, expectedRevision: z.number().int().nonnegative(), environmentArrangement: arrangementSchema.optional() }).strict();
 export const deleteInputSchema = z.object({ expectedRevision: z.number().int().nonnegative() }).strict();
 
 export function newProject(id: string, title: string, now = new Date()): ProjectDocument {
@@ -78,5 +86,14 @@ export function newProject(id: string, title: string, now = new Date()): Project
     schemaVersion: PROJECT_SCHEMA_VERSION, id, title, createdAt: timestamp, updatedAt: timestamp, revision: 0,
     fps: 30, resolution: { width: 1280, height: 720 }, sceneOrder: [], scenes: {}, characters: {}, speakers: {},
     audioClips: {}, tracks: {}, events: {}, assetManifest: {}, exportSettings: { fps: 30, width: 1280, height: 720 },
+    environmentArrangement: defaultArrangement(),
   });
+}
+
+export function migrateProject(value: unknown): ProjectDocument | null {
+  const current = projectSchema.safeParse(value);
+  if (current.success) return current.data;
+  const legacy = legacyProjectSchema.safeParse(value);
+  if (!legacy.success) return null;
+  return projectSchema.parse({ ...legacy.data, schemaVersion: PROJECT_SCHEMA_VERSION, environmentArrangement: defaultArrangement() });
 }

@@ -6,7 +6,10 @@ import { MainNavigation } from "@/components/navigation/main-navigation";
 import { TopToolbar } from "./top-toolbar";
 import { SectionContent } from "./section-content";
 import { StudioViewport } from "@/components/viewport/studio-viewport";
-import { PropertiesPanel } from "./properties-panel";
+import { PropertiesPanel, type TransformMode } from "./properties-panel";
+import { EnvironmentEditor } from "@/components/viewport/environment-editor";
+import { updateProp } from "@/lib/environments/arrangement";
+import type { TransformConfig } from "@/lib/environments/environment-registry";
 import { TimelinePlaceholder } from "./timeline-placeholder";
 import { ProjectManager } from "@/components/projects/project-manager";
 import { useProjects } from "@/components/projects/use-projects";
@@ -14,6 +17,11 @@ import { useProjects } from "@/components/projects/use-projects";
 export function EditorShell() {
   const [activeSection, setActiveSection] = useState<SectionId>("projects");
   const projects = useProjects();
+  const [selection, setSelection] = useState<{ projectId: string; propId: string } | null>(null);
+  const [mode, setMode] = useState<TransformMode>("translate");
+  const selectedId = selection && selection.projectId === projects.active?.id ? selection.propId : null;
+  const selectProp = (id: string | null) => { setSelection(id && projects.active ? { projectId: projects.active.id, propId: id } : null); if (id) setActiveSection("environments"); };
+  const commitTransform = (id: string, transform: TransformConfig) => projects.editArrangement((current) => updateProp(current, id, { transform }));
 
   return (
     <div className="app-background min-h-screen">
@@ -35,10 +43,15 @@ export function EditorShell() {
         <main className="flex min-w-0 flex-col gap-4 px-[22px] pt-[19px] pb-[22px] max-[1120px]:p-[15px] max-[650px]:gap-2.5 max-[650px]:p-2.5">
           <div className="grid grid-cols-[minmax(0,1fr)_260px] items-stretch gap-4 max-[1120px]:grid-cols-[minmax(0,1fr)_220px] max-[850px]:grid-cols-[minmax(0,1fr)_210px] max-[650px]:flex max-[650px]:flex-col max-[650px]:gap-2.5">
             <div className="flex min-w-0 flex-col gap-3.5">
-              {activeSection === "projects" ? <ProjectManager projects={projects} /> : <SectionContent section={activeSection} />}
-              <StudioViewport />
+              {activeSection === "projects" ? <ProjectManager projects={projects} /> : activeSection === "environments"
+                ? <EnvironmentEditor arrangement={projects.arrangement} selectedId={selectedId} onSelect={selectProp}
+                    onEdit={projects.editArrangement} saveStatus={projects.saveStatus} onSave={() => { void projects.saveNow().catch(() => undefined); }} />
+                : <SectionContent section={activeSection} />}
+              <StudioViewport arrangement={projects.arrangement} selectedId={selectedId} onSelect={selectProp} onCommit={commitTransform} mode={mode} />
             </div>
-            <PropertiesPanel section={activeSection} projectTitle={projects.active?.title} />
+            <PropertiesPanel section={activeSection} projectTitle={projects.active?.title}
+              arrangement={activeSection === "environments" ? projects.arrangement : null} selectedId={selectedId}
+              onEdit={projects.editArrangement} mode={mode} onModeChange={setMode} />
           </div>
           <TimelinePlaceholder />
         </main>

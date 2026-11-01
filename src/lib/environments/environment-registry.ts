@@ -10,6 +10,7 @@ export type PropDefinition = {
   id: string;
   displayName: string;
   rendererKey: PropRendererKey;
+  editable?: boolean;
   material?: { color: string; roughness: number; metalness: number };
 };
 

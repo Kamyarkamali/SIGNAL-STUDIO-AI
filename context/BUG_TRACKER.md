@@ -20,6 +20,10 @@ Severity:
 
 ## Bugs and observations — new project
 
+**Phase 03-C interactive report (2026-11-02):** The user confirmed that the dynamic prop editor works after opening an active project. No new application defect was reported. This does not establish separate results for each selection, gizmo, visibility, save/reopen, responsive, console or integrated-GPU check; those remain pending in `PROGRESS_CHECKLIST.md`. The agent's computer-use inventory exposed no browser for independent verification.
+
+**Phase 03-C implementation review (2026-11-02):** Project schema v2 and the project-level studio prop editor passed `npm run typecheck`, `npm run lint`, `npm test` (27/27) and `npm run build` in the finalization run. Temporary-store tests covered v1 migration, backups, reopen, duplication, independent transforms and invalid-scale rejection. No new reproduced application defect was confirmed.
+
 **Phase 03-B (2026-11-01):** The seated-use issue below was identified from source geometry and corrected. Typecheck, lint, 22/22 automated tests and the production build passed after the change. The agent's browser inventory was empty and the in-app browser was unavailable, so Studio 01 composition, object intersections, orbit/zoom, resize, GPU performance and console state are **unverified**. The existing project schema and project data were not changed.
 
 **Final architecture review (2026-11-02):** Typecheck, lint, 24/24 automated tests and production build passed after the camera-anchor correction. Browser inventory was again empty and the in-app browser unavailable. Visual acceptance, close-up obstruction and hardware performance remain unverified. No project data or schema was changed.

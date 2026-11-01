@@ -15,8 +15,8 @@ export async function GET(request: NextRequest, context: Context) {
 export async function PATCH(request: NextRequest, context: Context) {
   try {
     assertLocalRequest(request, true);
-    const { title, expectedRevision } = await readJson(request, saveInputSchema);
-    return NextResponse.json(await projectService.save((await context.params).id, title, expectedRevision));
+    const { title, expectedRevision, environmentArrangement } = await readJson(request, saveInputSchema);
+    return NextResponse.json(await projectService.save((await context.params).id, title, expectedRevision, environmentArrangement));
   } catch (error) { return apiError(error); }
 }
 

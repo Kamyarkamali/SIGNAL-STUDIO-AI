@@ -130,11 +130,18 @@ Use IDs `ADR-001`, `ADR-002`, etc. Each entry states **Decision**, **Reason**, *
 **Final 03-B camera review (2026-11-02):** Keep production-camera suggestions as serializable poses, with separate metadata for framing intent, supported aspect-ratio suggestion and stable character-placement anchor IDs. Add wide, two-seat, individual-seat and three-seat suggestions, including vertical variants. Seat references do not bind a pose to a character name or speaker identity. Future manual, fixed and optional speaker-following modes, timeline overrides, movement, cuts and export remain outside 03-B. Approximate geometric clearance is tested; visual suitability requires browser review.
 
 ### ADR-018 — Future scene props and educational display sequencing
-- **Status:** ACCEPTED for planning; implementation phases remain unstarted
+- **Status:** SUPERSEDED in part by ADR-019 for basic project-level prop editing; scene-local work remains planned
 - **Decision:** Place basic per-scene prop editing and Studio 01 quality refinement in Phase 05-B after scene persistence. Place local image/video/off display assignment and basic playback in Phase 06-B after managed assets and scene props. Resolve repeated display-state changes from project frames in Phase 07, cinematic camera direction independently in Phase 09, and synchronized offline output in Phase 11. Keep Phase 12 for imported assets and reusable environment composition.
 - **Reason:** Scene-specific prop IDs, managed media assets and deterministic time are prerequisites for the tutorial workflow; independent camera and display tracks prevent a camera change from resetting video.
 - **Trade-offs:** Adds two explicitly gated subphases before timeline work; media format/decode limits and integrated-GPU budget need measured implementation evidence.
 - **Revisit trigger:** A validated asset/decoder prototype or scene schema migration reveals a dependency conflict.
+
+### ADR-019 — Phase 03-C project-level editable studio arrangement
+- **Status:** ACCEPTED for the explicitly authorized 03-C implementation; visual acceptance pending
+- **Decision:** Keep Studio 01 as an immutable reusable template. Add schema v2 with one project-level arrangement and independent prop instances, because scene entities are not implemented. Migrate v1 in memory and back up the file before the first v2 write. Reuse the existing revision-checked local save path; commit gizmo transforms on release. Protect structural room props in the domain schema. Phase 05-B remains responsible for converting this arrangement into scene-local overrides after scene management exists.
+- **Reason:** Enables genuine object editing and persistence now without fabricating scene independence or changing the accepted studio defaults.
+- **Trade-offs:** Only one arrangement per project is editable in 03-C; real viewport interaction, integrated-GPU performance, and fullscreen/quality behavior need browser acceptance evidence.
+- **Revisit trigger:** Phase 05 scene model and Phase 05-B scene-local arrangement migration.
 
 ## Pending decisions
 
