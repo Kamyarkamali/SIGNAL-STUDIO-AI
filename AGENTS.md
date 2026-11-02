@@ -52,6 +52,20 @@ Stop progression for a confirmed critical blocker, including data loss/corruptio
 - Include regression coverage for new bugs. Historical failures are listed as regression risks in `BUG_TRACKER.md`.
 - Never invent performance measurements, render outputs, test results, or browser evidence.
 
+## Product Requirements — Mandatory Context
+
+Before implementing new features, read:
+
+`context/VIDEO_PRODUCTION_REQUIREMENTS.md`
+
+This document defines the long-term product vision and required video production capabilities.
+
+Use it alongside ROADMAP.md, ARCHITECTURE.md, BEHAVIOR_SYSTEM.md, PROGRESS_CHECKLIST.md, and BUG_TRACKER.md.
+
+Do not treat future requirements as implemented features.
+
+Preserve the approved MVP direction and unresolved defects.
+
 ## Documentation updates after each authorized phase
 
 1. Update `context/PROGRESS_CHECKLIST.md`; `[x]` means completed **and** adequately verified.
@@ -63,4 +77,3 @@ Stop progression for a confirmed critical blocker, including data loss/corruptio
 ## Current default
 
 **Phase 00: planning/documentation. No application code or dependency installation unless the user explicitly starts a development phase.**
-
