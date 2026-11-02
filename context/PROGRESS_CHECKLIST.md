@@ -167,17 +167,42 @@
 
 ## 6. Phase 04 — Character Models, Library & Scene Instances
 
-**Phase status:** Not started.
+**Phase status:** Phase 04-A accepted after user-confirmed 33/33 manual acceptance tests. Phase 04-B production models are not started.
 
-- [ ] Provide actual, separately verified models for Kamyar, ChatGPT and Claude as each becomes available; do not check any preset without a visible usable model.
-- [ ] Separate model definition, named character definition and scene character instance.
-- [ ] Create/rename/duplicate characters with stable IDs and supported appearance customization.
-- [ ] Add/remove/show/hide a **visible 3D instance**; creating a library entry alone is insufficient.
-- [ ] Edit independent position, rotation, scale, orientation and appearance without shifting other actors or props.
-- [ ] Ensure correct facial geometry, including beard anchored to the lower face and unobstructed mouth where supported.
-- [ ] Persist and restore scene instance state; test two characters sharing one base model.
-- [ ] Handle missing or unsupported models gracefully.
-- [ ] Obtain Phase 04 approval.
+### Phase 04-A — Reusable character library and project placement
+
+- [x] Define validated stable-ID model registry with renderer, front-axis, default transform, placement roles, and only supported capability metadata. Registry exposes one explicitly temporary generic development model, not production character designs.
+- [x] Separate model definitions, project-local named identities, character instances, and editable project-level presence state.
+- [x] Create and rename identities, add multiple instances of the same identity, select from the Persian list or viewport, show/hide/remove, and edit position/rotation/scale with reset placement. User confirmed all 33 manual tests; rename, scaling/persistence, and panel usability were explicitly called out.
+- [x] Render characters in a separate R3F layer with temporary placeholder and missing-model fallback; user-confirmed manual acceptance covers the character preview and editor behavior.
+- [x] Persist independent character data; migrate schema v1-v3 to v4; keep v3 source data until successful save/backup; test reopen and project duplicate isolation.
+- [x] Preserve existing prop/environment/display assignment data in schema migration tests.
+- [x] Complete the interactive checklist and accept Phase 04-A (user-confirmed 33/33 PASS).
+
+**Automated evidence (2026-11-02):** After the rename/scaling fix, `npm run typecheck`, `npm run lint`, `npm test` (39/39), `npm run build`, and `git diff --check` passed. Character tests cover rename validation and ID stability, independent scale, gizmo scale bounds, save/reopen, identity/instance separation, unknown model references, v3 migration, and project duplication; legacy v1/v2 and prop/display regressions also passed. These checks do not verify rendered interaction.
+
+**Manual browser report (2026-11-02):** The user initially reported 30 PASS, 1 FAIL, and 2 NOT VERIFIED. Follow-up explicitly confirmed all **33/33 PASS**, including the fixed rename test, character scaling and persistence, and Persian panel usability. The user explicitly accepted Phase 04-A. Individual outcomes for the original 30 tests were not itemized; the aggregate 33/33 is the acceptance source of truth.
+
+**Manual browser checklist — accepted by the user's 33/33 report:**
+
+- [x] Create and rename an identity; confirm the catalog marks its model as temporary.
+- [x] Add two instances of one identity; confirm both are visible, separately selectable, and neither moves the other.
+- [x] Select each instance from the list and click the viewport model; confirm properties selection matches.
+- [x] Hide and show each model and confirm viewport visibility changes.
+- [x] Move, rotate (including facing direction), and scale by gizmo and numeric fields; verify orbit resumes after gizmo drag and invalid scales are rejected.
+- [x] Reset placement; remove one instance; confirm the identity remains available and another instance is unchanged.
+- [x] Save, refresh, reopen the same project, and verify identities, visibility and transforms persist.
+- [x] Switch projects and duplicate a project; confirm character state is independent.
+- [x] Open an existing project and confirm environment props, laptop media assignments, and character fallback remain valid.
+- [x] Check narrow/responsive UI, keyboard focus, browser console, orbit/zoom, and responsiveness on integrated graphics.
+
+**Unverified:** No Phase 04-A acceptance item remains open according to the user's 33/33 report. Unrelated, previously open checks from other phases are unchanged.
+
+### Phase 04-B — Approved production character models (not started)
+
+- [ ] Implement approved Kamyar, ChatGPT and Claude production concepts from the revised character requirements; replace renderer without changing identity or instance IDs/transforms.
+- [ ] Verify actual model appearance, orientation and future supported capabilities before exposing them as available.
+- [ ] Obtain separate Phase 04-B approval.
 
 ## 7. Phase 05 — Scene Manager, Storyboard & Timing
 

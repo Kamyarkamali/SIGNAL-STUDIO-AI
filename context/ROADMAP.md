@@ -3,7 +3,7 @@
 **Document:** `context/ROADMAP.md`  
 **Status:** Phases 03-A through 03-E accepted; overall Phase 03 remains open; later phases require separate approval
 **Target:** Single-user Windows local application, Persian RTL editor  
-**Current stage:** Phase 03-E accepted after the user's 13/13 manual browser acceptance report. Overall Phase 03 remains open pending unrelated checks.
+**Current stage:** Phase 04-A accepted after the user's 33/33 manual browser acceptance report. Phase 04-B is not started. Phase 03-E was accepted after the user's 13/13 manual browser acceptance report. Overall Phase 03 remains open pending unrelated checks.
 
 ## 1. Roadmap Rules
 
@@ -115,9 +115,21 @@ The architecture anticipates later features, but implementation must not build u
 
 **Goal:** A new character is a **visible 3D entity**, not only a name entry.
 
-**Scope:** Character model registry; prebuilt Kamyar, cute ChatGPT mascot and Claude as genuinely available model assets, added incrementally and clearly tracked; character definitions vs instances; appearance capabilities; instance transforms; in-viewport selection/move/rotate with safe camera controls; visibility; persistence. Shared geometry may be reused, never unintended mutable transforms/materials.
+### Phase 04-A — Character library foundation (accepted 2026-11-02)
 
-**Acceptance:** Create two differently named characters from one supported model; add both as visible independent instances; modify one without changing the other; move/rotate one without moving props, other actors or camera; front/side-view facial geometry looks correct; save/reopen; missing model handled safely. Only mark individual presets completed when a real, tested 3D model exists.
+**Scope:** Reusable model registry with capability metadata; project-local named identities separate from model definitions; independently identified project character instances and serializable placement/visibility state; lightweight, explicitly temporary generic renderer; Persian identity and instance controls; selection and transform controls; safe project schema v4 migration from v1-v3. The current project has no scene entities, so placement is project-level; Phase 05 must migrate/extend presence state to scene-local overrides.
+
+**Acceptance:** The user confirmed all 33 manual acceptance tests passed, including character creation and rename, multiple instances, selection, visibility, transforms and scale persistence, project persistence/isolation, and Persian editor usability. Phase 04-A is accepted. This does not accept Phase 04-B.
+
+### Phase 04-B — Approved production character models (planned; not started)
+
+**Scope:** Implement the approved Kamyar, ChatGPT and Claude concepts from `CHARACTERS_AND_AUDIO_REQUIREMENTS_REVISED.md` as replaceable model assets/renderers without changing identity or instance IDs and transforms. Only expose capabilities the models actually support.
+
+**Acceptance:** Real model assets are visibly tested from multiple views, retain correct front/orientation and placement, and replace the temporary renderer without changing saved identity, instance, or transform data. Character animation remains separately scoped.
+
+**Scope:** See 04-A foundation and 04-B production assets above. Shared geometry may be reused, never unintended mutable transforms/materials.
+
+**Overall acceptance:** Create two differently named characters from one supported model; add both as visible independent instances; modify one without changing the other; move/rotate one without moving props, other actors or camera; verify real model appearance/orientation when production assets exist; save/reopen; missing model handled safely. Only mark individual presets completed when a real, tested 3D model exists.
 
 **Out of scope:** Automatic rigging, photorealistic likeness, advanced facial animation, AI character generator.
 

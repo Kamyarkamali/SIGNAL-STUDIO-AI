@@ -1,7 +1,7 @@
 # Signal Studio AI — Bug Tracker
 
 **Path:** `context/BUG_TRACKER.md`  
-**Status:** Phase 03-A through 03-E accepted; overall Phase 03 remains open pending unrelated checks
+**Status:** Phase 03-A through 03-E accepted; Phase 04-A accepted; overall Phase 03 remains open pending unrelated checks
 **Product:** Local-only Windows 3D animation editor
 
 ## Purpose
@@ -154,6 +154,12 @@ These are **test scenarios**, not active bugs in the new project:
 | R-14 | Interactive tests must distinguish browser verification from TypeScript/lint/build success. |
 
 ## Triage and closure rules
+
+**Phase 04-A implementation review (2026-11-02):** Added a generic development-only character renderer and project-level registry/identity/instance/state architecture. Automated coverage includes registry validation, identity-instance independence, unknown model retention, v3-to-v4 migration, and save/reopen/duplicate isolation. Interactive browser acceptance is still pending; no visual or GPU performance claim is made. See the Phase 04-A checklist in `PROGRESS_CHECKLIST.md`.
+
+**Phase 04-A user test report (2026-11-02):** Initial report: 30 PASS, 1 FAIL, and 2 NOT VERIFIED. The failure was character renaming. The UI now has an explicit Persian rename control, Enter/blur commit, required/non-empty validation, and reverts blank input. Identity and instance IDs remain stable, shared instances display the updated identity name, and autosave persists it. Regression tests cover identity independence and save/reopen. The user subsequently confirmed **all 33/33 manual acceptance tests passed**, including rename, scaling/persistence, and Persian panel usability; the user explicitly accepted Phase 04-A. This resolves the reported rename defect and closes the two previously unverified tests. Individual results for the first 30 tests were not itemized; no additional per-test detail is inferred.
+
+**Phase 04-A scaling review (2026-11-02):** Numeric scale input enforces the schema-supported range 0.05–20; transform-gizmo commits clamp scale to the same range. Automated tests verify independent scale state, bounds, and persistence after reopening. The user confirmed browser-visible scaling and persistence in the final 33/33 acceptance report. Final automated checks are recorded in the checklist and commit handoff.
 
 1. Reproduce before labeling a new-project issue confirmed.
 2. Fix root cause; add a targeted regression test.

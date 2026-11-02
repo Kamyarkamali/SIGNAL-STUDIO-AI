@@ -7,6 +7,7 @@ import { defaultArrangement, type EnvironmentArrangement } from "@/lib/environme
 import type { TransformConfig } from "@/lib/environments/environment-registry";
 import type { TransformMode } from "@/components/layout/properties-panel";
 import type { ProjectDocument } from "@/lib/projects/project-schema";
+import type { CharacterProjectData, CharacterState } from "@/lib/characters/character-schema";
 
 const SceneCanvas = dynamic(() => import("./scene-canvas"), { ssr: false });
 
@@ -30,10 +31,13 @@ class CanvasErrorBoundary extends Component<{ children: ReactNode }, { failed: b
 
 const previewArrangement = defaultArrangement();
 
-export function StudioViewport({ arrangement, selectedId, onSelect, onCommit, mode, projectId, displayAssignments, mediaPlaying, inspectPropId }: {
+export function StudioViewport({ arrangement, selectedId, onSelect, onCommit, mode, projectId, displayAssignments, mediaPlaying, inspectPropId,
+  characterData, selectedCharacterId, onCharacterSelect, onCharacterCommit }: {
   arrangement: EnvironmentArrangement | null; selectedId: string | null;
   onSelect: (id: string | null) => void; onCommit: (id: string, transform: TransformConfig) => void; mode: TransformMode;
   projectId: string | null; displayAssignments: ProjectDocument["displayAssignments"]; mediaPlaying: boolean; inspectPropId: string | null;
+  characterData: CharacterProjectData; selectedCharacterId: string | null;
+  onCharacterSelect: (id: string | null) => void; onCharacterCommit: (id: string, state: CharacterState) => void;
 }) {
   const [status, setStatus] = useState<"checking" | "ready" | "unavailable" | "failed">("checking");
   useEffect(() => {
@@ -53,7 +57,9 @@ export function StudioViewport({ arrangement, selectedId, onSelect, onCommit, mo
         arrangement={arrangement ?? previewArrangement} selectedId={arrangement ? selectedId : null}
         onSelect={arrangement ? onSelect : () => undefined} onCommit={onCommit} mode={mode}
         projectId={arrangement ? projectId : null} displayAssignments={arrangement ? displayAssignments : {}}
-        mediaPlaying={mediaPlaying && Boolean(arrangement)} inspectPropId={arrangement ? inspectPropId : null} /></CanvasErrorBoundary>}
+        mediaPlaying={mediaPlaying && Boolean(arrangement)} inspectPropId={arrangement ? inspectPropId : null}
+        characterData={arrangement ? characterData : { characterIdentities: {}, characterInstances: {}, characterStates: {} }}
+        selectedCharacterId={arrangement ? selectedCharacterId : null} onCharacterSelect={onCharacterSelect} onCharacterCommit={onCharacterCommit} /></CanvasErrorBoundary>}
       {status === "checking" && <div role="status" className="grid h-full place-items-center text-xs text-muted">در حال آماده‌سازی نمای سه‌بعدی…</div>}
       {(status === "unavailable" || status === "failed") && <WebGLFallback unavailable={status === "unavailable"} />}
     </div>

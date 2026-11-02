@@ -10,6 +10,7 @@ import {
 import type { EnvironmentArrangement } from "../environments/arrangement.ts";
 import type { z } from "zod";
 import { displayAssignmentsSchema } from "./project-schema.ts";
+import type { CharacterProjectData } from "../characters/character-schema.ts";
 
 export class ProjectError extends Error {
   readonly code: string;
@@ -99,7 +100,7 @@ export class ProjectService {
     let value: unknown;
     try { value = JSON.parse(content); }
     catch { throw new ProjectError("CORRUPT", "فایل پروژه آسیب دیده است.", 422); }
-    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3) {
+    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4) {
       throw new ProjectError("UNSUPPORTED_VERSION", "نسخهٔ این پروژه پشتیبانی نمی‌شود؛ فایل اصلی تغییر نکرده است.", 422);
     }
     const parsed = migrateProject(value);
@@ -157,7 +158,8 @@ export class ProjectService {
   async open(id: string): Promise<ProjectDocument> { return this.readProject(projectId(id)); }
 
   async save(id: string, name: string, expectedRevision: number, environmentArrangement?: EnvironmentArrangement,
-    displayAssignments?: z.infer<typeof displayAssignmentsSchema>): Promise<ProjectDocument> {
+    displayAssignments?: z.infer<typeof displayAssignmentsSchema>, characterIdentities?: CharacterProjectData["characterIdentities"],
+    characterInstances?: CharacterProjectData["characterInstances"], characterStates?: CharacterProjectData["characterStates"]): Promise<ProjectDocument> {
     id = projectId(id);
     const title = projectName(name);
     if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new ProjectError("INVALID_REVISION", "شمارهٔ بازبینی نامعتبر است.");
@@ -166,10 +168,17 @@ export class ProjectService {
       if (current.revision !== expectedRevision) throw new ProjectError("STALE_WRITE", "پروژه در جای دیگری تغییر کرده است؛ دوباره آن را باز کنید.", 409);
       const arrangement = environmentArrangement ?? current.environmentArrangement;
       const displays = displayAssignments ?? current.displayAssignments;
+      const identities = characterIdentities ?? current.characterIdentities;
+      const instances = characterInstances ?? current.characterInstances;
+      const states = characterStates ?? current.characterStates;
       const raw = JSON.parse(await readFile(this.projectFile(id), "utf8")) as { schemaVersion?: number };
       if (current.title === title && JSON.stringify(current.environmentArrangement) === JSON.stringify(arrangement) &&
-        JSON.stringify(current.displayAssignments) === JSON.stringify(displays) && raw.schemaVersion === 3) return current;
+        JSON.stringify(current.displayAssignments) === JSON.stringify(displays) &&
+        JSON.stringify(current.characterIdentities) === JSON.stringify(identities) &&
+        JSON.stringify(current.characterInstances) === JSON.stringify(instances) &&
+        JSON.stringify(current.characterStates) === JSON.stringify(states) && raw.schemaVersion === 4) return current;
       const updated = projectSchema.parse({ ...current, title, environmentArrangement: arrangement, displayAssignments: displays,
+        characterIdentities: identities, characterInstances: instances, characterStates: states,
         revision: current.revision + 1, updatedAt: new Date().toISOString() });
       const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
       await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);

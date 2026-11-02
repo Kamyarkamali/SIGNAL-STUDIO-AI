@@ -12,6 +12,8 @@ import { watchContextLoss } from "./webgl-support";
 import { StudioEnvironment } from "./environments/studio-environment";
 import type { ProjectDocument } from "@/lib/projects/project-schema";
 import { laptopVisualSpec } from "@/lib/environments/studio-visual-spec";
+import { CharacterLayer } from "@/components/characters/character-layer";
+import type { CharacterProjectData, CharacterState } from "@/lib/characters/character-schema";
 
 function EditorCameraControls() {
   return <OrbitControls makeDefault target={EDITOR_CAMERA.target} minDistance={EDITOR_CAMERA.minDistance}
@@ -58,10 +60,13 @@ function ContextLossMonitor({ onFailure }: { onFailure: () => void }) {
   return null;
 }
 
-export default function SceneCanvas({ onFailure, arrangement, selectedId, onSelect, onCommit, mode, projectId, displayAssignments, mediaPlaying, inspectPropId }: {
+export default function SceneCanvas({ onFailure, arrangement, selectedId, onSelect, onCommit, mode, projectId, displayAssignments, mediaPlaying, inspectPropId,
+  characterData, selectedCharacterId, onCharacterSelect, onCharacterCommit }: {
   onFailure: () => void; arrangement: EnvironmentArrangement; selectedId: string | null;
   onSelect: (id: string | null) => void; onCommit: (id: string, transform: TransformConfig) => void; mode: TransformMode;
   projectId: string | null; displayAssignments: ProjectDocument["displayAssignments"]; mediaPlaying: boolean; inspectPropId: string | null;
+  characterData: CharacterProjectData; selectedCharacterId: string | null;
+  onCharacterSelect: (id: string | null) => void; onCharacterCommit: (id: string, state: CharacterState) => void;
 }) {
   return <Canvas
     frameloop="demand"
@@ -77,5 +82,7 @@ export default function SceneCanvas({ onFailure, arrangement, selectedId, onSele
     <InspectionCamera arrangement={arrangement} propId={inspectPropId} />
     <StudioEnvironment arrangement={arrangement} selectedId={selectedId} onSelect={onSelect} onCommit={onCommit} mode={mode}
       projectId={projectId} displayAssignments={displayAssignments} playing={mediaPlaying} />
+    <CharacterLayer data={characterData} selectedId={selectedCharacterId} mode={mode}
+      onSelect={onCharacterSelect} onCommit={onCharacterCommit} />
   </Canvas>;
 }

@@ -46,10 +46,13 @@ test("version 2 projects migrate to display-capable schema without changing arra
   const project = newProject("68d01df5-e9a6-4eca-ae9b-6cf55e708b0d", "Migration");
   const withoutDisplay = { ...project };
   delete withoutDisplay.displayAssignments;
+  delete withoutDisplay.characterIdentities;
+  delete withoutDisplay.characterInstances;
+  delete withoutDisplay.characterStates;
   const rest = { ...withoutDisplay };
   delete rest.schemaVersion;
   const migrated = migrateProject({ ...rest, schemaVersion: 2 });
-  assert.equal(migrated.schemaVersion, 3);
+  assert.equal(migrated.schemaVersion, 4);
   assert.deepEqual(migrated.environmentArrangement, project.environmentArrangement);
   assert.deepEqual(migrated.displayAssignments, {});
 });
@@ -70,6 +73,6 @@ test("managed display upload, assignment save, reopen and duplicate preserve ind
     assert.deepEqual(duplicate.displayAssignments["studio-01:laptop"], assignment);
     const duplicateBytes = await readFile(join(root, "projects", duplicate.id, ...asset.relativePath.split("/")));
     assert.deepEqual(duplicateBytes, Buffer.from(pngHeader));
-    assert.equal(saved.schemaVersion, 3);
+    assert.equal(saved.schemaVersion, 4);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

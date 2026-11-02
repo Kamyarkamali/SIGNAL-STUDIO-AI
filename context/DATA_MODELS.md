@@ -2,15 +2,17 @@
 
 **Document:** `context/DATA_MODELS.md`  
 **Project:** Signal Studio AI  
-**Status:** Phase 02 project schema v1 and Phase 03-C project arrangement schema v2 implemented; later scene/timeline contracts remain proposed
+**Status:** Project schema v4 implemented: v2 adds project-level environment arrangement, v3 adds laptop display assignments, and v4 adds project-level character identity/instance/state collections. Scene/timeline contracts remain proposed.
 **Target:** Single-user, local Windows application  
 **Language:** English for technical documentation; Persian (`fa-IR`) for all visible application UI
 
-> This document defines the canonical data concepts and invariants. TypeScript examples are illustrative contracts, **not** production-ready schemas. Zod schemas, migrations, tests and storage adapters must be created in their approved implementation phases.
+> This document defines the canonical data concepts and invariants. Implemented project contracts, Zod schemas, migrations, tests, and storage behavior are identified in phase-specific notes; future contracts remain proposals until implemented and accepted.
 
 **Phase 03-C implementation note (2026-11-02):** Project schema v2 adds one `environmentArrangement` at project scope for the built-in Studio 01. It holds `environmentId` and validated prop instances with stable IDs, definition IDs, position/rotation/positive scale and visibility. The current application has no scene entities, so this field does not represent scene independence. v1 projects are migrated in memory when read; the original JSON remains intact until the next successful write, which first makes a backup. Scene-local overrides remain planned for Phase 05-B.
 
 **Phase 03-E implementation note (2026-11-02):** Project schema v3 adds `displayAssignments`, keyed by laptop prop-instance ID. Each serializable assignment holds a presentation state (`image`, `video`, or `off`), optional independently retained image/video asset IDs, fit mode (`contain`/`cover`), and brightness. Assets are stored in per-project `display-images`/`display-videos` folders and indexed in the existing asset manifest. v1 and v2 projects migrate in memory to v3; the original JSON is backed up before first write. The assignment references the laptop instance, not its reusable prop definition or mesh. Scene-specific and timeline-driven state remain unimplemented.
+
+**Phase 04-A implementation note (2026-11-02):** Schema v4 stores `characterIdentities`, `characterInstances`, and `characterStates` as separate keyed serializable collections. Identity records reference a stable model ID and hold a custom name/customization data; instances hold their own IDs and identity reference; state records are keyed by instance ID and hold visibility, position/rotation/positive scale, initial placement, and optional anchor reference. The model registry and renderer capabilities are code-defined and are not copied into each project. Unavailable model IDs are retained so projects can load and display a missing-model fallback. v1-v3 migrate in memory to v4 and are backed up on first successful write. State is project-level because scenes are not implemented; Phase 05 must add scene-local presence/overrides and a safe migration policy. Forward direction is local +Z, yaw is rotation around +Y, and no gaze behavior is implemented. Identities are reusable within a project; no cross-project global identity catalog is introduced.
 
 ## 1. Purpose and Source of Truth
 

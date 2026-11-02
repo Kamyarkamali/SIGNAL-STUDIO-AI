@@ -8,9 +8,9 @@
 
 **Target Platform:** Windows Desktop
 
-**Architecture Status:** Proposed — Pending Approval
+**Architecture Status:** Implemented incrementally; see phase-specific status below
 
-**Development Phase:** Planning / Phase 00
+**Development Phase:** Phase 04-A implemented; browser acceptance pending
 
 ---
 
@@ -22,6 +22,8 @@
 - `context/BEHAVIOR_SYSTEM.md` — behavior layers and priorities.
 - `context/DATA_MODELS.md` — canonical data contracts (to be authored).
 - `context/ROADMAP.md` — incremental execution plan (to be authored).
+
+**Implementation status (2026-11-02):** Phase 04-A adds `src/lib/characters` for the validated model registry, project character schemas and operations, plus a `CharacterLayer`/renderer path separate from the environment renderer. The editor owns selection and passes serializable state to the 3D layer; project persistence remains in the existing versioned project service. Only a temporary development renderer is available. Character placement is project-level until the Phase 05 scene model exists.
 
 ## 1. Architecture Goals
 

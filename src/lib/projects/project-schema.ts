@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { arrangementSchema, defaultArrangement } from "../environments/arrangement.ts";
+import { characterProjectDataSchema } from "../characters/character-schema.ts";
 
-export const PROJECT_SCHEMA_VERSION = 3;
+export const PROJECT_SCHEMA_VERSION = 4;
 export const PROJECT_MAX_BYTES = 1024 * 1024;
 export const REQUEST_MAX_BYTES = 256 * 1024;
 
@@ -45,7 +46,7 @@ export type AssetRecord = z.infer<typeof assetRecordSchema>;
 
 const emptyCollection = z.record(z.string(), z.never());
 const baseProjectSchema = z.object({
-  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
   id: projectIdSchema,
   title: projectNameSchema,
   createdAt: z.iso.datetime(),
@@ -84,10 +85,17 @@ export const displayAssignmentSchema = z.object({
 }).strict();
 export const displayAssignmentsSchema = z.record(z.string().min(1), displayAssignmentSchema);
 
+export const version3ProjectSchema = baseProjectSchema.safeExtend({
+  schemaVersion: z.literal(3),
+  environmentArrangement: arrangementSchema,
+  displayAssignments: displayAssignmentsSchema,
+});
+
 export const projectSchema = baseProjectSchema.safeExtend({
   schemaVersion: z.literal(PROJECT_SCHEMA_VERSION),
   environmentArrangement: arrangementSchema,
   displayAssignments: displayAssignmentsSchema,
+  ...characterProjectDataSchema.shape,
 }).superRefine((project, context) => {
   for (const [propId, assignment] of Object.entries(project.displayAssignments)) {
     const prop = project.environmentArrangement.props.find((item) => item.id === propId);
@@ -99,13 +107,19 @@ export const projectSchema = baseProjectSchema.safeExtend({
       context.addIssue({ code: "custom", message: "برای حالت نمایشگر، رسانه‌ای انتخاب نشده است." });
     }
   }
+  const characterData = characterProjectDataSchema.safeParse({ characterIdentities: project.characterIdentities,
+    characterInstances: project.characterInstances, characterStates: project.characterStates });
+  if (!characterData.success) for (const issue of characterData.error.issues) {
+    context.addIssue({ code: "custom", message: issue.message, path: issue.path });
+  }
 });
 
 export type ProjectDocument = z.infer<typeof projectSchema>;
 export type ProjectSummary = Pick<ProjectDocument, "id" | "title" | "createdAt" | "updatedAt" | "revision">;
 
 export const createInputSchema = z.object({ title: projectNameSchema }).strict();
-export const saveInputSchema = z.object({ title: projectNameSchema, expectedRevision: z.number().int().nonnegative(), environmentArrangement: arrangementSchema.optional(), displayAssignments: displayAssignmentsSchema.optional() }).strict();
+export const saveInputSchema = z.object({ title: projectNameSchema, expectedRevision: z.number().int().nonnegative(), environmentArrangement: arrangementSchema.optional(), displayAssignments: displayAssignmentsSchema.optional(),
+  characterIdentities: characterProjectDataSchema.shape.characterIdentities.optional(), characterInstances: characterProjectDataSchema.shape.characterInstances.optional(), characterStates: characterProjectDataSchema.shape.characterStates.optional() }).strict();
 export const deleteInputSchema = z.object({ expectedRevision: z.number().int().nonnegative() }).strict();
 
 export function newProject(id: string, title: string, now = new Date()): ProjectDocument {
@@ -114,16 +128,21 @@ export function newProject(id: string, title: string, now = new Date()): Project
     schemaVersion: PROJECT_SCHEMA_VERSION, id, title, createdAt: timestamp, updatedAt: timestamp, revision: 0,
     fps: 30, resolution: { width: 1280, height: 720 }, sceneOrder: [], scenes: {}, characters: {}, speakers: {},
     audioClips: {}, tracks: {}, events: {}, assetManifest: {}, exportSettings: { fps: 30, width: 1280, height: 720 },
-    environmentArrangement: defaultArrangement(), displayAssignments: {},
+    environmentArrangement: defaultArrangement(), displayAssignments: {}, ...characterProjectDataSchema.parse({ characterIdentities: {}, characterInstances: {}, characterStates: {} }),
   });
 }
 
 export function migrateProject(value: unknown): ProjectDocument | null {
   const current = projectSchema.safeParse(value);
   if (current.success) return current.data;
+  const version3 = version3ProjectSchema.safeParse(value);
+  if (version3.success) return projectSchema.parse({ ...version3.data, schemaVersion: PROJECT_SCHEMA_VERSION,
+    characterIdentities: {}, characterInstances: {}, characterStates: {} });
   const prior = version2ProjectSchema.safeParse(value);
-  if (prior.success) return projectSchema.parse({ ...prior.data, schemaVersion: PROJECT_SCHEMA_VERSION, displayAssignments: {} });
+  if (prior.success) return projectSchema.parse({ ...prior.data, schemaVersion: PROJECT_SCHEMA_VERSION, displayAssignments: {},
+    characterIdentities: {}, characterInstances: {}, characterStates: {} });
   const legacy = legacyProjectSchema.safeParse(value);
   if (!legacy.success) return null;
-  return projectSchema.parse({ ...legacy.data, schemaVersion: PROJECT_SCHEMA_VERSION, environmentArrangement: defaultArrangement(), displayAssignments: {} });
+  return projectSchema.parse({ ...legacy.data, schemaVersion: PROJECT_SCHEMA_VERSION, environmentArrangement: defaultArrangement(), displayAssignments: {},
+    characterIdentities: {}, characterInstances: {}, characterStates: {} });
 }

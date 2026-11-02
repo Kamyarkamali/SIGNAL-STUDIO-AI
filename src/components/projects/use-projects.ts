@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { projectRequest, projectUrl, type ProjectDocument, type ProjectList, type ProjectSummary } from "@/lib/projects/project-client";
 import { statusAfterSave, type SaveStatus } from "@/lib/projects/save-state";
 import type { EnvironmentArrangement } from "@/lib/environments/arrangement";
+import { emptyCharacterData } from "@/lib/characters/character-operations";
+import type { CharacterProjectData } from "@/lib/characters/character-schema";
 
 export type { SaveStatus } from "@/lib/projects/save-state";
 
@@ -16,11 +18,13 @@ export function useProjects() {
   const [draftName, setDraftName] = useState("");
   const [arrangement, setArrangement] = useState<EnvironmentArrangement | null>(null);
   const [displayAssignments, setDisplayAssignments] = useState<ProjectDocument["displayAssignments"]>({});
+  const [characterData, setCharacterData] = useState<CharacterProjectData>(emptyCharacterData);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const activeRef = useRef<ProjectDocument | null>(null);
   const draftRef = useRef("");
   const arrangementRef = useRef<EnvironmentArrangement | null>(null);
   const displayRef = useRef<ProjectDocument["displayAssignments"]>({});
+  const characterRef = useRef<CharacterProjectData>(emptyCharacterData());
   const pendingSave = useRef<Promise<void> | null>(null);
 
   const select = useCallback((project: ProjectDocument | null) => {
@@ -28,10 +32,13 @@ export function useProjects() {
     draftRef.current = project?.title ?? "";
     arrangementRef.current = project?.environmentArrangement ?? null;
     displayRef.current = project?.displayAssignments ?? {};
+    characterRef.current = project ? { characterIdentities: project.characterIdentities, characterInstances: project.characterInstances,
+      characterStates: project.characterStates } : emptyCharacterData();
     setActive(project);
     setDraftName(project?.title ?? "");
     setArrangement(project?.environmentArrangement ?? null);
     setDisplayAssignments(project?.displayAssignments ?? {});
+    setCharacterData(characterRef.current);
     setSaveStatus("saved");
     try {
       if (project) sessionStorage.setItem("signal-studio-active-project", project.id);
@@ -86,9 +93,19 @@ export function useProjects() {
     setSaveStatus("dirty");
   };
 
+  const editCharacters = (updater: (current: CharacterProjectData) => CharacterProjectData) => {
+    if (!activeRef.current) return;
+    const next = updater(characterRef.current);
+    characterRef.current = next;
+    setCharacterData(next);
+    setSaveStatus("dirty");
+  };
+
   const hasChanges = () => activeRef.current && (draftRef.current.trim() !== activeRef.current.title ||
     JSON.stringify(arrangementRef.current) !== JSON.stringify(activeRef.current.environmentArrangement) ||
-    JSON.stringify(displayRef.current) !== JSON.stringify(activeRef.current.displayAssignments));
+    JSON.stringify(displayRef.current) !== JSON.stringify(activeRef.current.displayAssignments) ||
+    JSON.stringify(characterRef.current) !== JSON.stringify({ characterIdentities: activeRef.current.characterIdentities,
+      characterInstances: activeRef.current.characterInstances, characterStates: activeRef.current.characterStates }));
 
   const saveNow = useCallback(async () => {
     if (pendingSave.current) await pendingSave.current.catch(() => undefined);
@@ -103,17 +120,19 @@ export function useProjects() {
     const title = draftRef.current.trim();
     const snapshot = arrangementRef.current;
     const displaySnapshot = displayRef.current;
+    const charactersSnapshot = characterRef.current;
     const operation = (async () => {
       setSaveStatus("saving");
       try {
         const saved = await projectRequest<ProjectDocument>(projectUrl(project.id), "PATCH", { title, expectedRevision: project.revision,
-          environmentArrangement: snapshot, displayAssignments: displaySnapshot });
+          environmentArrangement: snapshot, displayAssignments: displaySnapshot, ...charactersSnapshot });
         if (activeRef.current?.id === saved.id) {
           activeRef.current = saved;
           setActive(saved);
           setSaveStatus(statusAfterSave(saved.title, draftRef.current) === "saved" &&
             JSON.stringify(snapshot) === JSON.stringify(arrangementRef.current) &&
-            JSON.stringify(displaySnapshot) === JSON.stringify(displayRef.current) ? "saved" : "dirty");
+            JSON.stringify(displaySnapshot) === JSON.stringify(displayRef.current) &&
+            JSON.stringify(charactersSnapshot) === JSON.stringify(characterRef.current) ? "saved" : "dirty");
         }
         await refresh().catch(() => setError("پروژه ذخیره شد، اما تازه‌سازی فهرست ممکن نشد."));
       } catch (cause) {
@@ -131,7 +150,7 @@ export function useProjects() {
     if (!active || saveStatus !== "dirty") return;
     const timer = setTimeout(() => { void saveNow().catch(() => undefined); }, 800);
     return () => clearTimeout(timer);
-  }, [active, draftName, arrangement, displayAssignments, saveStatus, saveNow]);
+  }, [active, draftName, arrangement, displayAssignments, characterData, saveStatus, saveNow]);
 
   const uploadDisplay = async (file: File): Promise<string | null> => {
     const project = activeRef.current;
@@ -192,6 +211,6 @@ export function useProjects() {
     select(null);
   });
 
-  return { list, loading, busy, error, setError, active, arrangement, editArrangement, displayAssignments, editDisplay,
+  return { list, loading, busy, error, setError, active, arrangement, editArrangement, displayAssignments, editDisplay, characterData, editCharacters,
     uploadDisplay, draftName, saveStatus, refresh, editName, saveNow, create, open, rename, duplicate, remove, close };
 }

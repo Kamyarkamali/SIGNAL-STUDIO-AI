@@ -157,6 +157,13 @@ Use IDs `ADR-001`, `ADR-002`, etc. Each entry states **Decision**, **Reason**, *
 - **Trade-offs:** Schema v3 migration is required for older projects. Basic browser video playback does not provide deterministic arbitrary-time seeking; that remains Phase 07. Real hardware and browser verification remain acceptance gates.
 - **Revisit trigger:** Browser tests expose texture alignment, decoder, readability, camera restoration or integrated-GPU issues.
 
+### ADR-022 — Phase 04-A project character data and replaceable renderer
+- **Status:** IMPLEMENTED; Phase 04-A browser acceptance pending.
+- **Decision:** Keep model definitions in a validated code registry, named identities separate from project instances, and placement/visibility in a serializable project-level state collection. Key renderer selection by stable model ID/renderer key; temporary generic geometry remains explicitly a development placeholder. Persist character data in schema v4 and migrate v1-v3 in memory, backing up original data on first successful save. Use local +Z as model forward and +Y yaw. Keep character R3F rendering in a separate layer from environment props.
+- **Reason:** The app has no scene entities or production character assets yet. This enables independent reusable instances without pretending scene-local presence or final character designs already exist.
+- **Trade-offs:** Project-level placement applies across the current project because scenes do not exist. Character identities are reusable within a project, not in a global cross-project catalog. Phase 05 must introduce scene-local overrides. Automatic gaze, animation, and speaker behavior are absent.
+- **Revisit trigger:** Phase 05 defines scene identity/presence semantics; Phase 04-B replaces the temporary renderer with approved assets and verifies real model axes/capabilities.
+
 ## Pending decisions
 
 
