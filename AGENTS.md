@@ -34,6 +34,16 @@ If a referenced file is missing or contradictory, describe the problem. Never in
 - All visible labels/help/errors are in natural Persian. App layout is RTL; timeline ruler and waveform time flow LTR.
 - No unsupported animation option may appear as functional. Avoid creating arbitrary low-quality environment/model placeholders to populate menus.
 
+## Milestone acceptance and progression
+
+Track three distinct outcomes:
+
+1. **MVP/prototype acceptance:** Explicit user approval accepts a milestone for the stated MVP/prototype use. It may authorize the next explicitly approved development milestone while noncritical browser, visual, or GPU verification debt remains, provided there is no known critical functional or data-integrity blocker. Record the scope and date of the approval; do not describe it as production acceptance.
+2. **Functional verification:** Track each required behavior and test separately. Keep unverified checklist items unchecked; passing automated tests do not establish browser behavior. Preserve reported PASS/FAIL totals and individual outcomes exactly.
+3. **Production-quality acceptance:** Requires the phase's mandatory functional checks, visual quality review, persistence/regression checks, and relevant browser/device/performance evidence. MVP approval does not waive these requirements.
+
+Stop progression for a confirmed critical blocker, including data loss/corruption, broken persistence, security exposure, incompatible schema/data migration, or a critical functional defect that prevents the authorized dependent work. A `FIXED_UNVERIFIED` issue is verification debt unless evidence shows it is still broken or it blocks the next milestone; keep its severity and open verification record visible. An MVP handoff does not authorize unrelated phases: the user must explicitly authorize the next work.
+
 ## Testing and evidence
 
 - Run the tests appropriate to changed functionality; at minimum run typecheck, lint, build when configured, plus relevant unit tests.

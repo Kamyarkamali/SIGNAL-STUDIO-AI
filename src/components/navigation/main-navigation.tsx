@@ -11,7 +11,7 @@ export function MainNavigation({ activeSection, onSelect }: MainNavigationProps)
   const symbolClass = (active: boolean) => `w-5 flex-none text-center font-[Arial,sans-serif] text-lg leading-none ${active ? "text-accent" : "text-[#8ea4bb]"}`;
   const chevronClass = (active: boolean) => `text-xl leading-none text-accent max-[850px]:hidden ${active ? "opacity-100" : "opacity-0"}`;
   return (
-    <nav className="flex min-h-[calc(100vh-72px)] flex-col border-l border-line bg-[#101722] px-3 pt-[23px] pb-[15px] max-[850px]:min-h-0 max-[850px]:border-l-0 max-[850px]:border-b max-[850px]:px-3 max-[850px]:py-2.5" aria-label="بخش‌های استودیو">
+    <nav className="workspace-navigation flex min-h-0 flex-col overflow-y-auto border-l border-line bg-[#101722] px-3 pt-[23px] pb-[15px] max-[850px]:overflow-hidden max-[850px]:border-l-0 max-[850px]:border-b max-[850px]:px-3 max-[850px]:py-2.5" aria-label="بخش‌های استودیو">
       <div className="px-[15px] pb-[15px] text-xs font-bold tracking-[0.5px] text-[#9aacc0] max-[850px]:hidden">فضای کار</div>
       <div className="flex flex-col gap-0.5 max-[850px]:flex-row max-[850px]:overflow-x-auto max-[850px]:pb-[3px]">
         {navigationItems.map((item) => (

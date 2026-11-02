@@ -63,7 +63,7 @@ export function ProjectManager({ projects }: { projects: ProjectManagerState }) 
       <div className="mt-5">
         <h2 className="mb-3 text-sm font-bold">پروژه‌های ذخیره‌شده</h2>
         {projects.loading ? <p role="status" className="text-sm text-[#bac8d7]">در حال خواندن پروژه‌ها…</p> : projects.list.projects.length === 0 ? <p className="rounded-lg border border-dashed border-[#536276] p-5 text-sm text-[#bac8d7]">هنوز پروژه‌ای ندارید. با «پروژهٔ جدید» یک فضای خالی بسازید.</p> : (
-          <ul className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3">
             {projects.list.projects.map((project) => <li key={project.id} className="rounded-xl border border-line bg-surface p-4">
               <div className="flex flex-wrap items-start justify-between gap-2"><strong className="break-words text-sm">{project.title}</strong>{projects.active?.id === project.id && <span className="rounded-full border border-[#21635b] px-2 py-0.5 text-xs text-accent">باز است</span>}</div>
               <p className="mt-1 text-xs text-[#bac8d7]">آخرین تغییر: {date(project.updatedAt)}</p>

@@ -1,7 +1,7 @@
 export function TimelinePlaceholder() {
   return (
     <section
-      className="min-h-40 overflow-hidden rounded-xl border border-line bg-surface"
+      className="overflow-hidden rounded-xl border border-line bg-surface"
       aria-labelledby="timeline-title"
     >
       <div className="flex h-[43px] items-center justify-between gap-3 border-b border-line px-4 text-[13px] font-bold">
@@ -35,7 +35,7 @@ export function TimelinePlaceholder() {
           <span>00:40</span>
         </div>
       </div>
-      <p className="border-t border-line px-4 py-2 text-xs text-[#aebdce]">
+      <p className="border-t border-line px-4 py-1 text-[11px] text-[#aebdce]">
         ابزارهای زمان‌بندی و ویرایش مسیرها در فازهای بعدی فعال می‌شوند.
       </p>
     </section>

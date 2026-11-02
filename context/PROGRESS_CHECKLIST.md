@@ -14,7 +14,7 @@
 - Verification evidence should identify the date, command/test name, browser/manual steps, result, and relevant file or commit. `npm run build` alone does not verify interactive behavior.
 - Codex must update this file and `BUG_TRACKER.md` after each phase. Changes to technical contracts must also update `DECISIONS.md` and the affected context document.
 - Previous deleted prototypes, example screenshots, and historical Codex reports are **not** evidence of implementation in this new project.
-- No later phase starts without user approval and an accepted handoff from the current phase.
+- A later phase starts only with explicit user authorization and an accepted handoff. A user-approved MVP/prototype handoff may authorize scoped iterative development while noncritical verification debt remains; it does not mark unchecked tests as passed or constitute production acceptance. Stop for confirmed critical functional, data-integrity, persistence, security, or incompatible-migration blockers.
 
 ### Status Vocabulary
 
@@ -167,7 +167,7 @@
 
 ## 6. Phase 04 — Character Models, Library & Scene Instances
 
-**Phase status:** Phase 04-A accepted after user-confirmed 33/33 manual acceptance tests. Phase 04-B production models are not started.
+**Phase status:** Phase 04-A accepted after user-confirmed 33/33 manual acceptance tests. On 2026-11-02 the user explicitly approved the current four character prototypes, including Hamid's corrected appearance. No individual manual test results or view-specific checks were reported; this approval supersedes the earlier prototype-appearance rejection without implying unreported checks. Other detailed interaction/performance checks remain as recorded below.
 
 ### Phase 04-A — Reusable character library and project placement
 
@@ -198,11 +198,188 @@
 
 **Unverified:** No Phase 04-A acceptance item remains open according to the user's 33/33 report. Unrelated, previously open checks from other phases are unchanged.
 
-### Phase 04-B — Approved production character models (not started)
+### Phase 04-B — Character models and appearance presets (MVP/prototype handoff accepted; functional and production verification pending)
 
-- [ ] Implement approved Kamyar, ChatGPT and Claude production concepts from the revised character requirements; replace renderer without changing identity or instance IDs/transforms.
-- [ ] Verify actual model appearance, orientation and future supported capabilities before exposing them as available.
-- [ ] Obtain separate Phase 04-B approval.
+- [x] Add distinct Kamyar, ChatGPT and Claude lightweight procedural renderers, each with a stable model/renderer ID and a +Z forward direction.
+- [x] Add per-model capability metadata and functional appearance settings that change rendered geometry/materials.
+- [x] Add Persian appearance controls, reset, save and reusable project-local identity behavior.
+- [x] Add project schema v5 with backward-compatible v4 migration; preserve saved identities and placements and only map the empty legacy development identity to Kamyar.
+- [x] Add automated coverage for distinct models, validated independent appearance, migration, save/reopen and duplicate project isolation.
+- [ ] Verify model appearance, face/beard/robot screen, studio placement, intersections and camera framing in an actual browser.
+- [ ] Verify appearance customization is visible and independent across identities and survives refresh in the browser.
+- [ ] Verify no browser console issues and acceptable integrated-graphics responsiveness.
+- [x] User approved the four current character models for MVP/prototype use and explicitly authorized Phase 04-C1 under the MVP handoff policy (2026-11-02).
+- [ ] Complete the outstanding functional/browser checks above before final production-quality acceptance.
+
+**MVP handoff reconciliation (2026-11-02):** The user approved Kamyar, ChatGPT, Claude, and Hamid for MVP/prototype development and explicitly authorized Phase 04-C1. This does not accept Kamyar or Hamid as final production-quality models and does not verify unreported browser behavior. Under the revised handoff policy in `AGENTS.md` and ADR-038, Phase 04-C1 may proceed while the existing noncritical functional/browser checks remain verification debt. Keep every unchecked test below and in the B1–B4 subsections open; production-quality acceptance still requires them.
+
+**Preserved manual result:** The user reported 8 PASS and 2 FAIL from a 10-check manual run. The two reported failures were ChatGPT appearance/OpenAI chest logo and main studio wall-sign customization; the other eight were not itemized. This record is preserved as reported. The later prototype approval does not rewrite those outcomes or establish that either failed workflow was retested.
+
+**Mandatory handoff checks still unverified:** In a browser, confirm (1) two identities/instances from a supported model remain independent when appearance and transforms are changed; (2) character add/remove/show/hide/select/transform and seat assignment/occupancy preserve project data; (3) appearance controls visibly work and save/reopen; (4) changing an existing identity's base model preserves identity/instance IDs, transforms and compatible settings; (5) each prototype's placement, orientation and prop clearance are usable; (6) missing-model fallback is safe; and (7) there are no relevant console errors and responsiveness is acceptable on the target integrated graphics. The B1–B4 specific browser checks below also remain open. The wall-sign failure is retained as an unrelated studio issue.
+
+**Automated verification (2026-11-02):** Typecheck passed; lint passed; 43 automated tests passed (including model definition/capability, per-identity customization, v4 migration, persistence/duplication/deletion, and existing environment/media regressions). Production build passed. These checks do not verify visual quality.
+
+**Manual visual acceptance checklist — all pending:**
+
+- [ ] Inspect Kamyar from front and side; confirm hair, face and beard attach correctly and seated proportions suit the studio.
+- [ ] Inspect ChatGPT's white body, digital face, small proportions and forward direction.
+- [ ] Inspect Claude's warm palette and distinct silhouette.
+- [ ] Change each exposed appearance field and confirm the actual model updates.
+- [ ] Confirm two identities from the same model keep independent appearance and transforms.
+- [ ] Save, refresh, and reopen; confirm names, appearance, visibility and placement persist.
+- [ ] Check placement around seats, microphones, desk and laptop; verify no obvious intersections.
+- [ ] Check viewport selection/orbit, narrow layout, browser console and integrated-graphics responsiveness.
+
+**Limitations:** These are lightweight procedural first-pass models, not authored production assets. No skeletal/facial rig, morph targets, lip sync, gaze, or animation capability is implemented. There is no browser visual evidence in this run.
+
+### Phase 04-B1 — Claude cube mascot correction (prototype appearance approved; functional browser checks pending)
+
+- [x] Replace the animal-like Claude silhouette with an orange rounded-cube head/body, flat forward face, short block legs, and large over-ear headphones.
+- [x] Give each rectangular eye and the small horizontal mouth its own named geometry group for future expression controls; no animation capability is claimed.
+- [x] Preserve the existing model ID, renderer key, default scale, customization keys, identity/instance IDs, and project schema. Existing body/face/headphone settings still affect the replacement model.
+- [x] Add focused regression coverage for the stable model reference, supported customization, named face parts, cube renderer, headphones, and lower limbs.
+- [ ] Inspect Claude from front and oblique views in the actual Studio 01 viewport; verify cube readability, headphone placement, scale, seating, desk/microphone/laptop clearance, and coexistence with other characters.
+- [ ] Change and save each Claude appearance setting; refresh/reopen and verify values and independent transforms remain correct.
+- [ ] Check browser console and integrated-graphics responsiveness.
+
+**Prototype approval:** Covered by the user's four-model prototype approval above. It does not verify the listed Claude customization, persistence, clearance, console, or performance checks.
+
+### Phase 04-B2 — ChatGPT robot visual refinement (prototype appearance approved; reported FAIL and functional checks retained)
+
+- [x] Refine the existing stable ChatGPT renderer with a rounded shell, soft expressive cyan eyes, highlights, brows, an independent curved friendly smile, and a polished dark display.
+- [x] Add improved white body, neck and shoulder connections, articulated lightweight arms/hands and subtle mechanical joints.
+- [x] Add a separate correctly proportioned OpenAI chest mark as an SVG visual component, sourced and attributed in `public/characters/openai-mark.svg`.
+- [x] Preserve the existing model ID, renderer key, default scale, customization keys, identity/instance references, transforms, seat assignments and other renderers.
+- [x] Add structural regression tests for the stable registry contract, independent facial components and sourced chest logo.
+- [x] Add 11 coordinated static ChatGPT facial presets with genuinely different mouth geometries, eye proportions/direction and brow shapes; preserve old saved expression values through aliases. Human renderers expose no unsupported robot expressions.
+- [x] Generalize the existing saved anchor assignment to seat, supported tabletop and platform points, with model-specific support offsets, anchor scale/surface validation, occupancy/near-overlap checks, and unrestricted unassigned manual positioning.
+- [x] Add stable Studio 01 desk-top and rug-platform anchor IDs without moving furniture; keep the old seat API, seat offsets and project schema compatible.
+- [x] Document future target gaze, eye/head/body priority, local POV camera anchors and natural facial animation without implementing their runtime behavior.
+- [x] Add focused regression coverage for all expression mouth/eye/brow variants, valid and rejected surface placements, overlap prevention, legacy expression/seat compatibility and persisted anchor IDs.
+- [ ] Inspect face expression and logo placement from front and oblique views in the actual Studio 01 viewport; check scale, seat, desk, microphone and laptop clearance.
+- [ ] Verify face-style customization remains visible, accessory behavior, browser console and integrated-Radeon responsiveness.
+
+**Manual acceptance retest:** The user reported 8 PASS and 2 FAIL out of 10 checks. The failures were ChatGPT visual appearance/OpenAI chest logo and main studio wall sign customization. The other eight were not itemized, so no additional pass is inferred. Targeted refinements and regression checks are recorded under BUG-0012 and BUG-0015; both failed items remain unchecked pending browser retest.
+
+**Prototype approval reconciliation:** The later approval of all four models accepts ChatGPT's current appearance for prototype use. It does not change the historical FAIL above or demonstrate a retest of the face/logo, expression presets, appearance controls, studio clearance, console, or integrated-graphics behavior. The wall-sign failure is unrelated and remains open under its existing record.
+
+**Targeted regression run (2026-11-02):** Typecheck, lint, 69/69 automated tests, and production build pass after the reported failures were addressed in code. This does not supersede the two failed manual results; browser retest and visual acceptance remain pending.
+
+**Automated verification (2026-11-02):** After adding static expression, generic surface-placement and object selection/edit-mode support, `npm run typecheck`, `npm run lint`, `npm test` (58/58), `npm run build`, and `git diff --check` passed. No browser interaction or rendered appearance is claimed.
+
+**Status:** Implementation and automated regression coverage complete; visual acceptance remains pending. Static expressions are supported through discrete geometry presets only; there are no blink, automatic gaze, expression transitions, lip sync, blend shapes or rig controls. See BUG-0012.
+
+### Phase 04-B3 — Stylized procedural human characters (prototype appearance approved; detailed checks pending)
+
+- [x] Preserve `character-model:kamyar`, `kamyar-stylized`, +Z forward direction, default scale, seat contact metadata, identity/instance IDs and saved transforms.
+- [x] Continue Kamyar as a lightweight stylized procedural model; use original photos for supported identity cues and group references for style. Photorealistic reconstruction is out of scope.
+- [x] Keep identity, instance, transform, placement and saved appearance contracts; preserve the optional GLB importer as a future capability.
+- [x] Add nine geometry-backed cuts: textured quiff, side part, short curls, medium waves, slicked back, short fade, crew cut, buzz cut and bald. Top clumps vary in count, flow, texture, height and side profile rather than only scale/color.
+- [x] Add clean-shaven, light/medium stubble, short boxed beard, full trimmed beard, goatee, mustache-only and mustache-with-stubble coverage; jaw patches follow the head surface and supported beard styles include fine surface detail.
+- [x] Improve facial surface shaping and subtle upper-eyelid definition; use restrained hair-root/highlight material variation without postprocessing.
+- [x] Keep existing Persian registry-driven customization, identity-local colors/styles, reset, visibility and project persistence. Map old saved preset IDs to the new styles and safely default unsupported grooming options.
+- [x] Add Hamid as a separate stylized procedural model and renderer with independent head geometry, short dark hair, light stubble, black T-shirt, and continuous fuller-torso profiles.
+- [ ] Inspect Kamyar from front, side and three-quarter views in Studio 01; verify hairline, jaw/beard/mustache, glasses, clothing, seat contact and desk/microphone clearance.
+- [ ] Change each appearance field, save, refresh/reopen, and confirm independent identity settings and transform persistence in a browser.
+- [ ] Check browser console and integrated-Radeon performance.
+
+**Automated verification (2026-11-02):** `npm run typecheck`, `npm run lint`, `npm test` (84/84), and `npm run build` pass. Tests validate distinct geometry contracts, preset fallback, customization persistence and identity independence, not resemblance or visual quality.
+
+**Status:** The earlier visual rejection is superseded by the user's explicit approval of the current four character prototypes on 2026-11-02. The approval did not itemize grooming variants, seat clearance, console or performance checks. The models remain stylized prototypes; the optional GLB importer is preserved.
+
+### Phase 04-B4 — Hamid stylized character prototype (prototype appearance approved; functional checks pending)
+
+- [x] Register `character-model:hamid` with its own `hamid-stylized` renderer, placement metadata and capability-backed appearance fields.
+- [x] Create independently shaped head geometry and a continuous fuller T-shirt torso surface with bounded natural/fuller/full body profiles.
+- [x] Add identity-scoped hair, facial hair, color, clothing and body-profile customization using the existing Persian model-driven controls.
+- [x] Preserve schema v5, IDs, transforms, placement, project save/reopen and duplication contracts with focused regression coverage.
+- [ ] Inspect front, side and three-quarter views in Studio 01; verify face, hair, stubble, abdomen silhouette, guest-seat fit, desk/microphone clearance, browser console and integrated-Radeon responsiveness.
+
+**Acceptance record:** The user explicitly approved the current four character prototypes, including Hamid's corrected appearance. No individual test count, view coverage or browser measurements were supplied. Hamid remains a stylized prototype rather than a production model; studio fit and performance are not inferred from the approval.
+
+**Automated verification (2026-11-02):** Typecheck, lint, `npm test` (85/85), production build and `git diff --check` pass. The browser inventory was empty, so rendered appearance and studio fit remain unverified.
+
+## Studio 01 room, lighting and laptop realism upgrade (implemented; browser review pending)
+
+- [x] Add a right-side wall and ceiling with overlapping wall/floor/roof boundaries; keep the front open for the editor's audience-facing camera.
+- [x] Add transient editor-only visibility control for room walls and ceiling; it does not alter saved prop visibility or project JSON.
+- [x] Add persisted project-level key/fill/accent intensity, warm/neutral/cool presets, practical-light toggle and reset, using backward-compatible defaults in existing Studio 01 arrangements.
+- [x] Replace keyboard stripes with one compact bilingual Persian/English legends texture; add touchpad edge, ventilation slots, side ports, screen webcam and independent hinges without changing laptop prop origin or media surface.
+- [x] Add regressions for lighting limits/default/reset/save/reopen/project duplication, enclosure and editor-only visibility wiring, laptop details, and existing environment/media contracts.
+- [ ] Browser-check room joins and camera visibility, side/rear orbit with wall toggle, lighting appearance/reset/persistence, laptop detail alignment, educational media playback, console and target-GPU performance.
+
+**Automated verification (2026-11-02):** `npm run typecheck`, `npm run lint`, `npm test` (87/87), `npm run build`, and `git diff --check` passed. No browser surface was available, so visual appearance, camera sightlines, settings interaction, console and integrated-Radeon performance remain unverified.
+
+#### Phase 04-B3 hair and beard refinement
+
+- [x] Replace the tight scalp-shell appearance with a fitted base plus raised swept lock surfaces, clear hairline profiles, and style-dependent crown/side/back shaping.
+- [x] Provide clean-shaven, light/medium stubble, short-boxed/full-trimmed beard, mustache-only, mustache-with-stubble and goatee options; fit facial hair to the jaw and keep the lip area clear.
+- [x] Set reference-inspired defaults to neat side-parted dark hair and close trimmed beard from `kamyar1.jpg`–`kamyar3.jpg`.
+- [x] Provide nine distinct style definitions with raised clump geometry and separate profile/flow controls.
+- [x] Retain independent hair/beard color, beard visibility, glasses and identity-scoped settings; safely normalize previously saved preset IDs.
+- [x] Add geometry distinction, option validation, save/reopen, duplication and identity-isolation regression coverage.
+- [ ] Browser-check front, side and three-quarter silhouettes, each grooming preset, colors, reset defaults and project duplication.
+
+**Automated verification:** Geometry assertions establish distinct mesh data and control contracts, not visual quality. Current check results are recorded above; Phase 04-B3 remains pending manual visual acceptance.
+
+### Character library base-model replacement
+
+- [x] Allow an existing identity to select a different registered model without changing its ID or custom name.
+- [x] Preserve linked instance IDs, visibility, transforms and placement anchors; update shared model rendering through the existing identity reference.
+- [x] Keep only appearance fields accepted by the target model; preview incompatible custom values and confirm before replacing them with target defaults.
+- [x] Persist the replacement through the revision-checked project save path; cover reload, multiple instances and independent identities with regression tests.
+- [ ] Browser-verify the Persian confirmation, library/properties/viewport refresh and save/reopen workflow.
+- **Registry limitation:** Current selectable model registry contains Kamyar, ChatGPT and Claude; a Hamid base model is not registered yet.
+- **Automated verification:** `npm run typecheck`, `npm run lint`, `npm test` (61/61), `npm run build`, and `git diff --check` pass.
+- **Status:** Implemented; browser acceptance not verified.
+
+### Studio prop selection/edit-mode UX extension
+
+- [x] Separate temporary prop selection from transform edit mode; single-click selects without a gizmo and double-click enters Move-first edit mode.
+- [x] Add Persian panel selection/edit/Move/Rotate/Scale/finish controls; retain numeric transforms while merely selected.
+- [x] Exit on Escape or selection change; protected props cannot show gizmos; restore camera navigation after gizmo drag cleanup.
+- [x] Add state-transition, protected-object, temporary-persistence and OrbitControls lock regression tests.
+- [ ] Browser-verify mouse single/double-click, Escape, touch panel controls, camera orbit/pan, drag cancel, prop selection outline and persistence; preserve character-edit behavior and laptop media.
+- **Status:** Implemented; typecheck, lint, 58/58 tests, build and diff check pass. Interactive acceptance remains unverified. See BUG-0013.
+
+### Character seating placement correction (implemented; browser verification pending)
+
+- [x] Tie Studio 01 seated-anchor surface height to the rendered chair seat specification without changing chair placement.
+- [x] Add local support/contact-height metadata per registered character model; the later explicit-assignment extension below supersedes implicit seated placement for newly added instances.
+- [x] Preserve existing saved transforms and allow manual Y adjustment; no project schema migration is required.
+- [x] Add regression coverage for all registered models, generic future models, chair-origin stability, and manual transform behavior.
+- [ ] Verify host, co-host and guest seating in the browser, including feet/limbs, chair intersections, desk and microphone clearance.
+- [ ] Save, reopen, and verify adjusted transforms remain unchanged; verify add/remove/show/hide and studio props.
+
+**Status at initial correction:** The original alignment logic was automated-tested (46/46); the later Phase 04-B seating-assignment extension below changes this to explicit assignment. Visual seating, collision clearance, browser console, and integrated-GPU behavior remain unverified until a real viewport check.
+
+### Phase 04-B extension — Reusable character seating assignments
+
+- [x] Make new character instances unassigned by default; remove model-specific seat-role preferences.
+- [x] Assign/unassign stable environment seat IDs from the Persian character editor; prevent occupied-seat selection and enforce conflicts in the domain operation.
+- [x] Align explicit seat assignments with anchor surface/facing and model contact, local position, and yaw offsets using the instance's current scale.
+- [x] Preserve manual transforms on save/reopen and same-seat selection; unassigning retains the current transform.
+- [x] Preserve optional assignment compatibility for older projects; report unknown/missing anchors and offer safe unassignment without migration.
+- [x] Add assignment, occupancy, persistence and backward-compatibility regression tests.
+- [ ] Verify seat selection, occupied seats, save/reopen, missing-seat fallback, manual transform editing and studio/media regressions in a browser.
+
+**Status:** Implementation complete; `npm run typecheck`, `npm run lint`, `npm test` (47/47), and `npm run build` passed. Browser interaction and visual seating remain unverified because this session has no available browser.
+
+**Automated verification (2026-11-02):** `npm run typecheck`, `npm run lint`, `npm test` (44/44), and `npm run build` passed. Geometry regression tests validate renderer structure and stable customization contracts; they cannot establish visual quality or fit. The CUA browser inventory was empty, so studio appearance, intersections, console behavior and GPU responsiveness are not verified.
+
+### Character identity deletion bug — implemented, browser verification pending
+
+- [x] Add a separate Persian identity deletion action; model definitions and shared model files remain in the registry.
+- [x] Require explicit confirmation before deletion.
+- [x] Refuse deletion while any scene instance references the identity; explain that each instance must first be removed with «حذف از صحنه».
+- [x] Persist the deletion before removing the identity from the visible library; report save failures and keep the identity visible.
+- [x] Safely reject missing/repeated deletion attempts and preserve other identities and instances.
+- [x] Add automated operation, dependency, model-protection, repeated-attempt and save/reopen coverage; existing rename/add tests remain passing.
+- [ ] In the browser, delete an unused identity after confirmation and verify it disappears only after save succeeds.
+- [ ] Verify identity deletion is blocked while used, then remove its instance separately and delete the identity.
+- [ ] Refresh/reopen and verify deletion persists while unrelated identities, instances, model definitions and character editing remain intact.
+
+**Status:** Fix implemented and automated tests passed; BUG-0009 remains `FIXED_UNVERIFIED` until user browser verification.
 
 ## 7. Phase 05 — Scene Manager, Storyboard & Timing
 
@@ -356,3 +533,120 @@ Copy for each development phase (append below or link to a dated handoff):
 **Phase 00:** documentation drafts prepared, final consistency and local-file confirmation pending.  
 **Next action:** place and review this checklist, create `BUG_TRACKER.md`, `DECISIONS.md` and `AGENTS.md`, then complete Phase 00 review.  
 **Reminder:** no feature of the deleted earlier prototype should be carried forward as implemented.
+
+### Studio 01 Decoration, Camera and Viewport Interaction Extension (implemented; acceptance pending)
+
+- [x] Add optional backward-compatible customization for the existing cyan sign and two independently configured wall frames.
+- [x] Reuse project-local image assets; validate decoration image references against each project's asset manifest.
+- [x] Add editor orbit/pan/zoom limits supporting side and rear views and a reset action without changing production-camera state.
+- [x] Make prop viewport single-click inert; double-click selects and enters edit mode; retain explicit panel selection/edit actions and protected-object rules.
+- [x] Add focused regression tests for saved decoration settings, frame independence, camera controls and interaction wiring.
+- [x] `npm run typecheck`, `npm run lint`, `npm test` (66/66), `npm run build` pass.
+- [ ] Manually verify decoration visuals/uploads/reopen, camera movement/reset, double-click and panel editing, Escape, drag lock restoration and laptop/media regression in a browser.
+- **Status:** Implemented; browser acceptance remains pending because no browser surface is available in this session. Kamyar Phase 04-B3 is tracked separately above.
+
+### Editor workspace UI/UX upgrade (user rejected; recovery implemented, unverified)
+
+- [ ] The earlier single-column inspector layout was rejected by the user: full section editors and selected properties competed in a narrow scroll region, while the viewport was undersized. Its 74 passing tests did not establish usability.
+- [ ] Recovery uses separate section/properties tabs in the left panel, keeps the preview and timeline visible, and provides a mobile drawer. Browser acceptance is still required.
+- [x] Panel state transition tests cover navigation, selection, collapse and mobile dismissal without persisted state.
+- [ ] Browser-check representative desktop, tablet, and mobile sizes, panel toggle/scroll, nav, viewport aspect, and existing object/character interactions.
+- [ ] Consider drag resizing only after browser review demonstrates a need and a stable implementation path.
+- **Status:** Previous layout rejected. Recovery code is implemented but browser-unverified; do not mark this UI accepted.
+
+### 3D viewport enlargement and fullscreen mode (implemented; browser acceptance pending)
+
+- [x] Reduce desktop workspace padding and inspector width modestly; increase the normal 16:9 viewport size without hiding editor panels or timeline.
+- [x] Add a viewport-only Fullscreen API toggle with Persian accessible labels/tooltips, synchronized `fullscreenchange` state, Escape exit, and graceful unsupported/denied feedback.
+- [x] Keep the existing R3F scene mounted; use fullscreen CSS sizing so the canvas responds to container resize while the production frame stays 16:9. Fullscreen state is not persisted and does not change editor or production camera state.
+- [x] Add focused tests for enter/exit, unsupported/denied requests, browser state synchronization, scene mount stability, aspect ratio, and responsive layout rules.
+- [ ] Browser-check normal viewport size and desktop/tablet/mobile fullscreen enter/exit, Escape, camera/selection retention, canvas resize, controls visibility, aspect framing, denied/unsupported fallback, panel/layout restoration, and absence of console errors.
+- **Automated verification (2026-11-02):** `npm run typecheck`, `npm run lint`, `npm test` (91/91), `npm run build`, and `git diff --check` passed. Browser inventory exposed no browser or app surface; the manual checks below remain unverified.
+- **Status:** Implemented; browser acceptance remains pending.
+
+### Phase 04-B3 — Reusable GLB character adapter
+
+- [x] Add an optional validated GLB reference to code-owned character model definitions while retaining a procedural fallback renderer and stable model IDs.
+- [x] Load GLBs through Three.js, inspect bounds and actual named parts/rig data, and clone skeletons and materials for independent instances.
+- [x] Validate declared material/mesh appearance bindings, expected height and seat-contact plausibility before displaying an authored model.
+- [x] Show Persian loading/failure states and retain the procedural renderer if an asset is unavailable or malformed.
+- [x] Keep project identity, instance, transform, placement and appearance serialization unchanged; existing project regression tests remain active.
+- [x] `npm run typecheck`, `npm run lint`, `npm test` (80/80) and `npm run build` pass. Focused GLB tests cover metadata, validation, missing-file retry and independent skinned instances.
+- [ ] Add and review a production Kamyar or Hamid GLB. None is supplied or registered.
+- [ ] Manually verify a real authored GLB in the browser from front, side and three-quarter angles, including seat/desk clearance, controls, load failure and integrated-GPU behavior.
+- **Status:** Adapter implemented; Phase 04-B3 character acceptance remains pending a reviewed asset and browser inspection.
+
+### Phase 04-B3 extension — project-local GLB import and library integration
+
+- [x] Add Persian import action and a focused preview dialog with local GLB parsing, orbit/zoom, front/side/back/reset, bounds, scale, target height, forward rotation, automatic floor alignment, optional seating offset, and discovered structure details.
+- [x] Validate extension, 64 MiB limit, GLB v2 signature/chunks/geometry, embedded buffers/textures, inspected bounds and named colorable material bindings before rendering/saving.
+- [x] Save each imported GLB and its reusable model definition into project-local asset storage; expose it through the existing model selector and renderer; preserve identity/instance/transform IDs.
+- [x] Reopen and duplicate project metadata/bytes, recover missing assets through the adapter state, and block deletion while an identity uses the imported model.
+- [x] Add isolated tests for valid/malformed imports, storage/reopen, independent repeated imports/instances, duplicate URL rewriting and dependency-safe removal.
+- [x] Typecheck, lint, 84/84 tests, production build and `git diff --check` pass.
+- [ ] Manually verify import, preview controls, real authored asset rendering, add/replace, save/reopen, duplication, responsive layout, console and integrated-GPU behavior in a browser.
+- **Status:** Implemented; browser/model-quality acceptance pending. No production character GLB is included.
+- **Manual checklist:** Choose a valid GLB; inspect parse/upload feedback and front/side/back/orbit/zoom/bounds/scale/orientation; cancel and confirm; add the imported model to the scene; create/change an identity; save/reopen and duplicate; verify missing/invalid assets, existing ChatGPT/Claude/Kamyar, desktop/tablet layout, console, and target-GPU responsiveness.
+
+### Empty-space deselection interaction follow-up
+
+- [x] Clear prop selection and edit mode on genuine empty R3F pointer misses and protected room geometry clicks.
+- [x] Escape clears selection, edit mode and inspection state; prop single-click remains inert and double-click switches the edited prop.
+- [x] Add regression checks for switching, empty clicks, Escape, protected geometry, gizmo propagation, drag threshold and panel isolation.
+- [x] Typecheck, lint, 68/68 tests and production build pass.
+- [ ] Manually verify mouse/touch behavior in a browser.
+- **Status:** Implemented; browser acceptance remains pending because no browser surface was available in this session.
+
+### Phase 04-C1 — Deterministic character preview foundation (implemented; browser acceptance pending)
+
+- [x] Added a pure explicit-source-time evaluator for neutral, gentle head turn, head nod, arm gesture, and return-to-idle poses; evaluation is repeatable at arbitrary timestamps and bounded.
+- [x] Added model capability gates backed by named procedural pivots. Kamyar, Hamid and ChatGPT support head/arm preview; Claude supports head preview only. GLB skeleton/clip metadata remains diagnostic and does not imply preview support.
+- [x] Corrected human/robot arm pivot origins to shoulders without changing rest-pose mesh placement.
+- [x] Added per-instance ephemeral playback, start/stop/reset, smooth return-to-idle, demand invalidation while active, and RAF cleanup. Saved project schema and world transforms are unchanged.
+- [x] Added Persian preview controls with unsupported actions visibly disabled and explained.
+- [x] Added regression tests for capabilities, supported/unsupported actions, deterministic timestamps/seeking, bounds, independent results, return-to-idle, transient state separation and cleanup wiring.
+- [x] `npm run typecheck`, `npm run lint`, `npm test` (96/96), `npm run build`, and `git diff --check` pass.
+- [ ] Manually verify each available action, natural motion limits, stop/reset, independent instances, saved transform preservation, demand-render idle behavior and Persian panel layout in a browser.
+- **Status:** Implemented; Phase 04-C1 is not accepted until browser review. No automatic behavior, gaze, audio, lip sync, timeline, camera automation or export has been implemented.
+
+### Phase 04-C2 — Expressive character preview (implemented; browser acceptance pending)
+
+- [x] Added capability-gated emotional and gesture presets, including varied nods, head shake, wave, explanation, listening/thinking and emotional reactions. ChatGPT's existing face display supports transient expressions; other models remain limited to their actual head/arm pivots.
+- [x] Added bounded transient speed, intensity, transition duration, return duration and easing settings. Animation evaluation remains deterministic at explicit timestamps and preview data remains outside project persistence.
+- [x] Added channel-level pose blending with deterministic priority resolution and regression tests for presets, capability checks, bounds, deterministic results and blending priorities.
+- [x] `npm run typecheck`, `npm run lint`, `npm test` (99/99), `npm run build`, and `git diff --check` pass.
+- [ ] Manually verify motion variety/timing, expression changes, stop/reset/interruption, independent instances, safe limits, panel usability and demand rendering in a browser.
+- **Status:** Implemented; Phase 04-C2 remains pending user/browser acceptance. No automatic speaker behavior, gaze tracking, lip sync, timeline sequencing, camera automation or video export has been implemented.
+- **Preserved user manual report (2026-11-02):** 9 PASS / 3 FAIL. The nine passing checks were not itemized. Confirmed failures: (1) happy, sad, angry and surprised expressions are not clearly distinguishable; (2) supported eyes, mouths and eyebrows do not visibly change as expected; (3) energetic reactions are insufficiently faster and more expressive than calm reactions. These failures remain open and C2 is not accepted. C3 gaze work does not resolve or close them.
+
+### Phase 04-C3 — Gaze and attention previews (implemented; browser acceptance pending)
+
+- **Authorization/gate:** User explicitly authorized C3 for MVP/prototype development (2026-11-02). Under the AGENTS.md progression policy, C2's three reported visual failures are noncritical for this independent gaze milestone; no known critical functional, data-integrity, persistence, security or migration blocker was identified. C2 remains unaccepted.
+- [x] Added a capability-gated, reusable gaze evaluator with explicit timestamp input, eased transitions, bounded head/eye/torso outputs, reachable-target reporting and safe neutral fallback.
+- [x] Resolve stable character instance IDs to actual head anchors, prop IDs to world-space bounds, laptop gaze to its display surface, camera gaze to the active editor camera, plus custom world points and model-local directions.
+- [x] Procedural head pivots are supported; ChatGPT's separate iris groups are additionally gaze-capable. Human and Claude models do not claim eye movement; no current renderer exposes a torso pivot; imported GLBs remain unsupported until a named rig adapter exists.
+- [x] Added transient per-instance gaze state and compact Persian controls for target/direction, attention previews, transition duration and neutral return. Preview state is not project data and does not modify saved transforms.
+- [x] Added regression coverage for capability gates, local/world transforms, parent transforms, timestamp determinism, target bounds, unreachable rear targets, missing targets, independent poses and transient persistence separation.
+- [x] Final automated verification: `npm run typecheck`, `npm run lint`, `npm test` (108/108), `npm run build`, and `git diff --check` pass (2026-11-02).
+- [ ] Manually verify front/side/rear gaze, character/prop/laptop/camera targets, eye direction on ChatGPT, limits, transition/reset, simultaneous characters, missing/hidden target fallback, editor-camera independence and demand rendering.
+- **Status:** Implemented; browser acceptance pending. No browser/app surface was available in this session. C3 is not accepted until browser review. C2's three confirmed visual failures above remain open.
+
+### Laptop close-up, fullscreen viewer and clean prop editing
+
+- [x] Refined the laptop inspection pose to frame the real screen from a slight overhead/front angle, restoring the prior editor camera position, quaternion, up vector and target while leaving FOV unchanged.
+- [x] Added a modal fullscreen viewer for the current project-local display image/video, with fit/brightness, video controls, state synchronization, Persian fallback messaging and close/Escape handling. It does not alter laptop media or camera state.
+- [x] Restricted prop selection wireframes and gizmos to active edit mode; viewport single-click remains inert, double-click enters edit mode, and empty-space click clears the selection.
+- [x] Added regression tests for camera framing/restoration, viewer state/media wiring and selection overlay gating.
+- [x] `npm run typecheck`, `npm run lint`, `npm test` (102/102), `npm run build`, and `git diff --check` pass.
+- [ ] Verify close-up readability, fullscreen image/video playback, Escape/close restoration, object selection/edit visuals and responsive behavior in a browser.
+- **Status:** Implemented; visual/browser acceptance remains pending.
+
+### Laptop presentation helpers and device-framed fullscreen
+
+- [x] Added a manual viewport toggle for editor helpers. Prop and character selection/edit state remain intact while outlines and transform gizmos are hidden.
+- [x] Laptop presentation uses the actual 3D laptop in the fullscreen viewport, with its display content still attached to the bezel and device. The previous inspection target is restored on exit, including Escape.
+- [x] The secondary content-only viewer also temporarily suppresses editor helpers while open and restores their manual preference when closed.
+- [x] Widened the inspection camera framing to retain more of the laptop body and bezel and aligned its up vector to the transformed display. The existing content-only fullscreen dialog remains available as a clearly labeled secondary viewing mode.
+- [x] Added focused regression coverage for temporary helper visibility, presentation state restoration, screen orientation, and retained laptop rendering. `npm run typecheck`, `npm run lint`, `npm test` (109/109), `npm run build`, and `git diff --check` pass.
+- [ ] Browser-check the close-up framing and device presentation at desktop and narrow sizes; confirm no character/prop occlusion, clean helper hiding/restoration, media readability, Escape behavior, and saved media/transform stability.
+- **Status:** Implemented; visual/browser acceptance pending. No project schema or saved media data changed.

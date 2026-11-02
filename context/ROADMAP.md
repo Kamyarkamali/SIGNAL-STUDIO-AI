@@ -1,15 +1,17 @@
 # Signal Studio AI — Development Roadmap
 
 **Document:** `context/ROADMAP.md`  
-**Status:** Phases 03-A through 03-E accepted; overall Phase 03 remains open; later phases require separate approval
+**Status:** Phase 04-B has an MVP/prototype handoff accepted for development; functional and production verification remains open. Phase 04-C1/C2 manual preview foundations and Phase 04-C3 manual gaze preview are implemented; browser and visual acceptance remain pending. C2 has three user-reported visual failures that remain open.
 **Target:** Single-user Windows local application, Persian RTL editor  
-**Current stage:** Phase 04-A accepted after the user's 33/33 manual browser acceptance report. Phase 04-B is not started. Phase 03-E was accepted after the user's 13/13 manual browser acceptance report. Overall Phase 03 remains open pending unrelated checks.
+**Current stage:** The user approved Kamyar, ChatGPT, Claude, and Hamid for MVP/prototype use, authorized Phase 04-C1/C2, and explicitly authorizes Phase 04-C3 at MVP level under the AGENTS.md progression policy (2026-11-02). C1/C2/C3 have deterministic manual preview evaluators and compact Persian controls; browser behavior/visual acceptance is not yet verified. This is not final production-quality acceptance. Phase 04-B functional/browser/GPU checks remain verification debt; no itemized results are inferred. Phase 04-A and Phase 03-E retain their separately recorded acceptance. The Studio 01 realism/lighting upgrade awaits browser visual review.
+
+**Current scoped refinement:** Laptop display close-up/fullscreen viewing and prop edit-overlay cleanliness are implemented with automated coverage; manual browser acceptance remains pending. No project schema changes were required.
 
 ## 1. Roadmap Rules
 
 - Implement **one milestone at a time**; never start the next without explicit approval.
 - Every milestone has an independently observable vertical slice: UI → domain command → persisted data → preview behavior where relevant.
-- Definition of done requires acceptance criteria, relevant automated tests, a real manual browser check for interactive work, and updated context documents.
+- **Full phase completion** requires its acceptance criteria, relevant automated tests, a real manual browser check for interactive work, and updated context documents. A separate, explicit MVP/prototype handoff may authorize the next scoped development milestone while noncritical verification debt remains, if no confirmed critical blocker exists; this does not complete the earlier phase or convert unchecked tests into passes.
 - `typecheck`, lint, and build passing are necessary but **not sufficient** to assert a user-facing feature works.
 - If interactive browser access is missing, mark features **implemented / unverified**, do not check them as completed, and provide exact local test steps.
 - No fake buttons, demo audio inserted without consent, placeholder character animations presented as real, or unsupported environment options.
@@ -121,17 +123,35 @@ The architecture anticipates later features, but implementation must not build u
 
 **Acceptance:** The user confirmed all 33 manual acceptance tests passed, including character creation and rename, multiple instances, selection, visibility, transforms and scale persistence, project persistence/isolation, and Persian editor usability. Phase 04-A is accepted. This does not accept Phase 04-B.
 
-### Phase 04-B — Approved production character models (planned; not started)
+### Phase 04-B — Approved character models (implemented; current prototypes user-approved)
 
-**Scope:** Implement the approved Kamyar, ChatGPT and Claude concepts from `CHARACTERS_AND_AUDIO_REQUIREMENTS_REVISED.md` as replaceable model assets/renderers without changing identity or instance IDs and transforms. Only expose capabilities the models actually support.
+**Scope:** Implement visually distinct procedural Kamyar, ChatGPT and Claude renderers from `CHARACTERS_AND_AUDIO_REQUIREMENTS_REVISED.md`; persist per-identity supported appearance customization and reusable project-local character presets without changing identity/instance IDs or transforms. Model geometry is lightweight and not artist-authored or rigged.
 
-**Acceptance:** Real model assets are visibly tested from multiple views, retain correct front/orientation and placement, and replace the temporary renderer without changing saved identity, instance, or transform data. Character animation remains separately scoped.
+**Implementation:** Three unique renderer keys, model-specific supported appearance metadata and Persian controls, per-identity customization validation, and project schema v5 migration from v4.
+
+**MVP handoff (accepted 2026-11-02):** The user explicitly approved the four current character models for MVP/prototype use and authorized Phase 04-C1 under the handoff policy. No per-view, placement, persistence, interaction, console or performance test report was supplied, so these remain unchecked verification debt. Kamyar and Hamid are not accepted as final production-quality models; full Phase 04-B production acceptance remains pending.
+
+**Phase 04-B1 (2026-11-02):** Correct Claude's registered procedural renderer to follow the supplied orange cube mascot reference. The focused change preserves its stable model ID, renderer key, saved customization keys, scale, identities, instances, and transforms. Automated regression coverage is added. Subsequent aggregate user approval covers the current prototype design; no individual test results are inferred.
+
+**Phase 04-B2 (2026-11-02):** Refine the existing ChatGPT procedural renderer, retain its model and project references, expose coordinated static facial presets on the robot only, and extend Studio 01's existing stable placement anchors to supported tabletop/platform surfaces. Preserve chair assignment and free transforms, validate surface/model compatibility and conservative clearance, and do not add facial animation or gaze tracking. Document gaze, POV and natural-animation extension points only. The original note that this subphase did not authorize Phase 04-C remains historical; the later MVP handoff policy and explicit 2026-11-02 authorization permit Phase 04-C1 development while browser verification debt remains.
+
+**Phase 04-B seating assignment extension:** Character instances start unassigned. Users may explicitly choose one available stable seat anchor in the character editor; persisted assignments use the existing optional `placementAnchorId` without a schema version change. Seat alignment uses the selected anchor's surface/facing and model-specific support, local offset and rotation metadata, and runs only for an explicit new assignment. Seat changes are immediate editor operations; walking/sitting transitions and timeline-based changes remain out of scope. Browser interaction/visual acceptance is pending.
 
 **Scope:** See 04-A foundation and 04-B production assets above. Shared geometry may be reused, never unintended mutable transforms/materials.
 
 **Overall acceptance:** Create two differently named characters from one supported model; add both as visible independent instances; modify one without changing the other; move/rotate one without moving props, other actors or camera; verify real model appearance/orientation when production assets exist; save/reopen; missing model handled safely. Only mark individual presets completed when a real, tested 3D model exists.
 
 **Out of scope:** Automatic rigging, photorealistic likeness, advanced facial animation, AI character generator.
+
+**Character direction update (2026-11-02):** Continue the existing stylized procedural human renderer for Kamyar; do not treat photo-to-GLB as a required creation workflow. Original photos guide human identity cues and generated group art guides style. The existing GLB adapter/importer is optional and remains intact. Hamid is implemented as a separate stylized prototype with independent model configuration. The user has explicitly approved all four current character prototypes; no individual test details are inferred from that approval.
+
+### Phase 04-B4 — Hamid stylized character prototype (implemented; user-approved prototype appearance)
+
+Add Hamid as a fourth reusable built-in model with independent model/renderer IDs, head geometry, a connected fuller torso under a black T-shirt, model-specific seat support, and identity-scoped supported customization. Preserve schema v5, IDs, transforms, placement and all existing renderers. The user explicitly approved the current four character prototypes on 2026-11-02; no per-view or performance test results were reported. This procedural prototype is not a production model or animation-ready rig.
+
+### Studio 01 room and lighting extension (implemented; browser review pending)
+
+The Studio 01 room shell now includes a right-side wall and ceiling while retaining its open audience-facing front. Editor-only wall/ceiling visibility supports orbit inspection. Persisted project-level lighting settings include bounded key/fill/accent intensities, color temperature, practical lights and reset; old arrangements receive defaults without a schema version change. Manual browser verification remains required.
 
 ## 8. Phase 05 — Scenes, Storyboard and Scene-Time Model
 
@@ -142,6 +162,24 @@ The architecture anticipates later features, but implementation must not build u
 **Acceptance:** Three scenes can be independently edited; reorder recalculates offsets; clone shares only immutable assets; changing Scene 2 never distorts Scene 1; each duration changes the actual active scene and preview boundaries; refresh restores data.
 
 **Out of scope:** AI script interpretation, advanced fade effects.
+
+### Phase 04-C1 — Reusable animation foundation and manual preview (implemented; browser acceptance pending)
+
+**Implemented scope:** Pure explicit-time pose evaluation; capability-gated neutral, gentle head turn, nod, small arm gesture and return-to-idle preview; transient per-instance playback; shoulder-centered procedural arm pivots; compact Persian preview controls; demand invalidation only during active preview. Saved identity, instance, transform, placement and appearance data remain unchanged. The current model registry advertises only working procedural head/arm channels. Imported GLB skeleton/clip inspection is metadata only and no imported clip action is exposed without a runtime adapter.
+
+**Architecture-only future scope:** Speaker/listener events, gaze targets and director priorities; recorded audio/dialogue speaker tracks and authored visemes; cinematic camera events; character-to-prop attachments and teaching interactions; a common deterministic timeline for audio, character/camera events and eventual MP4 export. These systems are not implemented in C1.
+
+**Automated verification (2026-11-02):** Typecheck, lint, tests, production build and diff check results are recorded in `PROGRESS_CHECKLIST.md`. Unit tests cover capability gates, time determinism/seeking, bounds, return-to-idle, transient persistence separation and cleanup wiring. Real-browser interaction, visual quality, scene lighting, GPU performance and user acceptance remain pending; C1 is not accepted.
+
+### Phase 04-C2 — Expressive character preview (implemented; browser acceptance pending)
+
+Expanded C1 with emotional and gesture presets, bounded transient playback controls, eased transitions and per-channel pose priority resolution. ChatGPT's existing face display supports transient expressions; other models use only registered head/arm pivots. Automated checks are recorded in `PROGRESS_CHECKLIST.md`. Browser motion quality, responsiveness, panel usability, stop/reset behavior and visual expression remain unverified; do not mark C2 accepted until manual review.
+
+### Phase 04-C3 — Manual character gaze and attention (implemented; browser acceptance pending)
+
+Adds an explicit-time capability-gated gaze evaluator and per-instance transient editor preview. Stable character IDs resolve to actual head pivots; prop targets resolve in world space with laptop-specific display-surface targeting; the active editor camera, custom world points, manual local directions and short attention previews are supported. Existing named head pivots are used; ChatGPT's independently named iris groups provide eye direction. Unsupported human/Claude eye controls, torso controls and GLB gaze controls remain absent. Missing/hidden targets fall back safely. Gaze does not update project JSON or camera state and composes with independent expression/gesture channels.
+
+Automated checks and manual visual review are tracked in `PROGRESS_CHECKLIST.md`. C3 remains pending browser verification. C2's user-reported 9 PASS / 3 FAIL results and three expressive-visual failures remain open; C3 does not accept or resolve them. Automatic speaker-following, audio-driven gaze, timeline events, camera automation and export are out of scope.
 
 ### Phase 05-B — Scene Prop Editing and Studio Refinement (planned, not started)
 

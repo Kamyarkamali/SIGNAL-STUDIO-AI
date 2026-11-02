@@ -6,6 +6,7 @@ import { statusAfterSave, type SaveStatus } from "@/lib/projects/save-state";
 import type { EnvironmentArrangement } from "@/lib/environments/arrangement";
 import { emptyCharacterData } from "@/lib/characters/character-operations";
 import type { CharacterProjectData } from "@/lib/characters/character-schema";
+import { characterModelRegistry } from "@/lib/characters/character-registry";
 
 export type { SaveStatus } from "@/lib/projects/save-state";
 
@@ -28,6 +29,7 @@ export function useProjects() {
   const pendingSave = useRef<Promise<void> | null>(null);
 
   const select = useCallback((project: ProjectDocument | null) => {
+    characterModelRegistry.replaceProjectModels(Object.values(project?.assetManifest ?? {}).flatMap((asset) => asset.characterModel ? [asset.characterModel] : []));
     activeRef.current = project;
     draftRef.current = project?.title ?? "";
     arrangementRef.current = project?.environmentArrangement ?? null;
@@ -172,6 +174,19 @@ export function useProjects() {
     finally { setBusy(false); }
   };
 
+  const adoptImportedProject = async (project: ProjectDocument) => { select(project); await refresh(); };
+  const removeImportedCharacterModel = async (assetId: string): Promise<boolean> => {
+    const project = activeRef.current;
+    if (!project) return false;
+    return run(async () => {
+      if (hasChanges()) await saveNow();
+      const response = await fetch(`${projectUrl(project.id)}/character-assets/${encodeURIComponent(assetId)}`, { method: "DELETE" });
+      const body: unknown = await response.json();
+      if (!response.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "حذف مدل انجام نشد.");
+      select(body as ProjectDocument); await refresh();
+    });
+  };
+
   const run = async (action: () => Promise<void>): Promise<boolean> => {
     setBusy(true);
     setError("");
@@ -179,6 +194,19 @@ export function useProjects() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "انجام عملیات ممکن نشد."); return false; }
     finally { setBusy(false); }
   };
+
+  const editCharactersAndSave = (updater: (current: CharacterProjectData) => CharacterProjectData) => run(async () => {
+    if (hasChanges()) await saveNow();
+    const project = activeRef.current;
+    if (!project) throw new Error("ابتدا یک پروژه را باز کنید.");
+    const next = updater(characterRef.current);
+    const saved = await projectRequest<ProjectDocument>(projectUrl(project.id), "PATCH", {
+      title: project.title, expectedRevision: project.revision,
+      characterIdentities: next.characterIdentities, characterInstances: next.characterInstances, characterStates: next.characterStates,
+    });
+    if (activeRef.current?.id === saved.id) select(saved);
+    await refresh();
+  });
 
   const create = (title: string) => run(async () => {
     const created = await projectRequest<ProjectDocument>("/api/projects", "POST", { title });
@@ -212,5 +240,5 @@ export function useProjects() {
   });
 
   return { list, loading, busy, error, setError, active, arrangement, editArrangement, displayAssignments, editDisplay, characterData, editCharacters,
-    uploadDisplay, draftName, saveStatus, refresh, editName, saveNow, create, open, rename, duplicate, remove, close };
+    editCharactersAndSave, uploadDisplay, adoptImportedProject, removeImportedCharacterModel, draftName, saveStatus, refresh, editName, saveNow, create, open, rename, duplicate, remove, close };
 }

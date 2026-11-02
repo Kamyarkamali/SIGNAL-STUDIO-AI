@@ -43,15 +43,17 @@ function TransformFields({ id, arrangement, onEdit, mode }: { id: string; arrang
   </div>;
 }
 
-export function PropertiesPanel({ section, projectTitle, arrangement, selectedId, onEdit, mode, onModeChange,
-  project, displayAssignments, onDisplayChange, onUploadDisplay, inspecting, onInspect, mediaPlaying, onTogglePlayback }: {
+export function PropertiesPanel({ section, projectTitle, arrangement, selectedId, onEdit, mode, onModeChange, editing, onEnterEdit, onFinishEdit,
+  project, displayAssignments, onDisplayChange, onUploadDisplay, inspecting, onInspect, mediaPlaying, onTogglePlayback, onLaptopViewerOpenChange }: {
   section: SectionId; projectTitle?: string; arrangement: EnvironmentArrangement | null; selectedId: string | null;
   onEdit: (change: (current: EnvironmentArrangement) => EnvironmentArrangement) => void;
   mode: TransformMode; onModeChange: (mode: TransformMode) => void;
+  editing: boolean; onEnterEdit: () => void; onFinishEdit: () => void;
   project: ProjectDocument | null; displayAssignments: ProjectDocument["displayAssignments"];
   onDisplayChange: (propId: string, assignment: ProjectDocument["displayAssignments"][string]) => void;
   onUploadDisplay: (file: File) => Promise<string | null>; inspecting: boolean; onInspect: () => void;
   mediaPlaying: boolean; onTogglePlayback: () => void;
+  onLaptopViewerOpenChange?: (open: boolean) => void;
 }) {
   const selected = arrangement?.props.find((item) => item.id === selectedId);
   const definition = STUDIO_01.propDefinitions.find((item) => item.id === selected?.definitionId);
@@ -60,12 +62,22 @@ export function PropertiesPanel({ section, projectTitle, arrangement, selectedId
     {selected && definition?.editable !== false ? <div className="p-4">
       <h2 className="text-sm font-bold">{propDisplayLabel(arrangement!, selected)}</h2>
       <p className="mt-1 break-all text-xs text-muted" dir="ltr">{selected.id}</p>
+      <details open className="mt-4 border-t border-line pt-3">
+        <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">جایگاه و تبدیل</summary>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <button type="button" className={button} aria-pressed={editing} onClick={editing ? onFinishEdit : onEnterEdit}>ویرایش وسیله</button>
+        {editing && <><span role="status" className="self-center text-xs text-accent">حالت ویرایش فعال است</span><button type="button" className={button} onClick={onFinishEdit}>پایان ویرایش</button></>}
+      </div>
       <div className="mt-3 flex flex-wrap gap-1">{modes.map((item) => <button key={item.id} type="button" aria-pressed={mode === item.id} className={`${button} ${mode === item.id ? "border-accent bg-[#19433f]" : ""}`} onClick={() => onModeChange(item.id)}>{item.label}</button>)}</div>
       <TransformFields key={`${selected.id}-${mode}-${JSON.stringify(selected.transform)}`} id={selected.id} arrangement={arrangement!} onEdit={onEdit} mode={mode} />
       <button type="button" className={`${button} mt-3`} onClick={() => onEdit((current) => updateProp(current, selected.id, { transform: initialTransformFor(selected) }))}>بازنشانی موقعیت</button>
-      {selected.definitionId === "prop:laptop" && project && <DisplayEditor project={project}
+      </details>
+      {selected.definitionId === "prop:laptop" && project && <details open className="mt-4 border-t border-line pt-3">
+        <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">رسانهٔ نمایشگر</summary>
+        <DisplayEditor project={project}
         assignment={displayAssignments[selected.id]} onChange={(assignment) => onDisplayChange(selected.id, assignment)}
-        onUpload={onUploadDisplay} inspecting={inspecting} onInspect={onInspect} playing={mediaPlaying} onTogglePlayback={onTogglePlayback} />}
+        onUpload={onUploadDisplay} inspecting={inspecting} onInspect={onInspect} playing={mediaPlaying} onTogglePlayback={onTogglePlayback} onViewerOpenChange={onLaptopViewerOpenChange} />
+      </details>}
       <p className="mt-3 text-xs leading-6 text-muted">برای تغییر در نما از ابزار انتخاب‌شده استفاده کنید. تغییر عددی پس از خروج از کادر ثبت می‌شود.</p>
     </div> : <div className="flex flex-1 flex-col items-center justify-center p-5 text-center"><h2 className="text-sm font-bold">{section === "projects" && projectTitle ? projectTitle : "چیزی انتخاب نشده است"}</h2><p className="mt-2 text-xs leading-7 text-muted">{section === "environments" ? "وسیله‌ای را در نمای سه‌بعدی یا فهرست وسایل انتخاب کنید." : "برای ویرایش وسایل، پروژه‌ای باز کنید و به بخش محیط‌ها بروید."}</p></div>}
   </aside>;

@@ -10,18 +10,20 @@ type Finish = {
 };
 
 export function BoxPart({
+  name,
   size,
   position,
   rotation,
   finish,
 }: {
+  name?: string;
   size: Vec3;
   position: Vec3;
   rotation?: Vec3;
   finish: Finish;
 }) {
   return (
-    <mesh position={position} rotation={rotation}>
+    <mesh name={name} position={position} rotation={rotation}>
       <boxGeometry args={size} />
       <meshStandardMaterial {...finish} />
     </mesh>

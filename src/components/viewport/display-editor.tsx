@@ -2,12 +2,13 @@
 
 import { useRef, useState } from "react";
 import type { ProjectDocument } from "@/lib/projects/project-schema";
+import { LaptopDisplayViewer } from "./laptop-display-viewer";
 
 type Assignment = ProjectDocument["displayAssignments"][string];
 type Asset = ProjectDocument["assetManifest"][string];
 const button = "rounded-lg border border-[#536276] px-2.5 py-1.5 text-xs hover:bg-[#2c4051] focus-visible:outline-2 focus-visible:outline-accent";
 
-export function DisplayEditor({ project, assignment, onChange, onUpload, onInspect, inspecting, playing, onTogglePlayback }: {
+export function DisplayEditor({ project, assignment, onChange, onUpload, onInspect, inspecting, playing, onTogglePlayback, onViewerOpenChange }: {
   project: ProjectDocument;
   assignment?: Assignment;
   onChange: (assignment: Assignment) => void;
@@ -16,6 +17,7 @@ export function DisplayEditor({ project, assignment, onChange, onUpload, onInspe
   inspecting: boolean;
   playing: boolean;
   onTogglePlayback: () => void;
+  onViewerOpenChange?: (open: boolean) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -51,6 +53,7 @@ export function DisplayEditor({ project, assignment, onChange, onUpload, onInspe
     <div className="mt-3 flex flex-wrap gap-2">
       <button type="button" className={button} disabled={uploading} onClick={() => input.current?.click()}>{uploading ? "در حال بارگذاری…" : "بارگذاری تصویر / ویدیو"}</button>
       <button type="button" className={button} aria-pressed={inspecting} onClick={onInspect}>{inspecting ? "بازگشت به نمای استودیو" : "نمای نزدیک نمایشگر"}</button>
+      <LaptopDisplayViewer project={project} assignment={assignment} playing={playing} onOpenChange={onViewerOpenChange} />
     </div>
     {images.length > 0 && <label className="mt-3 block text-xs">تصویر
       <select className="mt-1 min-h-9 w-full rounded-lg border border-[#536276] bg-[#101722] px-2" value={initial.imageAssetId ?? ""}

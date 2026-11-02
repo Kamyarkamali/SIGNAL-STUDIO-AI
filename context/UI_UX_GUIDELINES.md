@@ -63,6 +63,23 @@ Resizable dock containing scene, audio, speaker, character visibility, facial, g
 
 The default desktop layout must not be a long vertically stacked form. On narrower screens collapse side panels; on mobile prioritize reviewing and simple edits rather than claiming full desktop parity.
 
+### Workspace layout and scrolling
+
+- Desktop uses a viewport-height shell with persistent toolbar/navigation, a center 3D preview, a contextual inspector, and a bottom timeline. The document itself must not scroll during normal editing.
+- Keep `min-height: 0` on nested grid/flex children that need to shrink. Navigation, inspector content, and timeline overflow independently; avoid nested page-level scroll containers.
+- The contextual editor and selected-item properties occupy separate tabs in the left inspector, each with its own scroll position. Navigation opens the active section tab; selecting a scene item opens its properties. Keep both panels mounted while switching tabs so unfinished form edits are not discarded. The inspector may be temporarily collapsed; do not persist this UI state in project data.
+- Preserve the preview's 16:9 scene framing as available dimensions change. At tablet widths allow a collapsible left panel. On mobile keep the preview in the page and open editing controls in a dismissible drawer; permit controlled document scrolling without horizontal overflow.
+- Keep keyboard focus visible and respect `prefers-reduced-motion`; small interface transitions must not animate the WebGL scene.
+- Draggable panel resizing is optional and deferred until stable layout behavior has browser evidence.
+
+### Viewport enlargement and fullscreen
+
+- Prioritize the 3D viewport within the existing editor by keeping surrounding padding and the inspector width restrained; preserve the normal 16:9 frame and keep navigation, properties, and timeline available.
+- A compact viewport-toolbar button enters browser fullscreen on the viewport container only. Keep camera reset and orbit controls available, and show an accessible exit button in the same toolbar. Escape exits through the browser API.
+- Synchronize the button to `fullscreenchange`; on exit, denied requests, or unsupported browsers, restore/retain the normal workspace and show a concise Persian status when necessary. Do not save fullscreen state or change the editor/production camera state.
+- In fullscreen, fit the 16:9 production frame within the available display area without stretching. Let the mounted WebGL canvas resize with its container; do not recreate the scene to enter or exit fullscreen.
+- Verify desktop, tablet and mobile behavior in a browser before acceptance. Respect reduced motion for button transitions.
+
 ## 4. Onboarding and Contextual Help
 
 Offer a short guided workflow:
@@ -111,6 +128,14 @@ Show only model-supported options: hair, beard, face, clothing, robot display/ac
 Initially there is ONE real environment: **استودیوی پادکست**. Show it as the current environment; do not generate fake environment choices. If no alternative exists, avoid an active dropdown.
 
 When real assets are available, provide environment cards, selection, a clear live preview, scene-specific lighting/prop overrides, and safe asset error states. A later composition editor may arrange validated props, lights and cameras. The product is not initially a full mesh-modeling application.
+
+### Scene object selection and editing
+
+- A single click selects a prop and shows its subtle selection outline and properties; it does not show a transform gizmo. Empty-space clicks clear selection unless a transform drag/edit interaction is active.
+- Double-clicking a selected editable prop enters Object Edit Mode with Move as the default. The Persian environment panel provides explicit selection, edit, Move/Rotate/Scale and finish controls for mouse and touch users.
+- Numeric transform fields remain available while a prop is selected, whether or not Object Edit Mode is active. Escape and the finish control hide the gizmo while retaining selection and committed changes.
+- Selecting a different object ends the previous object's edit mode. Protected objects may be selected for inspection but never receive transform controls.
+- Orbit navigation remains enabled outside gizmo drags and is restored after drag completion or component cleanup. Selection/edit state is temporary UI state; only the resulting transform is saved.
 
 ## 10. Audio Asset Manager
 
@@ -205,3 +230,62 @@ Other sources of truth:
 - `ROADMAP.md`: phase allocation and acceptance milestones.
 
 Do not duplicate their full contents here. This document does **not** authorize implementing all features at once. Implement only the currently approved development phase, verify it, then update progress and bug records.
+
+## Studio 01 Decorations and Viewport Object Interaction
+
+- A single viewport click on a prop does not select it or show a transform gizmo. Double-click selects an editable prop and enters Move-first edit mode; protected structural objects cannot be edited.
+- The Persian Environments panel remains the explicit route to select a prop and enter/exit Move, Rotate or Scale editing. Escape clears the active prop and exits edit mode. A genuine empty-space click also clears selection; clicks on another prop remain inert unless they are a double-click. Camera orbit, pan and zoom remain available unless a transform gizmo is actively dragged.
+- The editor camera can orbit around the studio, including side and rear views, and the «بازنشانی دوربین» action restores its default editor view. Production camera state is separate.
+- Selecting the Studio 01 sign or wall-art prop exposes decoration controls in the Environments panel. The sign and both frames have independent saved customization; artwork uses project-local image assets.
+- Browser verification remains required for viewport interaction, visible artwork/illumination, upload/reopen behavior, camera bounds, touch input and transform-drag cleanup.
+
+## Laptop display viewing and clean object selection
+
+- Keep the laptop's close-up on the actual 3D screen, framed from a readable front/overhead angle. Restore the full editor camera pose when close-up ends.
+- Provide a compact fullscreen viewer for the selected project-local display image or video, with an accessible close/exit control and a modal fallback when browser fullscreen is unavailable. The viewer does not replace the laptop or edit its media assignment.
+- Selection from properties must not show viewport bounds or transform gizmos. Show object edit visuals only after explicit double-click or the Persian edit command; keep empty-space deselection behavior.
+- Browser review remains required for close-up framing, fullscreen open/exit/Escape, media readability, camera restoration and clean viewport appearance.
+
+## Project-local character model import
+
+- Keep the library's primary actions compact: create identity, import a 3D model, then add an identity instance to the studio. Imported model definitions remain distinct from named identities and scene instances.
+- Use a focused Persian modal for file choice, validation feedback, isolated 3D preview, and confirmation. Keep the production viewport and its editor state mounted behind it; do not add import fields permanently to the main properties panel.
+- Provide orbit/zoom, front/side/back/reset, bounding dimensions/box, preview size, target height, forward rotation, floor alignment and optional seating correction in the import workflow. Place actual discovered material and rig metadata in a labeled advanced section; diagnostic discovery does not imply animation support.
+- Show measurable upload progress, clear extension/signature/structure/size failures, and a recoverable missing model state. Cancellation before confirmation must not write project bytes or change project data.
+- Browser review remains required for dialog usability, preview controls, actual upload/reopen, responsive behavior, console output and integrated-GPU performance.
+
+## Studio 01 room and lighting controls
+
+- Keep lighting settings compact in the Environments panel. Group intensity sliders, temperature preset, practical-light toggle and reset under a labeled disclosure rather than expanding them by default.
+- Label wall/ceiling visibility as editor-only and make its pressed state explicit. It must not alter saved prop visibility or project data.
+- Preserve the central viewport and camera reset/navigation controls while these settings are used. Sliders and presets must update the actual R3F lighting and persist through the existing project save path.
+- Manual browser review is required for appearance, exposure, color readability, wall visibility and layout fit.
+
+## Character animation preview controls (Phase 04-C1)
+
+- Keep preview actions in a compact, collapsible group in the selected character's properties.
+- Offer only actions supported by the selected model's active renderer. Show unsupported actions as disabled with a short reason.
+- Clearly label preview as temporary; provide play, stop and reset/return-to-idle controls with accessible Persian names.
+- Keep preview state independent per scene instance and never imply it is saved to the project.
+- Preserve the viewport and existing properties-panel scroll behavior. Browser review is required for control clarity, motion feedback, keyboard use and panel fit.
+
+## Expressive animation preview controls (Phase 04-C2)
+
+- Keep action selection and play/stop/reset in the existing collapsible character properties group. Put speed, intensity, transition, return duration and easing in a nested disclosure so routine controls remain compact.
+- Disabled actions must communicate missing model capabilities. Facial-expression previews are available only for the ChatGPT robot's existing face display; other models preview supported local pivots only.
+- Treat all preview settings as temporary editor state. Verify the controls and motion in-browser before acceptance; automated checks do not establish natural timing or visual quality.
+
+## Gaze and attention preview controls (Phase 04-C3)
+
+- Put gaze mode, stable character/prop target, local direction, attention preset and transition duration in a compact disclosure in the selected character properties. Keep the 3D viewport visible; gaze is a temporary preview and must not appear as a saved-project setting.
+- Show only model-supported channels: current procedural models support head direction, ChatGPT additionally supports iris direction, while human/Claude eye tracking, torso rotation and imported GLB gaze are unavailable.
+- Provide neutral return and clearly explain that unreachable targets are clamped safely. Missing or hidden targets should show a concise Persian fallback state.
+- Keep camera target independent from editor and production camera controls. Manual browser review remains required for target behavior, motion quality, reset, multiple characters and panel fit; C2 expression failures remain separately open.
+
+### Editor helpers and laptop presentation
+
+- Provide a compact, explicit viewport toggle for editor helper visibility. It hides prop/character transform gizmos and selection bounds without clearing the selected item or changing scene data.
+- Hide editor helpers temporarily during viewport fullscreen and either laptop viewer mode, then restore the user's manual helper preference when presentation ends.
+- Prefer a device-framed laptop presentation that retains the laptop body, bezel and attached screen media. Keep the content-only fullscreen viewer as a separate, clearly labeled secondary option.
+- Presentation exit, including Escape, restores the prior editor inspection target and camera. Keep media assignments and production camera state untouched.
+- **Status:** Implemented; visual and responsive browser verification pending.

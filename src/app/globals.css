@@ -38,3 +38,148 @@
 .timeline-ruler-background {
   background: repeating-linear-gradient(90deg, transparent 0, transparent calc(20% - 1px), #283949 calc(20% - 1px), #283949 20%);
 }
+
+/* The shell owns the viewport height; each working panel owns its scroll. */
+.editor-layout,
+.editor-workspace { overflow: hidden; }
+.workspace-navigation,
+.workspace-pane { scrollbar-width: thin; scrollbar-color: #394a5d transparent; }
+.workspace-main {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) clamp(270px, 25vw, 330px);
+  gap: 8px;
+  transition: grid-template-columns 180ms ease;
+}
+.workspace-main-without-inspector { grid-template-columns: minmax(0, 1fr) 0fr; gap: 0; }
+.workspace-canvas {
+  min-width: 0;
+  min-height: 0;
+  container-type: size;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.studio-viewport-card {
+  width: min(100%, max(0px, calc(177.78cqh - 120px)));
+  max-height: 100%;
+}
+.studio-viewport-card:fullscreen {
+  box-sizing: border-box;
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  grid-template-rows: 43px minmax(0, 1fr) auto;
+  justify-items: center;
+  border: 0;
+  border-radius: 0;
+  background: #0b1019;
+}
+.studio-viewport-card:fullscreen .studio-viewport-toolbar,
+.studio-viewport-card:fullscreen .studio-viewport-caption { width: 100%; }
+.studio-viewport-card:fullscreen .studio-viewport-preview {
+  width: min(100%, calc((100dvh - 120px) * 16 / 9));
+  max-height: 100%;
+  align-self: center;
+  justify-self: center;
+}
+.workspace-inspector {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #263243;
+  border-radius: 10px;
+  background: #121925;
+  transition: opacity 160ms ease, border-color 160ms ease;
+}
+.workspace-inspector-closed { visibility: hidden; opacity: 0; border-color: transparent; }
+.workspace-inspector-tab { color: #9aa9bd; }
+.workspace-inspector-tab:hover { color: #f2f6fc; background: #1b2939; }
+.workspace-inspector-tab[aria-selected="true"] { color: #e4fffa; background: #193334; box-shadow: inset 0 -2px #40d7c5; }
+.workspace-pane {
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.workspace-pane[hidden] { display: none; }
+.workspace-pane > section,
+.workspace-pane > aside {
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 12px;
+}
+.workspace-pane > aside { padding: 0; }
+.workspace-pane > aside > div:first-child { display: none; }
+.workspace-timeline { min-width: 0; overflow: hidden; }
+.workspace-timeline > section { min-height: 0; }
+.workspace-mobile-scrim { display: none; }
+
+@media (max-width: 850px) and (min-width: 651px) {
+  .editor-layout { grid-template-rows: auto minmax(0, 1fr); }
+  .workspace-navigation { max-width: 100%; overflow-x: auto; }
+  .workspace-main { grid-template-columns: minmax(0, 1fr) 270px; }
+}
+@media (max-width: 650px) {
+  .editor-shell { height: auto; min-height: 100dvh; overflow: visible; }
+  .editor-layout { display: flex; min-height: 0; flex: 1 0 auto; flex-direction: column; overflow: visible; }
+  .workspace-navigation { position: sticky; top: 0; z-index: 5; flex: none; }
+  .editor-workspace { overflow: visible; }
+  .workspace-main,
+  .workspace-main-without-inspector { display: block; }
+  .workspace-canvas { container-type: normal; overflow: visible; }
+  .studio-viewport-card { width: 100%; max-height: none; }
+  .studio-viewport-card:fullscreen .studio-viewport-preview { width: min(100%, calc((100dvh - 120px) * 16 / 9)); }
+  .studio-viewport-card:fullscreen .viewport-fullscreen-button { flex: none; }
+  .workspace-inspector {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 20;
+    width: min(100vw, 420px);
+    max-width: 100vw;
+    border-radius: 0 12px 12px 0;
+    box-shadow: 12px 0 36px #0008;
+  }
+  .workspace-inspector-closed { display: none; }
+  .workspace-mobile-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: block;
+    width: 100vw;
+    height: 100dvh;
+    background: #0009;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-main,
+  .workspace-inspector,
+  .viewport-fullscreen-button { transition: none; }
+}
+
+.laptop-display-viewer {
+  width: min(96vw, 1280px);
+  max-width: 96vw;
+  max-height: 92dvh;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #536276;
+  border-radius: 12px;
+  background: #111a24;
+  color: #eaf1f6;
+  box-shadow: 0 24px 80px #000a;
+}
+.laptop-display-viewer::backdrop { background: #05090dcc; }
+.laptop-display-viewer-shell { display: flex; width: 100%; height: min(82dvh, 760px); flex-direction: column; }
+.laptop-display-viewer-content { position: relative; min-height: 0; flex: 1; background: #080d13; }
+.laptop-display-viewer-content video { width: 100%; height: 100%; }
+.laptop-display-viewer:fullscreen { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; border: 0; border-radius: 0; }
+.laptop-display-viewer:fullscreen .laptop-display-viewer-shell { height: 100dvh; }
+@media (prefers-reduced-motion: reduce) {
+  .laptop-display-viewer, .laptop-display-viewer * { scroll-behavior: auto; transition-duration: 0.01ms !important; }
+}

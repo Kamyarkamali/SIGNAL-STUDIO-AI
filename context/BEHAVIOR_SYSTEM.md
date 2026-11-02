@@ -173,6 +173,18 @@ Example default gaze priority:
 3. Dialogue-driven automatic gaze
 4. Default idle gaze behavior
 
+### Future target and rotation contract (planning only)
+
+The future target type must support another character by stable instance ID, the production camera, the active laptop/display surface, a scene prop by stable instance ID, a world-space point, a point behind the character, a custom direction vector, and a neutral direction. Gaze direction is independent from production-camera direction. Model adapters may divide a gaze target across eyes, head and upper body; each layer remains independently capability-gated and manual director overrides win only on the same layer. Missing/deleted targets resolve to a defined neutral direction rather than a stale transform. No automatic gaze tracking or target evaluation is implemented by this Phase 04-B2 work.
+
+### Future facial behavior layers (Phase 04-C and later; not implemented here)
+
+Static expression presets are configuration applied directly to supported model components. Future natural behavior requires deterministic, time-evaluable blink, expression transitions, eye/head movement, speaking mouth shapes, listening reactions and emotion changes. Mouth/speech, eyes/blink, head/gaze, facial emotion, arms and posture remain separate layers; explicit director events override lower-priority behaviors only for properties they actually control. Lip sync and automatic reactions remain unsupported until their own phase, capability checks and tests are complete.
+
+### Future character POV camera (planning only)
+
+Models may declare a local first-person camera anchor near eye level and a canonical local forward direction. Editor-only POV inspection must keep camera state separate from the editor orbit camera and any production camera state. A future controller may support forward/side/back direction, target look-at, per-model position/rotation offsets, configurable FOV and safe clipping/occlusion limits. Timeline-driven POV moves must use deterministic camera evaluation and manual director priority when camera authoring is approved; this document does not enable POV controls or Phase 09 work.
+
 A higher-priority gaze behavior overrides a lower-priority gaze behavior only for the affected gaze layers.
 
 ### Timing and Scheduling
@@ -333,3 +345,25 @@ and schedule listener reactions.
 Manual director events override conflicting automatic reactions.
 
 Camera focus must remain independent from listener behavior.
+
+## Phase 04-C1 implemented: deterministic manual pose preview
+
+The editor now supports transient `neutral`, `head-turn`, `head-nod`, `arm-gesture`, and `return-idle` preview actions. The shared pure evaluator takes an explicit source timestamp and duration, clamps motion to conservative local rotation ranges, and returns the same pose for the same action/configuration/time regardless of evaluation order. Preview is keyed by character instance ID; stop resets named local pivots and return-to-idle blends the current transient pose back to neutral. The editor schedules demand renders only while playback runs and cancels its frame callback on completion or teardown.
+
+Preview availability is capability-based. Current procedural renderers declare head rotation only where a `head-pivot` exists and arm gestures only where shoulder-centered arm pivots exist. Claude has no arm gesture. GLB skeletons, morph targets and clips are inspected by the import adapter, but no imported animation preview is exposed yet because the current renderer has no deterministic clip adapter. No model currently claims facial expressions, eye gaze, mouth control, lip sync, standing/sitting transitions or a full rig. This is a limited preview foundation, not the complete layered behavior engine.
+
+## Phase 04-C2 implemented: expressive manual preview
+
+The preview action catalog now includes quick/thoughtful nods, head shake/tilt, wave, explanation, and emotional presets (happy, excited, surprised, sad, angry, worried, confused, thinking, listening, agreeing, disagreeing, laughing, celebrating). Presets combine only declared head and/or arm channels; ChatGPT alone additionally maps supported emotional presets to its existing independent display shapes. This does not add facial control to human/Claude models or claim GLB animation support.
+
+Playback settings are transient and bounded: speed 0.5–2x, intensity 0.25–1.5x, transition 0.08–0.8 seconds, return 0.15–1.5 seconds, and four easing curves. The evaluator remains stateless at explicit timestamps. A pure pose-layer resolver chooses the highest-priority owner independently for each local pose channel, with stable input-order tie handling. The UI currently plays one coordinated preset at a time; composition support is a reusable foundation, not a full layered behavior engine. No speaker/listener automation, gaze, lip sync, timeline scheduling, or video export is implemented.
+
+## Future behavior and production architecture (planned)
+
+### Phase 04-C3 implemented: manual gaze and attention preview
+
+Gaze is an independent transient channel keyed by character instance ID. The pure evaluator accepts explicit source time, eases between a captured local gaze pose and the resolved target direction, and clamps model-supported head, eye and torso outputs. Runtime target resolution reads the current scene graph: character head pivots, a prop's transformed bounds (the laptop's actual display surface), the active editor camera or an authored world point. Manual directions are character-local. Hidden/deleted/unavailable targets return to neutral safely. The editor/production camera and persisted character root transform are not changed.
+
+Capabilities require both model declarations and actual named pivots. Current models support head rotation; ChatGPT additionally exposes separate iris translation for eye direction. Human and Claude models do not claim eye motion, no current model exposes torso motion, and GLBs remain unsupported until their named rig nodes can be driven. Attention/listening options are manual previews only, not speaker detection or automatic reactions. Gaze can coexist with head/arm previews while leaving face-expression channels untouched. No gaze state is persisted; future authored gaze events must use stable IDs and the common scene-time clock.
+
+The production direction is audio-synchronized, timeline-driven animated podcast and educational video creation with MP4 export. Future serializable events should address character instances and props by stable IDs; audio speaker intervals, listener state, gaze targets, expressions, gestures, camera direction and prop attachment events remain separate channels evaluated at one scene timestamp/frame. Resolve per-property priorities and manual director overrides deterministically, and keep editor preview state, audio playback clocks, editor camera and production camera independent. Planned gaze targets include characters, camera, laptop/display, props, world-space points, behind-character and custom directions. Planned audio includes recorded tracks, speaker assignments, time ranges and authored viseme channels. Planned cameras include wide/group/close-up/POV shots, landscape and portrait framing and optional depth of field. Planned teaching interactions include hand attachments, pick-up/release events, presentation props and standing positions. These are architecture notes only; no automatic gaze, reaction, audio, lip sync, camera automation, timeline, prop animation or export is implemented here.

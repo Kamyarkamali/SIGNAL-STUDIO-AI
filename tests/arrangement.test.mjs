@@ -5,7 +5,7 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
-import { addProp, defaultArrangement, duplicateProp, removeProp, restoreDefault, updateProp, arrangementSchema } from "../src/lib/environments/arrangement.ts";
+import { addProp, defaultArrangement, defaultStudioLighting, duplicateProp, removeProp, resetStudioLighting, restoreDefault, updateProp, updateStudioLighting, arrangementSchema } from "../src/lib/environments/arrangement.ts";
 import { ProjectService } from "../src/lib/projects/project-service.ts";
 import { saveInputSchema } from "../src/lib/projects/project-schema.ts";
 
@@ -56,6 +56,22 @@ test("arrangement rejects invalid transforms, duplicate IDs and modified room sh
   assert.equal(saveInputSchema.safeParse({ title: "آزمون", expectedRevision: 0, environmentArrangement: { ...initial, props: [...initial.props, chair] } }).success, false);
 });
 
+test("project lighting controls validate ranges, color presets, reset and legacy defaults", () => {
+  const initial = defaultArrangement();
+  const legacy = arrangementSchema.parse({ environmentId: initial.environmentId, props: initial.props });
+  assert.deepEqual(legacy.lighting, defaultStudioLighting);
+  const edited = updateStudioLighting(initial, { keyIntensity: 2.4, fillIntensity: 1.1, temperature: "cool", practicalsEnabled: false });
+  assert.deepEqual(edited.lighting, { ...initial.lighting, keyIntensity: 2.4, fillIntensity: 1.1, temperature: "cool", practicalsEnabled: false });
+  assert.deepEqual(initial.lighting, defaultStudioLighting, "lighting edits do not mutate another arrangement");
+  assert.deepEqual(resetStudioLighting(edited).lighting, defaultStudioLighting);
+  for (const lighting of [
+    { ...initial.lighting, keyIntensity: 3.01 },
+    { ...initial.lighting, fillIntensity: -0.01 },
+    { ...initial.lighting, accentIntensity: 1.51 },
+    { ...initial.lighting, temperature: "violet" },
+  ]) assert.equal(arrangementSchema.safeParse({ ...initial, lighting }).success, false);
+});
+
 test("v1 migration is read-only until save, then backs up original and persists independent arrangements", async () => withStore(async (store, root) => {
   const created = await store.create("قدیمی");
   const environmentArrangement = created.environmentArrangement;
@@ -69,22 +85,27 @@ test("v1 migration is read-only until save, then backs up original and persists 
   const legacy = { ...rest, schemaVersion: 1 };
   await writeFile(file, JSON.stringify(legacy));
   const opened = await store.open(created.id);
-  assert.equal(opened.schemaVersion, 4);
+  assert.equal(opened.schemaVersion, 5);
   assert.equal(opened.environmentArrangement.props.length, environmentArrangement.props.length);
   assert.equal(JSON.parse(await readFile(file, "utf8")).schemaVersion, 1);
-  const changed = updateProp(opened.environmentArrangement, "studio-01:laptop", { visible: false });
+  const changed = updateStudioLighting(updateProp(opened.environmentArrangement, "studio-01:laptop", { visible: false }),
+    { keyIntensity: 2.2, temperature: "cool", practicalsEnabled: false });
   const saved = await store.save(created.id, created.title, opened.revision, changed);
-  assert.equal(saved.schemaVersion, 4);
+  assert.equal(saved.schemaVersion, 5);
   assert.equal(saved.revision, 1);
   assert.equal((await new ProjectService(root).open(created.id)).environmentArrangement.props.find((prop) => prop.id === "studio-01:laptop").visible, false);
+  assert.deepEqual((await store.open(created.id)).environmentArrangement.lighting,
+    { ...defaultStudioLighting, keyIntensity: 2.2, temperature: "cool", practicalsEnabled: false });
   const { readdir } = await import("node:fs/promises");
   const backups = await readdir(join(root, "projects", created.id, "backups"));
   assert.equal(backups.length, 1);
   assert.equal(JSON.parse(await readFile(join(root, "projects", created.id, "backups", backups[0]), "utf8")).schemaVersion, 1);
   const copy = await store.duplicate(created.id);
   assert.equal(copy.environmentArrangement.props.find((prop) => prop.id === "studio-01:laptop").visible, false);
-  const copyChanged = updateProp(copy.environmentArrangement, "studio-01:laptop", { visible: true });
+  const copyChanged = updateStudioLighting(updateProp(copy.environmentArrangement, "studio-01:laptop", { visible: true }), { keyIntensity: 0.8 });
   await store.save(copy.id, copy.title, copy.revision, copyChanged);
   assert.equal((await store.open(created.id)).environmentArrangement.props.find((prop) => prop.id === "studio-01:laptop").visible, false);
   assert.equal((await store.open(copy.id)).environmentArrangement.props.find((prop) => prop.id === "studio-01:laptop").visible, true);
+  assert.equal((await store.open(copy.id)).environmentArrangement.lighting.keyIntensity, 0.8);
+  assert.equal((await store.open(created.id)).environmentArrangement.lighting.keyIntensity, 2.2);
 }));

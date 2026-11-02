@@ -1,5 +1,6 @@
 import type { PropDefinition } from "@/lib/environments/environment-registry";
 import { BoxPart, CylinderPart, RoundedBoxPart } from "./parts";
+import { studioChairVisualSpec } from "@/lib/environments/studio-visual-spec";
 
 const darkMetal = { color: "#141d23", roughness: 0.46, metalness: 0.75 };
 const leather = { color: "#344149", roughness: 0.88 };
@@ -29,8 +30,8 @@ export function StudioChair() {
   return <group>
     <CylinderPart radiusTop={0.29} radiusBottom={0.34} height={0.06} position={[0, 0.08, 0]} finish={darkMetal} />
     <CylinderPart radiusTop={0.055} height={0.44} position={[0, 0.3, 0]} finish={darkMetal} />
-    <RoundedBoxPart size={[0.84, 0.16, 0.78]} position={[0, 0.59, 0]} radius={0.065} finish={leather} />
-    <RoundedBoxPart size={[0.91, 0.09, 0.84]} position={[0, 0.51, 0]} radius={0.035} finish={{ color: "#1d282e", roughness: 0.85 }} />
+    <RoundedBoxPart size={[0.84, studioChairVisualSpec.seatThickness, 0.78]} position={[0, studioChairVisualSpec.seatCenterY, 0]} radius={0.065} finish={leather} />
+    <RoundedBoxPart size={[0.91, 0.09, 0.84]} position={[0, studioChairVisualSpec.seatCenterY - 0.08, 0]} radius={0.035} finish={{ color: "#1d282e", roughness: 0.85 }} />
     <RoundedBoxPart size={[0.79, 0.92, 0.19]} position={[0, 1.13, -0.34]} rotation={[-0.1, 0, 0]} radius={0.07} finish={leather} />
     <RoundedBoxPart size={[0.63, 0.23, 0.2]} position={[0, 1.62, -0.38]} radius={0.08} finish={{ color: "#29383f", roughness: 0.86 }} />
     <BoxPart size={[0.55, 0.62, 0.015]} position={[0, 1.11, -0.233]} rotation={[-0.1, 0, 0]} finish={{ color: "#405058", roughness: 0.95 }} />

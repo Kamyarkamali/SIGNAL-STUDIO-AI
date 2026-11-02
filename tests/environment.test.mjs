@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { createEnvironmentRegistry, copyDefaultProps } from "../src/lib/environments/environment-registry.ts";
 import { environmentRegistry } from "../src/lib/environments/registry.ts";
 import { STUDIO_01, STUDIO_01_ID } from "../src/lib/environments/studio-01.ts";
 import { productionCameraSchema } from "../src/lib/camera/production-camera.ts";
-import { laptopVisualSpec } from "../src/lib/environments/studio-visual-spec.ts";
+import { laptopVisualSpec, studioChairVisualSpec } from "../src/lib/environments/studio-visual-spec.ts";
 
 test("only the real studio is registered with a stable environment ID", () => {
   assert.equal(environmentRegistry.list().length, 1);
@@ -24,6 +25,19 @@ test("major props have stable independent definitions and instances", () => {
   assert.equal(STUDIO_01.defaultProps.filter((prop) => prop.definitionId === "prop:chair").length, 3);
   assert.equal(STUDIO_01.defaultProps.filter((prop) => prop.definitionId === "prop:microphone").length, 3);
   assert.deepEqual(JSON.parse(JSON.stringify(STUDIO_01)).id, STUDIO_01_ID);
+});
+
+test("Studio 01 seated anchors share the rendered chair surface without moving chair origins", () => {
+  assert.ok(Math.abs(studioChairVisualSpec.seatSurfaceY - 0.67) < 1e-9);
+  const chairIds = ["studio-01:host-chair", "studio-01:cohost-chair", "studio-01:guest-chair"];
+  for (const [index, anchor] of STUDIO_01.characterAnchors.filter((entry) => entry.kind === "seat").entries()) {
+    const chair = STUDIO_01.defaultProps.find((prop) => prop.id === chairIds[index]);
+    assert.deepEqual(chair.transform.position, anchor.position);
+    assert.equal(anchor.seatSurfaceOffsetY, studioChairVisualSpec.seatSurfaceY);
+  }
+  assert.throws(() => createEnvironmentRegistry([{ ...STUDIO_01, characterAnchors: [
+    { ...STUDIO_01.characterAnchors[0], surfaceOffsetY: -0.1, seatSurfaceOffsetY: -0.1 }, ...STUDIO_01.characterAnchors.slice(1),
+  ] }]), /Invalid character anchor/);
 });
 
 test("copying an arrangement isolates each transform and preserves the built-in defaults", () => {
@@ -93,17 +107,56 @@ test("refined laptop keeps a usable host-facing display inside its frame and pre
   assert.ok(laptopVisualSpec.baseSize[2] / 2 > Math.abs(laptopVisualSpec.hingeZ));
 });
 
+test("Studio 01 has an editor-toggleable room shell and bilingual laptop details", async () => {
+  const room = await readFile(new URL("../src/components/viewport/environments/room-architecture.tsx", import.meta.url), "utf8");
+  const details = await readFile(new URL("../src/components/viewport/environments/studio-details.tsx", import.meta.url), "utf8");
+  const viewport = await readFile(new URL("../src/components/viewport/environments/studio-environment.tsx", import.meta.url), "utf8");
+  const editor = await readFile(new URL("../src/components/viewport/environment-editor.tsx", import.meta.url), "utf8");
+  assert.match(room, /studio-right-wall/);
+  assert.match(room, /studio-ceiling/);
+  assert.match(room, /showWalls &&/);
+  assert.match(room, /studio-left-wall/);
+  assert.match(details, /LaptopKeyboardSurface/);
+  assert.match(details, /bilingual-keyboard-legends/);
+  assert.match(details, /persian\?: string\[\]/);
+  assert.match(details, /vent-/);
+  assert.match(details, /laptopVisualSpec\.hingeZ/);
+  assert.match(details, /lightsEnabled \? 1\.2 : 0\.08/);
+  assert.match(viewport, /settings\.temperature/);
+  assert.match(viewport, /settings\.keyIntensity/);
+  assert.match(viewport, /showRoomWalls=\{showRoomWalls\}/);
+  assert.match(editor, /onToggleRoomWalls/);
+  assert.match(editor, /نورپردازی استودیو/);
+  assert.match(editor, /resetStudioLighting/);
+  assert.match(editor, /در پروژه ذخیره نمی‌شود/);
+});
+
 test("camera and future character anchors are finite and separated", () => {
   for (const camera of Object.values(STUDIO_01.cameraAnchors)) {
     assert.equal(productionCameraSchema.safeParse(camera).success, true);
   }
-  assert.equal(new Set(STUDIO_01.characterAnchors.map((anchor) => anchor.id)).size, 3);
+  assert.equal(new Set(STUDIO_01.characterAnchors.map((anchor) => anchor.id)).size, 6);
+  assert.equal(STUDIO_01.characterAnchors.filter((anchor) => anchor.kind === "seat").length, 3);
+  assert.equal(STUDIO_01.characterAnchors.filter((anchor) => anchor.kind === "tabletop").length, 2);
+  assert.equal(STUDIO_01.characterAnchors.filter((anchor) => anchor.kind === "platform").length, 1);
   for (const [index, anchor] of STUDIO_01.characterAnchors.entries()) {
     for (const other of STUDIO_01.characterAnchors.slice(index + 1)) {
       const distance = Math.hypot(anchor.position[0] - other.position[0], anchor.position[2] - other.position[2]);
       assert.ok(distance > anchor.clearanceRadius + other.clearanceRadius);
     }
   }
+});
+
+test("placement anchors validate kind, surface height and tabletop scale limit", () => {
+  const anchors = STUDIO_01.characterAnchors;
+  assert.equal(anchors.find((anchor) => anchor.id === "studio-01:desk-top-left").surfaceOffsetY, 1.2);
+  assert.equal(anchors.find((anchor) => anchor.id === "studio-01:rug-platform").surfaceOffsetY, 0.082);
+  assert.throws(() => createEnvironmentRegistry([{ ...STUDIO_01, characterAnchors: [
+    { ...anchors[3], kind: "tabletop", surfaceOffsetY: undefined, seatSurfaceOffsetY: undefined },
+  ] }]), /Invalid character anchor/);
+  assert.throws(() => createEnvironmentRegistry([{ ...STUDIO_01, characterAnchors: [
+    { ...anchors[3], maxCharacterScale: 0 },
+  ] }]), /Invalid character anchor/);
 });
 
 test("camera suggestions cover studio, two seats, individual seats and three seats in both formats", () => {

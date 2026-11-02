@@ -18,3 +18,10 @@ export const laptopVisualSpec: {
   screenTilt: -0.16,
   keyboardCenterZ: 0.075,
 };
+
+// Keep chair render geometry and character placement anchors on the same seat plane.
+export const studioChairVisualSpec = {
+  seatCenterY: 0.59,
+  seatThickness: 0.16,
+  get seatSurfaceY() { return this.seatCenterY + this.seatThickness / 2; },
+};

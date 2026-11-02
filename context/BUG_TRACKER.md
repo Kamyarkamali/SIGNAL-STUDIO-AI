@@ -1,7 +1,7 @@
 # Signal Studio AI — Bug Tracker
 
 **Path:** `context/BUG_TRACKER.md`  
-**Status:** Phase 03-A through 03-E accepted; Phase 04-A accepted; overall Phase 03 remains open pending unrelated checks
+**Status:** Phase 03-A through 03-E accepted; Phase 04-A accepted; Phase 04-B MVP/prototype handoff accepted; Phase 04-C1/C2/C3 implemented with browser verification pending; C2 has three user-reported visual failures recorded as BUG-0024; Phase 04-B functional/production checks remain verification debt; Studio 01 visual review pending; overall Phase 03 remains open pending unrelated checks
 **Product:** Local-only Windows 3D animation editor
 
 ## Purpose
@@ -19,6 +19,30 @@ Severity:
 - `P3`: cosmetic issue or minor usability defect.
 
 ## Bugs and observations — new project
+
+### BUG-0010 — Claude model silhouette did not match its approved cube reference
+
+- **Status:** FIXED_UNVERIFIED · **Severity:** P2 · **Phase:** 04-B1
+- **Evidence:** The registered Claude renderer used a pear-shaped body, separate animal-like head, optional pointed/rounded ears, tail, and facial geometry unlike the orange cube reference in `references/characters/claude/claude.jpg`.
+- **Fix:** Replaced the renderer with a rounded orange cube head/body, independent rectangular eye and mouth groups, four short block lower limbs, and a large over-ear headset. Kept model and renderer IDs and persisted customization keys stable; their controls now affect body color, headset pad color/style, and eye color.
+- **Regression coverage:** `tests/characters.test.mjs` verifies the stable renderer contract, cube geometry declaration, independent face groups, headset, limbs, and removal of animal geometry.
+- **Verification:** `npm run typecheck`, `npm run lint`, `npm test` (44/44), and `npm run build` passed. The CUA browser inventory was empty. Actual studio framing, appearance from multiple views, intersections, browser console, and integrated-GPU responsiveness remain unverified; keep this issue `FIXED_UNVERIFIED` pending manual browser inspection.
+
+### BUG-0011 — Newly added characters intersected the chair vertically
+
+- **Status:** FIXED_UNVERIFIED · **Severity:** P2 · **Phase:** Character seating placement correction
+- **Evidence:** Confirmed default instances inherited Studio 01 anchor Y=0, while the rendered chair seat surface is at local Y=0.67. Procedural models also have different lower support points.
+- **Fix:** New instances remain unassigned. When the user explicitly assigns a seat, anchor surface/facing metadata and model-local contact/position/rotation offsets compute one aligned transform. Existing saved transforms are never recomputed on load; reselecting the current seat is a no-op and unassignment preserves the transform.
+- **Regression coverage:** Tests cover model offsets, orientation, seat conflict prevention, manual transforms, save/reopen, unknown seat fallback, older unassigned records, and unchanged chair origins/seat height.
+- **Verification:** `npm run typecheck`, `npm run lint`, `npm test` (47/47), `npm run build`, and `git diff --check` passed. No browser was available; visual fit and interactive assignment remain unverified.
+
+### BUG-0012 — ChatGPT robot face lacked expression and chest logo
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Phase:** 04-B2; manual acceptance retest failed
+- **Evidence:** The user reported this as one of two failures in a 10-test run (8 passed). Inspection confirms the prior renderer did have a sourced OpenAI SVG, but it was a small mark on a shallow box plane and the smile was a thin ring; this fell short of the approved `references/characters/chatgpt/chatgpt.png` appearance.
+- **Fix:** Enlarged and front-mounted the sourced SVG mark on a flat plane, replaced the thin smile ring with a filled curved smile shape, and strengthened the dark pupil/cyan eye/highlight layering. Kept the existing expression presets and model identity. User visual retest is still required; do not mark visually accepted.
+- **Regression coverage:** `tests/characters.test.mjs` checks the stable model/customization contract, individual static eye/brow/mouth presets, legacy expression mappings, supported/rejected surface placements, and stable placement IDs; it also asserts the larger flat chest plane and filled smile geometry.
+- **Verification:** Targeted final run: typecheck, lint, 69/69 tests and production build pass. Browser appearance, multiple-view logo alignment, tabletop/seat clearance, console behavior and integrated-Radeon performance require manual viewport inspection; do not mark visually accepted.
 
 **Phase 03-C acceptance (2026-11-02):** The user explicitly accepted the committed implementation (`b2c566b`) after manual verification and authorized Phase 03-D. The report did not include separate outcomes for each interactive check listed in `PROGRESS_CHECKLIST.md`; those retain pending status. No additional defect was reported.
 
@@ -161,9 +185,163 @@ These are **test scenarios**, not active bugs in the new project:
 
 **Phase 04-A scaling review (2026-11-02):** Numeric scale input enforces the schema-supported range 0.05–20; transform-gizmo commits clamp scale to the same range. Automated tests verify independent scale state, bounds, and persistence after reopening. The user confirmed browser-visible scaling and persistence in the final 33/33 acceptance report. Final automated checks are recorded in the checklist and commit handoff.
 
+**Phase 04-B implementation review (2026-11-02):** Added model-specific procedural renderers, supported per-identity appearance controls, schema v5 and a v4 compatibility migration. Automated tests cover registry distinctions, customization validation/isolation, legacy migration and existing persistence/media/environment regressions. No browser visual review was available in this implementation pass; model fit, intersections, customization visibility/persistence, console behavior and integrated-GPU performance remain unverified. The models have no implemented facial or body rigs; this is a documented scope limitation, not a claimed animation bug.
+
+**Phase 04-B MVP handoff reconciliation (2026-11-02):** The user explicitly approved Kamyar, ChatGPT, Claude, and Hamid for MVP/prototype use and authorized Phase 04-C1. This is not final production-quality acceptance for Kamyar or Hamid. Preserve the prior 10-check result exactly as reported: 8 PASS and 2 FAIL; the failures were ChatGPT appearance/OpenAI chest logo and main studio wall-sign customization, and the eight passes were not itemized. No later browser retest was reported, so the historical outcomes remain unchanged. Prototype approval does not verify independent identities/instances; add/remove/show/hide/selection/transforms; seating conflicts; visible customization and save/reopen; base-model replacement and compatible appearance handling; missing-model fallback; placement and prop clearance; or browser console and integrated-GPU behavior. The wall-sign failure remains recorded but is outside Phase 04-B. Review found no recorded, confirmed active P0/data-loss/persistence/security blocker. BUG-0014 remains P1 `FIXED_UNVERIFIED` and must stay visible as verification debt. Under the MVP handoff policy, scoped Phase 04-C1 work may proceed; all outstanding checks remain required for functional/production acceptance and are not marked PASS.
+
+### BUG-0009 — Character library could not delete saved identities
+
+- **Status:** FIXED_UNVERIFIED · **Severity:** P2 · **Phase:** Character library
+- **Reported on:** 2026-11-02
+- **Reported behavior:** User confirmed that the Persian character library allowed renaming and adding identities but offered no way to delete a saved identity.
+- **Fix summary:** Added a distinct «حذف شخصیت» confirmation flow for project identities. The domain operation refuses deletion when scene instances still reference the identity and explains that instances must be removed separately with «حذف از صحنه». Deletion saves through the existing revision-checked project service before replacing local project state; failure leaves the library identity intact. Built-in registry definitions/shared model assets are not editable or deleted by this operation. Missing/repeated IDs are rejected safely.
+- **Regression tests:** `tests/characters.test.mjs` covers successful deletion, model registry preservation, referenced-instance blocking, missing/repeated deletion, unrelated identity/instance preservation, save/reopen persistence, and existing rename/add behavior.
+- **Verification:** `npm run typecheck`, `npm run lint`, `npm test` (43/43), and `npm run build` pass on 2026-11-02. No browser acceptance evidence yet.
+- **Remaining limitation:** Keep this bug open as `FIXED_UNVERIFIED` until the user verifies confirmation, dependency handling, post-save list removal and refresh persistence in the browser.
+
+### BUG-0013 — Studio prop selection immediately activated transform gizmos
+
+- **Status:** FIXED_UNVERIFIED · **Severity:** P2 · **Area:** Studio object editing
+- **Reported behavior:** A single click selected a studio prop and immediately displayed transform controls, interfering with camera navigation.
+- **Fix:** Added separate temporary selection/edit state. A viewport single-click is inert for props; double-click selects and enters Move-first edit mode. The Persian environment panel provides explicit selection and Move, Rotate, Scale, finish actions; numeric fields remain available for a panel-selected prop. Empty-space click and Escape clear prop selection and exit edit mode; selecting another prop exits the former edit mode. Protected props cannot enter edit mode. OrbitControls lock only during gizmo drags and restore on release/unmount. Character viewport selection/edit remains unchanged.
+- **Regression coverage:** `tests/object-edit.test.mjs` covers selection/edit transitions, protected objects, exit behavior, OrbitControls restoration and temporary state exclusion from persisted arrangement data. Existing character and arrangement tests remain in the suite.
+- **Verification:** `npm run typecheck`, `npm run lint`, `npm test` (58/58), `npm run build`, and `git diff --check` pass. Browser mouse, keyboard, touch, selection highlight, camera navigation and drag-cancellation behavior remain unverified.
+
+### BUG-0017 — Empty-space click and Escape did not clear the active prop
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Studio object editing
+- **Reported behavior:** While editing a selected prop, the viewport ignored empty-space misses; Escape only exited gizmo mode and retained selection. Clicks on real room geometry also counted as hits and therefore were not treated as empty space.
+- **Implementation:** Clear the shared temporary selection/edit state on R3F genuine pointer misses and on clicks that hit protected structural room geometry. Escape now clears prop selection, edit mode and inspection state. Editable prop single-click remains inert; double-click switching and character interaction remain unchanged. Gizmo handlers stop propagation. R3F's click-distance threshold prevents orbit/pan drags from becoming misses; zoom does not dispatch clicks.
+- **Regression coverage:** Extended `tests/object-edit.test.mjs` for empty clearing, switching, Escape wiring, protected surfaces, gizmo propagation, R3F movement threshold and panel isolation.
+- **Verification:** Typecheck, lint, all 68 tests and production build pass. Browser mouse/touch interaction remains unverified because no browser surface was available in this session.
+
+### BUG-0018 — Kamyar procedural appearance requires visual review
+
+- **Status:** USER-APPROVED PROTOTYPE · **Severity:** P2 · **Phase:** 04-B3
+- **Evidence:** The user supplied original Kamyar portraits `references/characters/kamyar/kamyar1.jpg`, `kamyar2.jpg`, and `kamyar3.jpg`, plus `references/characters/group/group.png` for art direction. The existing renderer assembled an ellipsoid face, cap/fringe balls, and detached beard ellipsoids; no glasses option existed. The user asks for a recognizable, polished stylized human, not a low-quality primitive placeholder.
+- **Current state:** The user chose stylized procedural characters over photo-to-GLB creation. Kamyar retains stable identity/model/renderer/customization/placement contracts and the nine hair/eight beard variants. On 2026-11-02 the user explicitly approved all four current character prototypes, superseding the earlier appearance rejection. No individual angle checks or GPU/performance results were reported. This records prototype approval, not photorealism or production-model status; GLB remains optional.
+- **Regression coverage:** `tests/characters.test.mjs` checks model registration, supported customization, attachment structure, finite geometry and jaw/hair bounds, plus seat placement and save/reopen. Existing ChatGPT/Claude, model-switching, project and studio regressions remain in the suite.
+- **Verification:** Automated tests cover preset distinctions, legacy ID mapping, invalid preset fallback, visibility, persistence and identity independence. User approval applies to the current prototype appearance only; detailed view coverage and integrated-Radeon performance were not reported. New studio lighting interactions await browser review.
+- **Asset requirement:** No production GLB is required by the current direction. The validated GLB adapter/importer remains an optional future path. Preserve stable model/identity/instance IDs, transforms, placements and customization semantics if a replacement is later selected.
+
+### BUG-0014 — Existing character identity could not change its base model
+
+- **Status:** FIXED_UNVERIFIED · **Severity:** P1 · **Area:** Character library
+- **Reported behavior:** Users could choose a base model only while creating an identity; changing an existing identity required deletion and recreation.
+- **Fix:** Added registry-derived base-model replacement for existing identities with a Persian confirmation dialog. Keeps identity/name and every linked instance/state intact; compatible appearance fields transfer, incompatible custom values are disclosed and replaced by target defaults. The existing revision-checked project save path persists the identity update. The renderer resolves the new model through the unchanged identity reference.
+- **Regression coverage:** `tests/characters.test.mjs` covers ChatGPT→Claude and Claude→Kamyar, preserved IDs/transforms/visibility/anchors, compatible/incompatible appearance, shared instances, unrelated identities, missing targets/sources and reopen persistence. Existing rename/delete/customization/placement tests remain active.
+- **Verification:** `npm run typecheck`, `npm run lint`, `npm test` (61/61), `npm run build`, and `git diff --check` pass. Manual browser confirmation and library/properties/viewport refresh verification remain outstanding. The current registry has no Hamid model, so only registered models are offered.
+
+### BUG-0015 — Studio sign and wall art could not be customized
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Studio decoration; manual acceptance retest failed
+- **Reported behavior:** The user reported that main wall sign customization failed in a 10-test run (8 passed). The sign was exposed under the generic “decorative lights” label, making the editable sign hard to identify in the Environment panel.
+- **Implementation:** The existing renderer/editor/persistence path already supports text, local image upload, colors, lighting, transforms, visibility and restoring defaults. Made the studio prop explicitly discoverable as “wall sign and decorative lights”, exposed image contain/cover fitting, and added regression checks across panel, renderer, asset and save/reopen/reset flows. Stable prop IDs and default design are unchanged.
+- **Regression coverage:** `tests/studio-decoration.test.mjs` verifies panel-to-renderer wiring, sign text/image persistence and restoration alongside frame and camera regressions.
+- **Verification:** Targeted final run: typecheck, lint, 69/69 tests and production build pass. User must retest the complete browser workflow, including sign selection, text/image/colors, save, refresh/reopen and restore default; do not mark resolved until that passes.
+
+### BUG-0016 — Studio editor camera was restricted to front/upper angles
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Editor camera
+- **Implementation:** Enabled orbit across near-top and near-bottom polar limits, pan, zoom, and an editor-only reset action. Production camera data is untouched.
+- **Regression coverage:** `tests/studio-decoration.test.mjs` checks camera bounds, pan, reset behavior wiring and the visible reset action.
+- **Verification:** Typecheck, lint, 66/66 tests and production build pass. Rear/side visibility, safe bounds, reset interaction and production-camera separation still need browser confirmation; no browser surface is available in this session.
+
+### BUG-0019 — Editor workspace required excessive document scrolling
+
+- **Status:** REOPENED — USER REJECTED PREVIOUS LAYOUT; RECOVERY UNVERIFIED · **Severity:** P2 · **Area:** Editor workspace layout
+- **Reported behavior:** Section controls and properties were stacked above the scene viewport, with the timeline below the page; users had to scroll between the scene and controls.
+- **Regression cause:** The first bounded layout put large section editors and selected properties into one narrow scroll column, kept full-height properties cards, and capped the preview width with a height formula. The user rejected the resulting hierarchy and appearance.
+- **Recovery:** Keep the bounded desktop shell and original dark RTL identity, but separate section editing and selected properties into tabs in the left panel. Selecting a character/prop opens properties; navigation opens section controls. The viewport remains centered and the mobile panel is a dismissible drawer. Remove the environment list's nested scrollbar and tighten the placeholder timeline. Project and scene-state wiring remains unchanged.
+- **Regression coverage:** `tests/workspace-layout.test.mjs` now exercises section/selection tab transitions, collapse, reopening, mobile dismissal and retention of feature panels.
+- **Verification:** The previous 74/74 pass applied to the rejected layout and is not visual acceptance. Current typecheck, lint, 80/80 tests and production build pass after recovery and GLB pipeline work. Browser viewport fit, scrolling, drawer, and editing interactions remain pending.
+- **Deferred:** Drag resizing of panels; current stable layout supports adaptive panel dimensions and collapsing the inspector.
+
 1. Reproduce before labeling a new-project issue confirmed.
 2. Fix root cause; add a targeted regression test.
 3. Run relevant unit/integration checks and browser tests for interactive changes.
 4. `FIXED_UNVERIFIED` is **not** `VERIFIED`.
 5. Update `PROGRESS_CHECKLIST.md` only after the corresponding acceptance evidence exists.
 6. Never erase bug history; mark closed with evidence.
+
+### BUG-0020 — Character library had no project-local GLB import
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Character library and project asset storage
+- **Reported gap:** The GLB adapter could only resolve code-registered bundled paths; users could not import, preview, configure, persist, reuse, or safely remove a model from the editor.
+- **Implementation:** Added a Persian import dialog with isolated 3D preview/configuration, GLB content and size checks, project-local asset storage, model metadata in the optional asset-manifest field, dynamic active-project registry, adapter rendering, and dependency-checked model deletion. Duplicate projects copy imported files and receive project-scoped URLs. No user project data was used as a test fixture.
+- **Regression coverage:** `tests/character-import.test.mjs` checks valid/malformed model handling, project storage/reopen, independent IDs and instances, duplication and in-use deletion.
+- **Verification:** Typecheck, lint, 84/84 tests, production build and `git diff --check` pass. Browser interaction, actual authored GLB rendering, fit, responsive usability, console and integrated-GPU performance remain unverified; no production model asset is bundled.
+
+### BUG-0021 — Hamid character model was not registered
+
+- **Status:** VERIFIED — PROTOTYPE APPROVED · **Severity:** P2 · **Area:** Character library and renderer
+- **Reported gap:** The built-in registry and renderer did not include Hamid as an independently reusable character.
+- **Implementation:** Added stable model ID `character-model:hamid`, a dedicated procedural renderer/head shape, a continuous fuller T-shirt torso profile, model-specific placement metadata and supported identity appearance fields. Existing schema v5 and character IDs remain unchanged. This is a stylized prototype, not a production likeness or rigged asset.
+- **Regression coverage:** `tests/characters.test.mjs` covers registry and renderer capability metadata, distinct geometry, customization independence, multiple instances, guest-seat assignment, transforms, project reopen and duplication.
+- **Verification:** Automated registration, appearance, placement and persistence coverage passed (`npm test` 85/85 at implementation). On 2026-11-02 the user explicitly approved the corrected Hamid appearance as part of approval for all four prototypes; no individual visual test results were supplied. Detailed studio clearance and integrated-Radeon behavior are not implied.
+
+### BUG-0022 — Studio 01 lacked a right enclosure wall and project lighting controls
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Studio 01 environment
+- **Reported gap:** The room renderer had no right-side wall/ceiling, and studio lighting was fixed in code rather than editable and saved in the project.
+- **Implementation:** Added a fitted right wall/ceiling with editor-only wall visibility, project-level bounded key/fill/accent controls, warm/neutral/cool presets, practical-light toggle and reset. Existing arrangements receive defaults; camera anchors, prop IDs/transforms and laptop media data are preserved.
+- **Regression coverage:** `tests/arrangement.test.mjs` checks defaults, limits, reset, persistence/reopen and project duplication. `tests/environment.test.mjs` checks the room/laptop/light-control wiring; the existing environment/media tests remain active.
+- **Verification:** `npm run typecheck`, `npm run lint`, `npm test` (87/87), `npm run build`, and `git diff --check` pass. No browser surface was available; light appearance, wall joins, camera orbit, laptop detail alignment and integrated-Radeon responsiveness remain pending.
+
+### BUG-0023 — Studio viewport was too small and had no viewport-only fullscreen mode
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Editor viewport and workspace layout
+- **Reported behavior:** The usable 3D viewport occupied too little of the existing editor workspace, and users could not expand only the scene preview to fullscreen.
+- **Implementation:** Reduced surrounding workspace padding and inspector width within the existing layout. Added a compact viewport-toolbar control that uses the browser Fullscreen API on the viewport section only; its state follows `fullscreenchange`, Escape exits through the browser, and unsupported/denied requests show Persian feedback. The 16:9 frame remains contained in fullscreen CSS; the existing R3F scene stays mounted and its canvas resizes with the viewport. No project or camera state is changed.
+- **Regression coverage:** `tests/viewport-fullscreen.test.mjs` covers enter/exit, unsupported and denied APIs, state/event wiring, scene mount stability, and fullscreen frame/layout rules.
+- **Verification:** `npm run typecheck`, `npm run lint`, `npm test` (91/91), `npm run build`, and `git diff --check` pass. Browser inventory exposed no browser or app surface; resizing, layout restoration, camera/selection retention, responsive behavior, browser errors and visual usability remain unverified.
+
+### Phase 04-C1 — Manual character preview browser verification debt
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Character animation preview
+- **Reported behavior:** No new defect reported. This record tracks the acceptance evidence still required for the newly implemented preview foundation.
+- **Implementation:** Added explicit-time deterministic preview evaluation and per-instance transient playback for supported local head/arm pivots. Preview state is not project data. Procedural channel metadata is capability-gated; imported GLB clip/skeleton inspection does not advertise runtime preview support.
+- **Interrupted-check recovery:** The return-to-idle endpoint multiplied a negative arm offset by zero and produced IEEE `-0`, failing exact neutral-pose equality. The evaluator now returns the canonical zero pose at completion. ESLint also identified two synchronous state resets in effects for project/model changes; preview state is now keyed by project/model and derived without cascading effect updates.
+- **Automated coverage:** `tests/character-animation.test.mjs` checks supported/unsupported actions, deterministic arbitrary-time evaluation/seeking, bounds, return-to-idle, independent outputs, persistence separation and cleanup wiring. Existing character/project/Studio regression tests remain active.
+- **Verification:** Typecheck, lint, 96/96 tests, production build and `git diff --check` pass. No browser surface was available. Verify actual head/arm motion, reset/stop, instance independence, transform preservation, panel accessibility and demand rendering in browser; keep C1 unaccepted until reviewed.
+- **Remaining limitation:** GLB clips, facial expressions, gaze, lip sync, automatic reactions and timeline scheduling have no runtime adapter in C1.
+
+### Phase 04-C2 — Expressive preview browser verification debt
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Character animation preview
+- **Reported gap:** C1 offered only three simple head/arm actions, with limited timing control and no expressive variety.
+- **Implementation:** Added capability-gated emotional/gesture previews, bounded speed/intensity/transition/return/easing configuration, transient ChatGPT face-display presets, and deterministic per-channel priority composition. No saved schema changes; non-ChatGPT characters do not claim facial animation, and GLB clips remain unsupported at runtime.
+- **Regression coverage:** `tests/character-animation.test.mjs` covers preset distinction, capability availability, timing bounds/determinism, blending priorities, return/reset semantics and persistence separation; existing character/project tests remain active.
+- **Verification:** Typecheck, lint, 99/99 tests, production build and diff check pass. Browser verification was unavailable. Confirm natural movement, expression visibility, control responsiveness, instance independence, stop/reset, panel fit and rendering behavior before acceptance.
+- **Remaining limitation:** One coordinated preset plays at a time in the UI; there is no automated behavior scheduler, facial rig for human/Claude models, GLB animation runtime, audio, gaze or timeline system.
+
+### Laptop close-up and prop selection visual refinement
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Laptop display and object editing UX
+- **Reported behavior:** Laptop close-up framing was awkward; there was no fullscreen view of the current display; selected props could show a wireframe outside active editing.
+- **Implementation:** The close-up camera now uses a front/overhead screen-centered pose and restores the full prior editor camera state. Added a project-local image/video dialog with browser fullscreen and a modal fallback. Prop bounds are shown only during explicit edit mode; single viewport clicks remain inert and double-click continues to enter edit mode.
+- **Regression coverage:** `tests/laptop-viewer.test.mjs` covers camera pose/state, viewer open/fullscreen/close state, media wiring and camera restoration. `tests/object-edit.test.mjs` asserts selection alone does not display bounds and retains double-click/empty-space behavior. Existing display persistence/media tests remain active.
+- **Verification:** Typecheck, lint, 102/102 tests, production build and `git diff --check` pass. No browser/app surface was available; visual framing, image/video readability, fullscreen Escape, responsive behavior and camera restoration remain unverified.
+
+### BUG-0024 — C2 emotional expressions and energetic timing failed manual review
+
+- **Status:** OPEN · **Severity:** P2 · **Area:** Phase 04-C2 character preview
+- **Evidence:** User reported 9 PASS / 3 FAIL manual checks. Nine pass cases were not itemized. Confirmed failures: happy/sad/angry/surprised expressions are not clearly distinguishable; supported eyes/mouths/eyebrows do not visibly change as expected; energetic reactions are insufficiently faster and more expressive than calm reactions. The historical C2 automated result of 99/99 remains unchanged.
+- **Disposition:** Keep C2 unaccepted. The user explicitly instructed that these facial animation defects not be silently repaired during C3. C3's ChatGPT eye-direction offset is a separate gaze channel and does not close the expression failures.
+- **Verification required:** Manual browser review of the three failures after a separately authorized C2 fix. No outcome is inferred for the nine passing checks.
+
+### BUG-0025 — Phase 04-C3 gaze behavior awaits browser verification
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Character gaze and attention
+- **Implementation:** Added timestamp-driven, bounded gaze evaluation; per-instance temporary editor state; character-head, prop-bound, laptop-display, active-camera, world-point, local-direction and manual attention targets; ChatGPT iris offsets; safe fallback for unavailable targets. Gaze does not alter project transforms, camera state, project schema, or C2 expression channels.
+- **Regression coverage:** `tests/character-gaze.test.mjs` covers declared capabilities, parent transforms, quaternion/world-to-local targeting, limits and unreachable rear targets, arbitrary-time determinism, attention return, missing targets, independent eye support and transient persistence. Existing character, project, studio and C2 tests remain active.
+- **Automated verification (2026-11-02):** Typecheck, lint, 108/108 tests, production build and `git diff --check` pass. No browser/app surface was available.
+- **Verification required:** Browser review of target framing, transitions, reset, simultaneous characters, hidden/deleted targets, selected prop/laptop display, camera independence, UI clarity and GPU responsiveness. C2's separate BUG-0024 remains open.
+
+### BUG-0026 — Laptop presentation needs clean editor-helper visibility and device framing
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Laptop preview and viewport presentation
+- **Reported behavior:** Laptop preview should read as viewing the physical laptop, while gizmos, selection bounds and editor helpers should not pollute presentation.
+- **Implementation:** Added manual helper visibility and temporary automatic hiding during viewport fullscreen and both laptop viewer modes without clearing selection or changing transforms. Added device-framed fullscreen presentation using the real 3D laptop and display surface; camera inspection state is restored on exit. Widened the inspection camera framing and aligned camera up to the transformed screen. Retained the content-only viewer as a separate secondary option.
+- **Regression coverage:** `tests/laptop-viewer.test.mjs` verifies helper gates, device presentation wiring, previous inspection restoration, camera alignment, and real laptop display rendering. Existing object edit and media tests remain in the suite.
+- **Verification:** Typecheck, lint, 109/109 tests, production build and `git diff --check` pass. No browser/app surface was available. Browser review is still required for actual framing, occlusion, responsive behavior, fullscreen/Escape, helper restore, media readability, and preserved camera/selection state.

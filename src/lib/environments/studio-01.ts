@@ -1,4 +1,5 @@
 import type { EnvironmentDefinition, EnvironmentPropInstance, PropDefinition, TransformConfig, Vec3 } from "./environment-registry.ts";
+import { studioChairVisualSpec } from "./studio-visual-spec.ts";
 
 export const STUDIO_01_ID = "environment:studio-01";
 
@@ -11,7 +12,7 @@ const props: PropDefinition[] = [
   { id: "prop:laptop", displayName: "لپ‌تاپ", rendererKey: "laptop" },
   { id: "prop:microphone", displayName: "میکروفون", rendererKey: "microphone" },
   { id: "prop:side-table", displayName: "میز کنار مهمان", rendererKey: "side-table" },
-  { id: "prop:practical-lights", displayName: "چراغ‌های دکوراتیو", rendererKey: "practical-lights" },
+  { id: "prop:practical-lights", displayName: "تابلو دیواری و چراغ‌های دکوراتیو", rendererKey: "practical-lights" },
   { id: "prop:plant", displayName: "گیاه", rendererKey: "plant" },
   { id: "prop:rug", displayName: "فرش", rendererKey: "rug" },
   { id: "prop:wall-art", displayName: "دکور دیوار", rendererKey: "wall-art" },
@@ -71,8 +72,11 @@ export const STUDIO_01: EnvironmentDefinition = {
     "studio-vertical": { framing: "studio", subjectAnchorIds: [], aspectRatios: ["9:16"] },
   },
   characterAnchors: [
-    { id: "studio-01:host-seat", role: "host", position: [-1.4, 0, -1.35], facingRadians: 0, clearanceRadius: 0.56 },
-    { id: "studio-01:cohost-seat", role: "co-host", position: [1.4, 0, -1.35], facingRadians: 0, clearanceRadius: 0.56 },
-    { id: "studio-01:guest-seat", role: "guest", position: [3.9, 0, 0.5], facingRadians: -1.12, clearanceRadius: 0.56 },
+    { id: "studio-01:host-seat", kind: "seat", displayName: "\u0635\u0646\u062f\u0644\u06cc \u0645\u06cc\u0632\u0628\u0627\u0646", role: "host", position: [-1.4, 0, -1.35], facingRadians: 0, clearanceRadius: 0.56, surfaceOffsetY: studioChairVisualSpec.seatSurfaceY, seatSurfaceOffsetY: studioChairVisualSpec.seatSurfaceY },
+    { id: "studio-01:cohost-seat", kind: "seat", displayName: "\u0635\u0646\u062f\u0644\u06cc \u0647\u0645\u200c\u0645\u06cc\u0632\u0628\u0627\u0646", role: "co-host", position: [1.4, 0, -1.35], facingRadians: 0, clearanceRadius: 0.56, surfaceOffsetY: studioChairVisualSpec.seatSurfaceY, seatSurfaceOffsetY: studioChairVisualSpec.seatSurfaceY },
+    { id: "studio-01:guest-seat", kind: "seat", displayName: "\u0635\u0646\u062f\u0644\u06cc \u0645\u0647\u0645\u0627\u0646", role: "guest", position: [3.9, 0, 0.5], facingRadians: -1.12, clearanceRadius: 0.56, surfaceOffsetY: studioChairVisualSpec.seatSurfaceY, seatSurfaceOffsetY: studioChairVisualSpec.seatSurfaceY },
+    { id: "studio-01:desk-top-left", kind: "tabletop", displayName: "\u0645\u06cc\u0632 \u067e\u0627\u062f\u06a9\u0633\u062a \u00b7 \u0686\u067e", position: [-0.55, 0, -0.58], facingRadians: 0, clearanceRadius: 0.34, surfaceOffsetY: 1.2, maxCharacterScale: 0.62 },
+    { id: "studio-01:desk-top-right", kind: "tabletop", displayName: "\u0645\u06cc\u0632 \u067e\u0627\u062f\u06a9\u0633\u062a \u00b7 \u0631\u0627\u0633\u062a", position: [0.55, 0, -0.58], facingRadians: 0, clearanceRadius: 0.34, surfaceOffsetY: 1.2, maxCharacterScale: 0.62 },
+    { id: "studio-01:rug-platform", kind: "platform", displayName: "\u0633\u06a9\u0648\u06cc \u0641\u0631\u0634", position: [0, 0, 1.12], facingRadians: Math.PI, clearanceRadius: 0.5, surfaceOffsetY: 0.082 },
   ],
 };

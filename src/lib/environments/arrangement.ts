@@ -1,17 +1,33 @@
 import { z } from "zod";
 import { STUDIO_01, STUDIO_01_ID } from "./studio-01.ts";
 import type { EnvironmentPropInstance, TransformConfig, Vec3 } from "./environment-registry.ts";
+import { defaultFrameCustomization, defaultSignCustomization, frameCustomizationSchema, signCustomizationSchema, studioDecorationSchema, type FrameCustomization, type SignCustomization } from "./studio-decoration.ts";
 
 const vector = z.tuple([z.number().finite().min(-100).max(100), z.number().finite().min(-100).max(100), z.number().finite().min(-100).max(100)]);
 const scaleVector = z.tuple([z.number().finite().min(0.05).max(20), z.number().finite().min(0.05).max(20), z.number().finite().min(0.05).max(20)]);
+export const studioLightingSchema = z.object({
+  keyIntensity: z.number().finite().min(0).max(3),
+  fillIntensity: z.number().finite().min(0).max(2),
+  accentIntensity: z.number().finite().min(0).max(1.5),
+  temperature: z.enum(["warm", "neutral", "cool"]),
+  practicalsEnabled: z.boolean(),
+}).strict();
+export const defaultStudioLighting = {
+  keyIntensity: 1.65,
+  fillIntensity: 0.55,
+  accentIntensity: 0.34,
+  temperature: "warm" as const,
+  practicalsEnabled: true,
+};
 export const propInstanceSchema = z.object({
   id: z.string().min(1).max(100), definitionId: z.string().min(1).max(100),
   transform: z.object({ position: vector, rotation: vector, scale: scaleVector }).strict(),
-  visible: z.boolean(),
+  visible: z.boolean(), decoration: studioDecorationSchema.optional(),
 }).strict();
 export const arrangementSchema = z.object({
   environmentId: z.literal(STUDIO_01_ID),
   props: z.array(propInstanceSchema).max(200),
+  lighting: studioLightingSchema.default(() => ({ ...defaultStudioLighting })),
 }).strict().superRefine((arrangement, context) => {
   const definitions = new Map(STUDIO_01.propDefinitions.map((item) => [item.id, item]));
   const ids = new Set<string>();
@@ -24,6 +40,8 @@ export const arrangementSchema = z.object({
       const initial = STUDIO_01.defaultProps.find((item) => item.id === prop.id);
       if (!initial || JSON.stringify(prop) !== JSON.stringify(initial)) context.addIssue({ code: "custom", message: "ساختار اتاق قابل تغییر نیست." });
     }
+    if (prop.decoration?.sign && prop.definitionId !== "prop:practical-lights") context.addIssue({ code: "custom", message: "Sign customization belongs to the studio sign prop." });
+    if (prop.decoration?.frames && prop.definitionId !== "prop:wall-art") context.addIssue({ code: "custom", message: "Frame artwork belongs to the wall-art prop." });
   }
   for (const initial of STUDIO_01.defaultProps.filter((item) => STUDIO_01.propDefinitions.find((definition) => definition.id === item.definitionId)?.editable === false)) {
     if (!ids.has(initial.id)) context.addIssue({ code: "custom", message: "ساختار اتاق باید حفظ شود." });
@@ -42,9 +60,17 @@ export function propDisplayLabel(arrangement: EnvironmentArrangement, instance: 
   return siblings.length > 1 ? `${name} · ${siblings.findIndex((item) => item.id === instance.id) + 1}` : name;
 }
 export function defaultArrangement(): EnvironmentArrangement {
-  return { environmentId: STUDIO_01_ID, props: STUDIO_01.defaultProps.map((item) => ({ ...item, transform: {
+  return { environmentId: STUDIO_01_ID, lighting: { ...defaultStudioLighting }, props: STUDIO_01.defaultProps.map((item) => ({ ...item, transform: {
     position: [...item.transform.position], rotation: [...item.transform.rotation], scale: [...item.transform.scale],
   } })) };
+}
+
+export function updateStudioLighting(arrangement: EnvironmentArrangement, change: Partial<EnvironmentArrangement["lighting"]>): EnvironmentArrangement {
+  return arrangementSchema.parse({ ...arrangement, lighting: studioLightingSchema.parse({ ...arrangement.lighting, ...change }) });
+}
+
+export function resetStudioLighting(arrangement: EnvironmentArrangement): EnvironmentArrangement {
+  return updateStudioLighting(arrangement, defaultStudioLighting);
 }
 
 export function updateProp(arrangement: EnvironmentArrangement, id: string, change: Partial<Pick<EnvironmentPropInstance, "visible" | "transform">>): EnvironmentArrangement {
@@ -53,6 +79,39 @@ export function updateProp(arrangement: EnvironmentArrangement, id: string, chan
   if (STUDIO_01.propDefinitions.find((item) => item.id === prop.definitionId)?.editable === false) throw new Error("این بخش از اتاق قابل ویرایش نیست.");
   const next = { ...arrangement, props: arrangement.props.map((item) => item.id === id ? { ...item, ...change } : item) };
   return arrangementSchema.parse(next);
+}
+
+export function updateSignCustomization(arrangement: EnvironmentArrangement, id: string, change: Partial<SignCustomization>): EnvironmentArrangement {
+  const current = arrangement.props.find((item) => item.id === id);
+  if (!current || current.definitionId !== "prop:practical-lights") throw new Error("Studio sign prop was not found.");
+  const sign = signCustomizationSchema.parse({ ...defaultSignCustomization, ...current.decoration?.sign, ...change });
+  return arrangementSchema.parse({ ...arrangement, props: arrangement.props.map((item) => item.id === id
+    ? { ...item, decoration: { ...item.decoration, sign } } : item) });
+}
+
+export function updateFrameCustomization(arrangement: EnvironmentArrangement, id: string, frameIndex: 0 | 1, change: Partial<FrameCustomization>): EnvironmentArrangement {
+  const current = arrangement.props.find((item) => item.id === id);
+  if (!current || current.definitionId !== "prop:wall-art") throw new Error("Wall picture-frame prop was not found.");
+  const frames: [FrameCustomization, FrameCustomization] = [
+    frameCustomizationSchema.parse({ ...defaultFrameCustomization(), ...current.decoration?.frames?.[0] }),
+    frameCustomizationSchema.parse({ ...defaultFrameCustomization(), ...current.decoration?.frames?.[1] }),
+  ];
+  frames[frameIndex] = frameCustomizationSchema.parse({ ...frames[frameIndex], ...change });
+  return arrangementSchema.parse({ ...arrangement, props: arrangement.props.map((item) => item.id === id
+    ? { ...item, decoration: { ...item.decoration, frames } } : item) });
+}
+
+export function restoreSignDesign(arrangement: EnvironmentArrangement, id: string): EnvironmentArrangement {
+  const current = arrangement.props.find((item) => item.id === id);
+  if (!current || current.definitionId !== "prop:practical-lights") throw new Error("Studio sign prop was not found.");
+  const decoration = { ...current.decoration };
+  delete decoration.sign;
+  return arrangementSchema.parse({ ...arrangement, props: arrangement.props.map((item) => item.id === id
+    ? { ...item, decoration: Object.keys(decoration).length ? decoration : undefined } : item) });
+}
+
+export function restoreFrameArtwork(arrangement: EnvironmentArrangement, id: string, frameIndex: 0 | 1): EnvironmentArrangement {
+  return updateFrameCustomization(arrangement, id, frameIndex, { ...defaultFrameCustomization(), imageAssetId: undefined });
 }
 
 export function removeProp(arrangement: EnvironmentArrangement, id: string): EnvironmentArrangement {

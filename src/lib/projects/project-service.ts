@@ -11,6 +11,8 @@ import type { EnvironmentArrangement } from "../environments/arrangement.ts";
 import type { z } from "zod";
 import { displayAssignmentsSchema } from "./project-schema.ts";
 import type { CharacterProjectData } from "../characters/character-schema.ts";
+import { createImportedCharacterModel } from "../characters/character-registry.ts";
+import { validateCharacterGlbUpload, type CharacterGlbMetadata } from "../characters/character-glb.ts";
 
 export class ProjectError extends Error {
   readonly code: string;
@@ -100,7 +102,7 @@ export class ProjectService {
     let value: unknown;
     try { value = JSON.parse(content); }
     catch { throw new ProjectError("CORRUPT", "فایل پروژه آسیب دیده است.", 422); }
-    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4) {
+    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5) {
       throw new ProjectError("UNSUPPORTED_VERSION", "نسخهٔ این پروژه پشتیبانی نمی‌شود؛ فایل اصلی تغییر نکرده است.", 422);
     }
     const parsed = migrateProject(value);
@@ -176,13 +178,63 @@ export class ProjectService {
         JSON.stringify(current.displayAssignments) === JSON.stringify(displays) &&
         JSON.stringify(current.characterIdentities) === JSON.stringify(identities) &&
         JSON.stringify(current.characterInstances) === JSON.stringify(instances) &&
-        JSON.stringify(current.characterStates) === JSON.stringify(states) && raw.schemaVersion === 4) return current;
+        JSON.stringify(current.characterStates) === JSON.stringify(states) && raw.schemaVersion === 5) return current;
       const updated = projectSchema.parse({ ...current, title, environmentArrangement: arrangement, displayAssignments: displays,
         characterIdentities: identities, characterInstances: instances, characterStates: states,
         revision: current.revision + 1, updatedAt: new Date().toISOString() });
       const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
       await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
       await this.atomicWrite(this.projectFile(id), updated);
+      return updated;
+    });
+  }
+
+  async importCharacterModel(id: string, input: { name: string; heightMeters: number; rotationRadians: number; seatingOffsetY: number; inspection: CharacterGlbMetadata }, bytes: Uint8Array): Promise<ProjectDocument> {
+    id = projectId(id);
+    if (!bytes.length || bytes.length > 64 * 1024 * 1024) throw new ProjectError("INVALID_MODEL", "حجم فایل مدل باید کمتر از ۶۴ مگابایت باشد.", 413);
+    try {
+      const copy = new Uint8Array(bytes);
+      validateCharacterGlbUpload(copy.buffer);
+    } catch { throw new ProjectError("INVALID_MODEL", "فایل GLB معتبر نیست یا بافت‌ها و داده‌های آن درون فایل قرار ندارند.", 415); }
+    return this.lock(id, async () => {
+      const current = await this.readProject(id);
+      const assetId = randomUUID();
+      let definition;
+      try {
+        definition = createImportedCharacterModel({ assetId, projectId: id, displayName: input.name.trim(), heightMeters: input.heightMeters,
+          rotationRadians: input.rotationRadians, seatingOffsetY: input.seatingOffsetY, inspection: input.inspection });
+      } catch { throw new ProjectError("INVALID_MODEL_CONFIG", "تنظیمات مدل یا اطلاعات خوانده‌شدهٔ آن معتبر نیست.", 422); }
+      const relativePath = `assets/${assetDirectories["character-model"]}/${assetId}.glb`;
+      const target = join(this.projectDir(id), ...relativePath.split("/"));
+      await mkdir(dirname(target), { recursive: true });
+      const asset: AssetRecord = { id: assetId, kind: "character-model", displayName: definition.displayName, mediaType: "model/gltf-binary", relativePath,
+        fileSizeBytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), origin: "imported", characterModel: definition };
+      const updated = projectSchema.parse({ ...current, assetManifest: { ...current.assetManifest, [assetId]: asset }, revision: current.revision + 1, updatedAt: new Date().toISOString() });
+      const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
+      await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
+      const handle = await open(target, "wx", 0o600);
+      try { await handle.writeFile(bytes); await handle.sync(); } catch (error) { await handle.close(); await unlink(target).catch(() => undefined); throw error; }
+      await handle.close();
+      try { await this.atomicWrite(this.projectFile(id), updated); } catch (error) { await unlink(target).catch(() => undefined); throw error; }
+      return updated;
+    });
+  }
+
+  async removeCharacterModel(id: string, assetId: string): Promise<ProjectDocument> {
+    id = projectId(id);
+    if (!/^[0-9a-f-]{36}$/.test(assetId)) throw new ProjectError("NOT_FOUND", "مدل پیدا نشد.", 404);
+    return this.lock(id, async () => {
+      const current = await this.readProject(id);
+      const asset = current.assetManifest[assetId];
+      if (!asset || asset.kind !== "character-model" || !asset.characterModel) throw new ProjectError("NOT_FOUND", "مدل واردشده پیدا نشد.", 404);
+      if (Object.values(current.characterIdentities).some((identity) => identity.modelId === asset.characterModel!.id)) throw new ProjectError("MODEL_IN_USE", "این مدل در یک یا چند هویت استفاده می‌شود؛ ابتدا هویت‌ها را به مدل دیگری تغییر دهید.", 409);
+      const path = await this.resolveAssetFile(id, asset);
+      const assetManifest = { ...current.assetManifest }; delete assetManifest[assetId];
+      const updated = projectSchema.parse({ ...current, assetManifest, revision: current.revision + 1, updatedAt: new Date().toISOString() });
+      const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
+      await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
+      await this.atomicWrite(this.projectFile(id), updated);
+      await unlink(path);
       return updated;
     });
   }
@@ -236,6 +288,9 @@ export class ProjectService {
       const cloned = projectSchema.parse({
         ...structuredClone(source), id: duplicate.id, title: duplicate.title, createdAt: duplicate.createdAt,
         updatedAt: duplicate.updatedAt, revision: 0,
+        assetManifest: Object.fromEntries(Object.entries(source.assetManifest).map(([assetId, asset]) => [assetId, asset.characterModel ? {
+          ...asset, characterModel: { ...asset.characterModel, glb: { ...asset.characterModel.glb!, url: `/api/projects/${duplicate.id}/character-assets/${assetId}` } },
+        } : asset])),
       });
       await this.atomicWrite(this.projectFile(duplicate.id), cloned);
       return cloned;

@@ -2,7 +2,7 @@ type TopToolbarProps = { onHelp: () => void; projectTitle?: string };
 
 export function TopToolbar({ onHelp, projectTitle }: TopToolbarProps) {
   return (
-    <header className="flex h-[72px] items-center justify-between gap-4 border-b border-line bg-[#101722ed] px-7 max-[650px]:h-16 max-[650px]:px-3.5">
+    <header className="flex h-[72px] flex-none items-center justify-between gap-4 border-b border-line bg-[#101722ed] px-7 max-[650px]:h-16 max-[650px]:px-3.5">
       <div className="flex items-center gap-[18px] max-[650px]:gap-2.5">
         <div className="grid h-[37px] w-[37px] rotate-[-13deg] place-items-center rounded-[11px] border border-[#6af4df] shadow-[0_0_20px_#36d7c326]" aria-hidden="true"><span className="h-[15px] w-[15px] rounded border-[3px] border-accent" /></div>
         <div className="flex flex-col leading-[1.25]">

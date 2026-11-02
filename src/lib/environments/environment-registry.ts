@@ -21,12 +21,22 @@ export type EnvironmentPropInstance = {
   visible: boolean;
 };
 
+export type CharacterPlacementKind = "seat" | "tabletop" | "platform";
+
 export type CharacterAnchor = {
   id: string;
-  role: "host" | "co-host" | "guest";
+  kind?: CharacterPlacementKind;
+  displayName?: string;
+  role?: "host" | "co-host" | "guest";
   position: Vec3;
   facingRadians: number; // yaw around +Y, zero faces +Z
   clearanceRadius: number;
+  /** Height above anchor.position[1] of the chair's top surface, when this is a seated anchor. */
+  seatSurfaceOffsetY?: number;
+  /** Generic support height for seats, tabletops, and platforms. Legacy seat anchors may use seatSurfaceOffsetY. */
+  surfaceOffsetY?: number;
+  /** Maximum supported model scale on compact surfaces such as tabletops. */
+  maxCharacterScale?: number;
 };
 
 export type CameraAnchorMetadata = {
@@ -69,9 +79,18 @@ export function createEnvironmentRegistry(definitions: readonly EnvironmentDefin
     for (const anchor of environment.characterAnchors) {
       if (anchorIds.has(anchor.id)) throw new Error(`Duplicate character anchor ID: ${anchor.id}`);
       anchorIds.add(anchor.id);
-      if (![...anchor.position, anchor.facingRadians, anchor.clearanceRadius].every(Number.isFinite) || anchor.clearanceRadius <= 0) {
+      const kind = anchor.kind ?? "seat";
+      const surfaceOffset = anchor.surfaceOffsetY ?? anchor.seatSurfaceOffsetY;
+      if (![...anchor.position, anchor.facingRadians, anchor.clearanceRadius,
+        ...(surfaceOffset === undefined ? [] : [surfaceOffset]),
+        ...(anchor.maxCharacterScale === undefined ? [] : [anchor.maxCharacterScale])].every(Number.isFinite)
+        || !["seat", "tabletop", "platform"].includes(kind)
+        || (anchor.role !== undefined && !["host", "co-host", "guest"].includes(anchor.role))
+        || anchor.clearanceRadius <= 0 || (surfaceOffset !== undefined && surfaceOffset < 0)
+        || (anchor.maxCharacterScale !== undefined && anchor.maxCharacterScale <= 0)) {
         throw new Error(`Invalid character anchor: ${anchor.id}`);
       }
+      if (kind !== "seat" && surfaceOffset === undefined) throw new Error(`Invalid character anchor: ${anchor.id}`);
     }
     for (const [id, camera] of Object.entries(environment.cameraAnchors)) {
       if (!productionCameraSchema.safeParse(camera).success) throw new Error(`Invalid camera anchor: ${id}`);
