@@ -28,7 +28,13 @@ export function applyCharacterActionPose(
     ...defaultGazeCapability, maxPitch: 0.5, maxYaw: 0.85, maxRoll: 0.25,
   });
   apply("head-pivot", headRotation);
+  const zero: [number, number, number] = [0, 0, 0];
+  apply("neck-pivot", pose.neckRotation ?? zero);
+  const torso = pose.torsoRotation ?? zero;
+  apply("torso-pivot", [torso[0], torso[1] + (capability?.torso ? gazePose.torsoYaw : 0), torso[2]]);
   apply("left-arm-pivot", pose.leftArmRotation);
   apply("right-arm-pivot", pose.rightArmRotation);
-  if (capability?.torso) apply("torso-pivot", [0, gazePose.torsoYaw, 0]);
+  apply("left-elbow-pivot", pose.leftElbowRotation ?? zero); apply("right-elbow-pivot", pose.rightElbowRotation ?? zero);
+  apply("left-wrist-pivot", pose.leftWristRotation ?? zero); apply("right-wrist-pivot", pose.rightWristRotation ?? zero);
+  apply("left-hand-pivot", pose.leftHandRotation ?? zero); apply("right-hand-pivot", pose.rightHandRotation ?? zero);
 }

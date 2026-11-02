@@ -32,6 +32,7 @@ export function evaluateSceneCharacterActions(
   fps: number,
   capabilitiesByInstance: Readonly<Record<string, readonly CharacterAnimationCapability[]>>,
   gazeCapableInstances: ReadonlySet<string> = new Set(),
+  jointsByInstance: Readonly<Record<string, readonly string[]>> = {},
 ): Record<string, EvaluatedCharacterActions> {
   const frame = Number.isSafeInteger(localFrame) ? Math.max(0, Math.min(scene.durationFrames, localFrame)) : 0;
   const safeFps = Number.isFinite(fps) && fps > 0 ? fps : 30;
@@ -50,7 +51,7 @@ export function evaluateSceneCharacterActions(
 
   for (const event of candidates) {
     const capabilities = capabilitiesByInstance[event.characterInstanceId] ?? defaultCapabilities;
-    const target = result[event.characterInstanceId] ??= { poseActive: false, pose: { headRotation: [0, 0, 0], leftArmRotation: [0, 0, 0], rightArmRotation: [0, 0, 0] }, expressionWeight: 0 };
+    const target = result[event.characterInstanceId] ??= { poseActive: false, pose: { headRotation: [0, 0, 0], neckRotation: [0, 0, 0], torsoRotation: [0, 0, 0], leftArmRotation: [0, 0, 0], rightArmRotation: [0, 0, 0], leftElbowRotation: [0, 0, 0], rightElbowRotation: [0, 0, 0], leftWristRotation: [0, 0, 0], rightWristRotation: [0, 0, 0], leftHandRotation: [0, 0, 0], rightHandRotation: [0, 0, 0] }, expressionWeight: 0 };
     if (gazeActions.has(event.action)) {
       if (!gazeCapableInstances.has(event.characterInstanceId) || target.gaze) continue;
       const gaze: GazePreview = {
@@ -68,15 +69,16 @@ export function evaluateSceneCharacterActions(
     }
 
     const action = event.action as CharacterPreviewActionId;
-    if (!isPreviewActionSupported(action, capabilities)) continue;
+    const joints = jointsByInstance[event.characterInstanceId] ?? [];
+    if (!isPreviewActionSupported(action, capabilities, joints)) continue;
     target.poseActive = true;
     const sourceTimeSeconds = (frame - event.startFrame) / safeFps;
     const durationSeconds = event.durationFrames / safeFps;
     const settings = { intensity: event.intensity, speed: event.speed };
-    const pose = evaluateCharacterPreviewPose({ actionId: action, sourceTimeSeconds, durationSeconds, capabilities, settings });
+    const pose = evaluateCharacterPreviewPose({ actionId: action, sourceTimeSeconds, durationSeconds, capabilities, attachmentPoints: joints, settings });
     const channels = action === "return-idle"
-      ? ["headRotation", "leftArmRotation", "rightArmRotation"] as const
-      : getPreviewActionChannels(action).flatMap((channel) => channel === "head-rotation" ? ["headRotation" as const] : channel === "arm-gesture" ? ["leftArmRotation" as const, "rightArmRotation" as const] : []);
+      ? Object.keys(target.pose) as (keyof PreviewPose)[]
+      : getPreviewActionChannels(action).flatMap((channel) => channel === "head-rotation" ? ["headRotation" as const, "neckRotation" as const, "torsoRotation" as const] : channel === "arm-gesture" ? ["leftArmRotation" as const, "rightArmRotation" as const, "leftElbowRotation" as const, "rightElbowRotation" as const, "leftWristRotation" as const, "rightWristRotation" as const, "leftHandRotation" as const, "rightHandRotation" as const] : []);
     (poseLayersByInstance[event.characterInstanceId] ??= []).push({ pose, channels, priority: event.priority });
     const expression = getPreviewExpression(action, capabilities);
     if (expression && !expressionClaimed.has(event.characterInstanceId)) {

@@ -254,7 +254,7 @@ test("Hamid is an independent registered human with a shaped torso and persisten
     const copy = await service.duplicate(project.id);
     assert.equal(copy.characterIdentities[identityId].customization.bellyFullness, "full");
     assert.equal(copy.characterInstances[instanceIds[1]].characterId, identityId);
-    assert.equal(saved.schemaVersion, 8, "built-in character edits preserve the current project schema");
+    assert.equal(saved.schemaVersion, 9, "built-in character edits preserve the current project schema");
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -433,7 +433,7 @@ test("ChatGPT keeps its stable model contract and renders an expressive face wit
   assert.match(renderer, /name="mouth-frown"/);
   assert.match(chatgptRenderer, /resolveChatGptExpression\(appearance\.faceStyle\)/);
   assert.match(chatgptRenderer, /chatGptExpressionPresets\[face\]/);
-  assert.match(chatgptRenderer, /<ExpressionMouth expression=\{face\}/);
+  assert.match(chatgptRenderer, /<ExpressionMouth\s+expression=\{face\}/);
   assert.match(chatgptRenderer, /name="iris"/);
   assert.match(chatgptRenderer, /name="openai-chest-logo"/);
   assert.match(renderer, /const chatGPTLogoPlane = new PlaneGeometry\(0\.22, 0\.22\)/);
@@ -533,7 +533,7 @@ test("v3 migration preserves studio and laptop fields while adding empty charact
   delete legacy.characterInstances;
   delete legacy.characterStates;
   const migrated = migrateProject(legacy);
-  assert.equal(migrated.schemaVersion, 8);
+  assert.equal(migrated.schemaVersion, 9);
   assert.deepEqual(migrated.environmentArrangement, project.environmentArrangement);
   assert.deepEqual(migrated.displayAssignments, project.displayAssignments);
   assert.deepEqual(migrated.characterIdentities, {});
@@ -548,7 +548,7 @@ test("v4 migration upgrades only empty development placeholder appearances and p
     characterInstances: { [instanceId]: { id: instanceId, characterId: identityId } },
     characterStates: { [instanceId]: { transform, initialTransform: transform, visible: false } } };
   const migrated = migrateProject(v4);
-  assert.equal(migrated.schemaVersion, 8);
+  assert.equal(migrated.schemaVersion, 9);
   assert.equal(migrated.characterIdentities[identityId].id, identityId);
   assert.equal(migrated.characterIdentities[identityId].modelId, "character-model:kamyar");
   assert.equal(migrated.characterInstances[instanceId].id, instanceId);
@@ -602,7 +602,7 @@ test("character arrangement saves, reopens and duplicates without sharing placem
     assert.equal((await service.open(copy.id)).characterIdentities[identityId].customization.hairColor, "#987654");
     assert.equal((await service.open(copy.id)).characterIdentities[identityId].customization.hairStyle, "curly-short");
     assert.equal((await service.open(copy.id)).characterIdentities[identityId].customization.beardStyle, "light-stubble");
-    assert.equal(saved.schemaVersion, 8);
+    assert.equal(saved.schemaVersion, 9);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 

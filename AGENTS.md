@@ -92,3 +92,22 @@ Every future user-facing feature, and every modified user-facing section, button
 A feature is not UI/UX-complete until its contextual guidance is present, accurate and verified. Do not add duplicated help systems or describe planned functionality as available.
 
 The global Help action opens an expandable Persian guide built from the same registry as section help; update both views through that registry when capabilities change.
+
+## Approved UI/UX Redesign Direction
+
+Before any workspace, panel, navigation, inspector, or timeline redesign:
+
+1. Read `context/UI_UX_REDESIGN_SPEC.md`.
+2. Inspect these visual references:
+   - `references/ui-redesign/capcut-reference.png`
+   - `references/ui-redesign/blender-reference.png`
+   - `references/ui-redesign/davinci-reference.png`
+3. Preserve existing application logic, data contracts, APIs, rendering, persistence, and accepted features.
+4. Prefer a CapCut-like beginner-friendly workflow, Blender-inspired 3D controls, and DaVinci Resolve-inspired multitrack editing.
+5. Maintain a professional Persian RTL interface with a usable LTR timeline.
+6. Reuse centralized Persian help for every new or modified control.
+7. Verify layout changes in a browser before reporting visual acceptance.
+8. Respect the official roadmap and do not prematurely implement future-phase features.
+9. Never treat visual similarity as proof of functional correctness.
+
+The redesign specification defines the visual and interaction direction. Existing architecture and roadmap documents remain authoritative for business logic and phase boundaries.

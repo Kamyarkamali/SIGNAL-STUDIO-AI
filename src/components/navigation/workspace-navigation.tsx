@@ -4,6 +4,8 @@ import { helpItem, navigationItems, type SectionId } from "@/config/navigation";
 import { ContextHelpTrigger } from "@/components/help/context-help";
 import type { ContextHelpId } from "@/lib/help/context-help-content";
 
+const plannedSections = new Set<SectionId>(["dialogue", "behaviors", "camera", "settings", "export"]);
+
 export function WorkspaceNavigation({
   activeSection,
   onSelect,
@@ -43,7 +45,7 @@ export function WorkspaceNavigation({
           {collapsed ? "‹" : "›"}
         </button>
       </div>
-      <div className="flex flex-col gap-1 max-[850px]:flex-row max-[850px]:overflow-x-auto max-[850px]:pb-1">
+      <div className="flex flex-col gap-1 max-[1023px]:hidden">
         {navigationItems.map((item) => (
           <div
             className="flex min-w-0 items-center gap-0.5 max-[850px]:flex-none"
@@ -61,7 +63,7 @@ export function WorkspaceNavigation({
                 {item.symbol}
               </span>
               <span className="workspace-nav-label">{item.shortLabel}</span>
-              {["audio", "dialogue", "behaviors", "camera", "settings", "export"].includes(item.id) && <span className="nav-planned-badge">آینده</span>}
+              {plannedSections.has(item.id) && <span className="nav-planned-badge">آینده</span>}
             </button>
             <span className="workspace-nav-help max-[850px]:hidden">
               <ContextHelpTrigger
@@ -72,6 +74,21 @@ export function WorkspaceNavigation({
             </span>
           </div>
         ))}
+      </div>
+      <div className="hidden min-w-0 items-center gap-2 max-[1023px]:flex" data-mobile-navigation dir="rtl">
+        <label htmlFor="workspace-mobile-section" className="shrink-0 text-xs font-semibold text-foreground">بخش</label>
+        <select
+          id="workspace-mobile-section"
+          className="min-h-10 min-w-0 flex-1 rounded-md border border-line bg-[#1d2939] px-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-accent"
+          aria-label="انتخاب بخش فضای کار"
+          title="بخش کاری ویرایشگر را تغییر می‌دهد. بخش‌های آینده هنوز ابزار اجرایی ندارند."
+          value={activeSection}
+          onChange={(event) => onSelect(event.target.value as SectionId)}
+        >
+          {navigationItems.map((item) => <option key={item.id} value={item.id}>{item.shortLabel}{plannedSections.has(item.id) ? " · آینده" : ""}</option>)}
+          <option value="help">{helpItem.shortLabel}</option>
+        </select>
+        <ContextHelpTrigger topic="workspace" onOpen={onHelp} label="انتخاب بخش فضای کار" />
       </div>
       <div className="mt-auto border-t border-line pt-2 max-[850px]:hidden">
         <button

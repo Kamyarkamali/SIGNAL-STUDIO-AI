@@ -108,7 +108,7 @@ test("project schema v7 stores scene-local configuration and camera metadata; v5
   assert.equal(projectSchema.safeParse({ ...withScene, scenes: { ...scenes.scenes, [randomUUID()]: scenes.scenes[sceneId] } }).success, false);
   const oldV5 = version5ProjectSchema.parse({ ...project, schemaVersion: 5 });
   const migrated = migrateProject(oldV5);
-  assert.equal(migrated.schemaVersion, 8);
+  assert.equal(migrated.schemaVersion, 9);
   assert.equal(migrated.fps, 30);
   assert.deepEqual(migrated.sceneOrder, []);
   assert.deepEqual(migrated.scenes, {});
@@ -171,17 +171,18 @@ test("play, pause, stop, seek and monotonic playback are deterministic and clamp
 test("storyboard and viewport scene selection share the resolved timeline scene", async () => {
   const shell = await readFile(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8");
   const timeline = await readFile(new URL("../src/components/scenes/scene-authoring.tsx", import.meta.url), "utf8");
+  const unifiedTimeline = await readFile(new URL("../src/components/scenes/unified-timeline-tracks.tsx", import.meta.url), "utf8");
   assert.match(shell, /data-scene-id=\{activeSceneId/);
   assert.match(shell, /activeSceneId=\{activeSceneId\}/);
   assert.match(shell, /onSelect=\{selectScene\}/);
   assert.match(timeline, /aria-pressed=\{selectedCard\}/);
-  assert.match(timeline, /onSeek\(Number\(event\.target\.value\)\)/);
+  assert.match(unifiedTimeline, /onSeek\(Number\(event\.target\.value\)\)/);
   const authoring = await readFile(new URL("../src/components/scenes/scene-authoring.tsx", import.meta.url), "utf8");
   assert.match(authoring, /draggable/);
   assert.match(authoring, /onDrop=/);
   assert.match(authoring, /aria-label="ویژگی‌های صحنهٔ انتخاب‌شده"/);
-  assert.match(authoring, /خط‌کش و مرز صحنه‌ها/);
-  assert.match(authoring, /onPointerDown=/);
+  assert.match(unifiedTimeline, /خط‌کش LTR تایم‌لاین/);
+  assert.match(unifiedTimeline, /onPointerDown=/);
   assert.match(authoring, /onContentChange\(selected\.id/);
 });
 

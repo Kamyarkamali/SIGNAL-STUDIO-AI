@@ -44,6 +44,20 @@ test("scene action evaluation is deterministic for arbitrary seeks and uses half
   assert.deepEqual(atEnd, {});
 });
 
+test("thinking event uses validated rig joints without changing saved frame timing", () => {
+  const sceneId = randomUUID(); const base = createScene({ sceneOrder: [], scenes: {} }, sceneId).scenes[sceneId];
+  const thinking = event(sceneId, "thinking", { startFrame: 10, durationFrames: 60 });
+  const scene = sceneDefinitionSchema.parse({ ...base, actionEvents: [thinking] });
+  const noRig = evaluateSceneCharacterActions(scene, 40, 30, { [actorId]: supported });
+  const withRig = evaluateSceneCharacterActions(scene, 40, 30, { [actorId]: supported }, new Set(), { [actorId]: ["right-arm-pivot", "right-elbow-pivot", "right-wrist-pivot", "right-hand-pivot"] });
+  assert.equal(noRig[actorId].poseActive, false);
+  assert.equal(withRig[actorId].poseActive, true);
+  assert.ok(withRig[actorId].pose.rightElbowRotation[2] < 0);
+  assert.equal(scene.actionEvents[0].startFrame, 10);
+  assert.equal(scene.actionEvents[0].durationFrames, 60);
+  assert.deepEqual(withRig, evaluateSceneCharacterActions(scene, 40, 30, { [actorId]: supported }, new Set(), { [actorId]: ["right-arm-pivot", "right-elbow-pivot", "right-wrist-pivot", "right-hand-pivot"] }));
+});
+
 test("event priorities resolve shared channels while independent arm and gaze channels coexist", () => {
   const sceneId = randomUUID();
   const base = createScene({ sceneOrder: [], scenes: {} }, sceneId).scenes[sceneId];
@@ -141,10 +155,10 @@ test("schema v7 scenes migrate with empty action arrays; v8 events survive proje
   const created = createScene({ sceneOrder: [], scenes: {} }, sceneId);
   const eventRecord = event(sceneId, "happy", { startFrame: 4, durationFrames: 30 });
   const current = projectSchema.parse({ ...project, sceneOrder: [sceneId], scenes: { [sceneId]: { ...created.scenes[sceneId], actionEvents: [eventRecord] } } });
-  assert.equal(current.schemaVersion, 8);
+  assert.equal(current.schemaVersion, 9);
   assert.equal(current.scenes[sceneId].actionEvents[0].id, eventRecord.id);
   const legacy = migrateProject({ ...current, schemaVersion: 7, scenes: { [sceneId]: { ...current.scenes[sceneId], actionEvents: undefined } } });
-  assert.equal(legacy.schemaVersion, 8);
+  assert.equal(legacy.schemaVersion, 9);
   assert.deepEqual(legacy.scenes[sceneId].actionEvents, []);
 });
 
@@ -236,16 +250,15 @@ test("animation workspace separates scene overview from per-character channel tr
     readFile(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/scenes/scene-action-inspector.tsx", import.meta.url), "utf8"),
   ]);
+  assert.match(timeline, /<UnifiedTimelineTracks/);
   assert.match(timeline, /hidden=\{animationFocused\}/);
-  assert.match(timeline, /hidden=\{!animationFocused\}/);
-  assert.match(timeline, /<SceneActionTimeline/);
   assert.match(timeline, /انتخاب سکانس برای ویرایش حرکت‌ها/);
   assert.match(tracks, /getPreviewActionChannels/);
   assert.match(tracks, /gazeSupportedIds\.includes/);
   assert.match(tracks, /categoryLabel/);
   assert.match(tracks, /slice\(\)\.sort\(\(a, b\) => a\.priority - b\.priority/);
   assert.match(shell, /<StudioViewport/);
-  assert.match(shell, /onMoveEvent=\{\(id, startFrame\)/);
+  assert.match(shell, /onMoveEvent=\{\(sceneId, eventId, startFrame\)/);
   assert.match(inspector, /اولویت تعارض در کانال مشترک/);
   assert.match(inspector, /زمان و ترتیب فهرست را تغییر نمی‌دهد/);
 });
@@ -265,7 +278,7 @@ test("new-event authoring uses the shared editable time range and persists integ
   assert.match(timingInput, /value=\{endValue\}/);
   assert.match(timingInput, /onChange=\{\(event\) => \{ setStartDraft\(event\.target\.value\)/);
   assert.match(timingInput, /onChange=\{\(event\) => \{ setEndDraft\(event\.target\.value\)/);
-  assert.match(shell, /<SceneActionEditor key=\{`\$\{projects\.active\?\.id/);
+  assert.match(shell, /<SceneActionEditor\s+key=\{`\$\{projects\.active\?\.id/);
   assert.match(camera, /if \(isTextEntry\(event\.target\)\) return/);
   const start = parseSceneEventTimeDraft("timecode", "00:00:02:15", 30, 299);
   const end = parseSceneEventTimeDraft("timecode", "00:00:04:15", 30, 300);
@@ -285,10 +298,10 @@ test("new-event authoring uses the shared editable time range and persists integ
 });
 
 test("animation editor is reachable from main navigation and shares timeline, inspector, and help infrastructure", async () => {
-  const [navigation, shell, timeline, help, actionEditor, actionInspector, styles, timingInput] = await Promise.all([
+  const [navigation, shell, unifiedTimeline, help, actionEditor, actionInspector, styles, timingInput] = await Promise.all([
     readFile(new URL("../src/config/navigation.ts", import.meta.url), "utf8"),
     readFile(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/scenes/scene-authoring.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/scenes/unified-timeline-tracks.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/lib/help/context-help-content.ts", import.meta.url), "utf8"),
     readFile(new URL("../src/components/scenes/scene-action-editor.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/scenes/scene-action-inspector.tsx", import.meta.url), "utf8"),
@@ -299,7 +312,9 @@ test("animation editor is reachable from main navigation and shares timeline, in
   assert.match(shell, /activeSection === "animations"/);
   assert.match(shell, /<SceneActionEditor/);
   assert.match(shell, /<SceneActionInspector/);
-  assert.match(timeline, /selected\.actionEvents\.map/);
+  assert.match(unifiedTimeline, /scene\?\.actionEvents/);
+  assert.match(unifiedTimeline, /sceneActionCategory/);
+  assert.match(unifiedTimeline, /onMoveEvent\(sceneId, event\.id/);
   assert.match(help, /timelineActions:[\s\S]*title: "حرکت‌ها و انیمیشن‌های زمان‌بندی‌شده"/);
   assert.match(actionEditor, /w-full min-w-0/);
   assert.match(actionEditor, /<details/);

@@ -83,7 +83,7 @@ test("viewport wiring gates prop gizmos on edit mode while preserving character 
   assert.match(props, /onDoubleClick=\{\(event\) => \{ event\.stopPropagation\(\); if \(shouldEnterObjectEditMode/);
   assert.match(props, /onMouseDown=\{\(\) => \{ dragging\.current = true/);
   assert.match(props, /onMouseUp=\{\(\) => \{ restoreOrbit\.current\?\.\(\)/);
-  assert.match(characters, /selected && <TransformControls/);
+  assert.match(characters, /showEditorHelpers && selected &&\s*\(\s*<TransformControls/);
   assert.match(canvas, /onPointerMissed=\{\(\) => onSelect\(null\)\}/);
   assert.match(fiberEvents, /if \(delta <= 2\)/, "camera drags above the R3F click threshold do not trigger empty-space deselection");
   assert.match(shell, /event\.key === "Escape" && objectEdit\.editingId[\s\S]*type: "select", id: null/);

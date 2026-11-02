@@ -1,13 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { navigationItems, helpItem, type SectionId } from "@/config/navigation";
 import { WorkspaceNavigation } from "@/components/navigation/workspace-navigation";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceResizeHandle } from "./workspace-resize-handle";
-import { ContextHelpDrawer, ContextHelpTrigger } from "@/components/help/context-help";
+import {
+  ContextHelpDrawer,
+  ContextHelpTrigger,
+} from "@/components/help/context-help";
 import type { ContextHelpId } from "@/lib/help/context-help-content";
 import { SectionContent } from "./section-content";
+import { AudioEditor } from "@/components/audio/audio-editor";
+import { AudioTimelinePlayback } from "@/components/audio/audio-timeline-playback";
+import type {
+  AudioProjectCollections,
+  SpeakerRegion,
+} from "@/lib/audio/audio-schema";
+import {
+  createSceneAudioClip,
+  isAudioAssetAvailable,
+} from "@/lib/audio/audio-placement";
 import { StudioViewport } from "@/components/viewport/studio-viewport";
 import { PropertiesPanel, type TransformMode } from "./properties-panel";
 import { EnvironmentEditor } from "@/components/viewport/environment-editor";
@@ -62,15 +83,61 @@ import {
   supportedGazeCapability,
   type GazePreview,
 } from "@/lib/characters/gaze-preview";
-import { addSceneActionEvent, convertSceneFrameRate, createScene, deleteScene, duplicateScene, moveSceneActionEvent, removeSceneActionEvent, renameScene, reorderScene, reorderSceneActionEvent, setSceneCamera, setSceneDuration, updateSceneActionEvent, updateSceneContent } from "@/lib/scenes/scene-operations";
-import { computeSceneOffsets, resolveSceneTime, sceneLocalToGlobalFrame, secondsToFrames, totalDurationFrames } from "@/lib/scenes/scene-time";
-import { pausePlayback, playbackFrameAt, seekPlayback, startPlayback, stopPlayback, type PlaybackStatus } from "@/lib/scenes/playback";
-import { applySceneCameraPreset, type SceneCameraPresetId } from "@/lib/scenes/scene-camera-presets";
-import { characterConfigFromState, resolveSceneArrangement, resolveSceneCameraTarget, resolveSceneCharacterData, seedSceneCharacters, setSceneCharacter, setSceneEnvironment, setSceneLighting, setScenePropOverride, updateSceneArrangement, updateSceneCharacter } from "@/lib/scenes/scene-configuration";
+import {
+  addSceneActionEvent,
+  convertSceneFrameRate,
+  createScene,
+  deleteScene,
+  duplicateScene,
+  moveSceneActionEvent,
+  removeSceneActionEvent,
+  renameScene,
+  reorderScene,
+  reorderSceneActionEvent,
+  setSceneCamera,
+  setSceneDuration,
+  updateSceneActionEvent,
+  updateSceneContent,
+} from "@/lib/scenes/scene-operations";
+import {
+  computeSceneOffsets,
+  resolveSceneTime,
+  sceneLocalToGlobalFrame,
+  secondsToFrames,
+  totalDurationFrames,
+} from "@/lib/scenes/scene-time";
+import {
+  pausePlayback,
+  playbackFrameAt,
+  seekPlayback,
+  startPlayback,
+  stopPlayback,
+  type PlaybackStatus,
+} from "@/lib/scenes/playback";
+import {
+  applySceneCameraPreset,
+  type SceneCameraPresetId,
+} from "@/lib/scenes/scene-camera-presets";
+import {
+  characterConfigFromState,
+  resolveSceneArrangement,
+  resolveSceneCameraTarget,
+  resolveSceneCharacterData,
+  seedSceneCharacters,
+  setSceneCharacter,
+  setSceneEnvironment,
+  setSceneLighting,
+  setScenePropOverride,
+  updateSceneArrangement,
+  updateSceneCharacter,
+} from "@/lib/scenes/scene-configuration";
 import type { ProductionCameraConfig } from "@/lib/camera/production-camera";
 import { captureSceneCamera } from "@/lib/scenes/capture-scene-camera";
 import { evaluateSceneCharacterActions } from "@/lib/scenes/scene-action-evaluation";
-import type { SceneActionEvent, SceneDefinition } from "@/lib/scenes/scene-schema";
+import type {
+  SceneActionEvent,
+  SceneDefinition,
+} from "@/lib/scenes/scene-schema";
 
 export function EditorShell() {
   const [activeSection, setActiveSection] = useState<SectionId>("projects");
@@ -107,23 +174,49 @@ export function EditorShell() {
   const [inspectPropId, setInspectPropId] = useState<string | null>(null);
   const [laptopContentViewerOpen, setLaptopContentViewerOpen] = useState(false);
   const [mediaPlaying, setMediaPlaying] = useState(true);
-  const [playback, setPlayback] = useState<{ projectId: string | null; frame: number; status: PlaybackStatus }>({ projectId: null, frame: 0, status: "stopped" });
+  const [playback, setPlayback] = useState<{
+    projectId: string | null;
+    frame: number;
+    status: PlaybackStatus;
+  }>({ projectId: null, frame: 0, status: "stopped" });
   const playStartFrameRef = useRef(0);
-  const editorCameraCaptureRef = useRef<(() => ProductionCameraConfig) | null>(null);
-  const setEditorCameraCapture = useCallback((capture: () => ProductionCameraConfig) => { editorCameraCaptureRef.current = capture; }, []);
+  const editorCameraCaptureRef = useRef<(() => ProductionCameraConfig) | null>(
+    null,
+  );
+  const setEditorCameraCapture = useCallback(
+    (capture: () => ProductionCameraConfig) => {
+      editorCameraCaptureRef.current = capture;
+    },
+    [],
+  );
   const [productionCameraPreview, setProductionCameraPreview] = useState(false);
   const [showRoomWalls, setShowRoomWalls] = useState(true);
   const [navigationCollapsed, setNavigationCollapsed] = useState(false);
-  const [inspectorWidth, setInspectorWidth] = useState(304);
-  const [timelineHeight, setTimelineHeight] = useState(280);
+  const [inspectorWidth, setInspectorWidth] = useState(280);
+  const [timelineHeight, setTimelineHeight] = useState(230);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
-  const [helpTopic, setHelpTopic] = useState<ContextHelpId | "all" | null>(null);
-  const [cameraSaveMessage, setCameraSaveMessage] = useState<{ sceneId: string | null; text: string } | null>(null);
-  const [selectedActionEvent, setSelectedActionEvent] = useState<{ scopeKey: string; eventId: string } | null>(null);
+  const [helpTopic, setHelpTopic] = useState<ContextHelpId | "all" | null>(
+    null,
+  );
+  const [cameraSaveMessage, setCameraSaveMessage] = useState<{
+    sceneId: string | null;
+    text: string;
+  } | null>(null);
+  const [selectedActionEvent, setSelectedActionEvent] = useState<{
+    scopeKey: string;
+    eventId: string;
+  } | null>(null);
+  const [timelineAudioSelection, setTimelineAudioSelection] = useState<{
+    projectId: string;
+    assetId: string;
+    clipId: string;
+    regionId?: string;
+  } | null>(null);
   const [panel, dispatchPanel] = useReducer(
     reduceWorkspacePanelState,
     initialWorkspacePanelState,
   );
+  const focusInspectorAfterNavigation = useRef(false);
   const inspectorOpen = panel.open;
   const inspectorView = panel.view;
   useEffect(() => {
@@ -135,45 +228,98 @@ export function EditorShell() {
     return () => narrow.removeEventListener("change", syncPanel);
   }, []);
   const openSection = (section: SectionId) => {
+    focusInspectorAfterNavigation.current = true;
     setActiveSection(section);
     dispatchPanel({ type: "section" });
   };
+  useEffect(() => {
+    if (!inspectorOpen || !focusInspectorAfterNavigation.current) return;
+    focusInspectorAfterNavigation.current = false;
+    if (window.matchMedia("(max-width: 767px)").matches)
+      document.querySelector<HTMLButtonElement>("#workspace-inspector [data-close-mobile-inspector]")?.focus();
+  }, [activeSection, inspectorOpen]);
+  const closeInspector = () => {
+    dispatchPanel({ type: "close" });
+    if (window.matchMedia("(max-width: 767px)").matches)
+      requestAnimationFrame(() => document.getElementById("workspace-mobile-section")?.focus());
+  };
   const activeProjectId = projects.active?.id ?? null;
-  const activePlayback = playback.projectId === activeProjectId ? playback : { projectId: activeProjectId, frame: 0, status: "stopped" as const };
-  const setProjectPlayback = useCallback((update: (current: { frame: number; status: PlaybackStatus }) => { frame: number; status: PlaybackStatus }) => {
-    setPlayback((current) => {
-      const base = current.projectId === activeProjectId ? current : { projectId: activeProjectId, frame: 0, status: "stopped" as const };
-      return { ...update(base), projectId: activeProjectId };
-    });
-  }, [activeProjectId]);
+  const activePlayback =
+    playback.projectId === activeProjectId
+      ? playback
+      : { projectId: activeProjectId, frame: 0, status: "stopped" as const };
+  const setProjectPlayback = useCallback(
+    (
+      update: (current: { frame: number; status: PlaybackStatus }) => {
+        frame: number;
+        status: PlaybackStatus;
+      },
+    ) => {
+      setPlayback((current) => {
+        const base =
+          current.projectId === activeProjectId
+            ? current
+            : {
+                projectId: activeProjectId,
+                frame: 0,
+                status: "stopped" as const,
+              };
+        return { ...update(base), projectId: activeProjectId };
+      });
+    },
+    [activeProjectId],
+  );
   const projectFps = projects.fps;
-  const totalFrames = useMemo(() => totalDurationFrames(projects.sceneOrder, projects.scenes), [projects.sceneOrder, projects.scenes]);
-  const activeSceneTime = useMemo(() => resolveSceneTime(activePlayback.frame, projects.sceneOrder, projects.scenes), [activePlayback.frame, projects.sceneOrder, projects.scenes]);
+  const totalFrames = useMemo(
+    () => totalDurationFrames(projects.sceneOrder, projects.scenes),
+    [projects.sceneOrder, projects.scenes],
+  );
+  const activeSceneTime = useMemo(
+    () =>
+      resolveSceneTime(
+        activePlayback.frame,
+        projects.sceneOrder,
+        projects.scenes,
+      ),
+    [activePlayback.frame, projects.sceneOrder, projects.scenes],
+  );
   const activeSceneId = activeSceneTime?.sceneId ?? null;
-  const activeScene = activeSceneId ? projects.scenes[activeSceneId] ?? null : null;
-  const activeScopeKey = `${activeProjectId ?? ""}:${activeSceneId ?? ""}`;
-  const selectedActionEventRecord = selectedActionEvent?.scopeKey === activeScopeKey
-    ? activeScene?.actionEvents.find((event) => event.id === selectedActionEvent.eventId) ?? null
+  const activeScene = activeSceneId
+    ? (projects.scenes[activeSceneId] ?? null)
     : null;
-  const sceneCharacterData = useMemo(() => resolveSceneCharacterData(projects.characterData, activeScene ?? undefined), [projects.characterData, activeScene]);
-  const characterActionSupport = useMemo(() => {
-    const capabilities: Record<string, ("head-rotation" | "arm-gesture" | "facial-expression")[]> = {};
-    const gazeIds: string[] = [];
-    for (const instance of Object.values(sceneCharacterData.characterInstances)) {
-      const identity = sceneCharacterData.characterIdentities[instance.characterId];
-      const model = identity && characterModelRegistry.get(identity.modelId);
-      capabilities[instance.id] = model && !model.glb
-        ? model.capabilities.animationCapabilities.filter((value): value is "head-rotation" | "arm-gesture" | "facial-expression" => value === "head-rotation" || value === "arm-gesture" || value === "facial-expression")
-        : [];
-      if (model && supportedGazeCapability(model)) gazeIds.push(instance.id);
-    }
-    return { capabilities, gazeIds };
-  }, [sceneCharacterData]);
-  const sceneArrangementResolution = useMemo(() => resolveSceneArrangement(projects.arrangement, activeScene ?? undefined), [projects.arrangement, activeScene]);
+  const activeScopeKey = `${activeProjectId ?? ""}:${activeSceneId ?? ""}`;
+  const selectedActionEventRecord =
+    selectedActionEvent?.scopeKey === activeScopeKey
+      ? (activeScene?.actionEvents.find(
+          (event) => event.id === selectedActionEvent.eventId,
+        ) ?? null)
+      : null;
+  const sceneCharacterData = useMemo(
+    () =>
+      resolveSceneCharacterData(
+        projects.characterData,
+        activeScene ?? undefined,
+      ),
+    [projects.characterData, activeScene],
+  );
+  const sceneArrangementResolution = useMemo(
+    () =>
+      resolveSceneArrangement(projects.arrangement, activeScene ?? undefined),
+    [projects.arrangement, activeScene],
+  );
   const sceneArrangement = sceneArrangementResolution.arrangement;
-  const productionCameraTarget = useMemo(() => activeScene && sceneArrangement
-    ? resolveSceneCameraTarget(activeScene, projects.characterData, sceneArrangement).target
-    : activeScene?.productionCamera.target ?? [0, 0.75, 0] as [number, number, number], [activeScene, projects.characterData, sceneArrangement]);
+  const productionCameraTarget = useMemo(
+    () =>
+      activeScene && sceneArrangement
+        ? resolveSceneCameraTarget(
+            activeScene,
+            projects.characterData,
+            sceneArrangement,
+          ).target
+        : (activeScene?.productionCamera.target ??
+          ([0, 0.75, 0] as [number, number, number])),
+    [activeScene, projects.characterData, sceneArrangement],
+  );
   useEffect(() => {
     if (activePlayback.status !== "playing" || totalFrames <= 0) return;
     const startFrame = playStartFrameRef.current;
@@ -182,37 +328,110 @@ export function EditorShell() {
     let disposed = false;
     const tick = () => {
       if (disposed) return;
-      const nextFrame = playbackFrameAt(startFrame, performance.now() - startedAt, projectFps, totalFrames);
-      setProjectPlayback((current) => current.frame === nextFrame && (nextFrame < totalFrames || current.status === "ended")
-        ? current : { frame: nextFrame, status: nextFrame >= totalFrames ? "ended" : "playing" });
-      if (nextFrame < totalFrames) animationFrame = window.requestAnimationFrame(tick);
+      const nextFrame = playbackFrameAt(
+        startFrame,
+        performance.now() - startedAt,
+        projectFps,
+        totalFrames,
+      );
+      setProjectPlayback((current) =>
+        current.frame === nextFrame &&
+        (nextFrame < totalFrames || current.status === "ended")
+          ? current
+          : {
+              frame: nextFrame,
+              status: nextFrame >= totalFrames ? "ended" : "playing",
+            },
+      );
+      if (nextFrame < totalFrames)
+        animationFrame = window.requestAnimationFrame(tick);
     };
     animationFrame = window.requestAnimationFrame(tick);
-    return () => { disposed = true; window.cancelAnimationFrame(animationFrame); };
-  }, [activePlayback.status, activeProjectId, totalFrames, projectFps, setProjectPlayback]);
+    return () => {
+      disposed = true;
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [
+    activePlayback.status,
+    activeProjectId,
+    totalFrames,
+    projectFps,
+    setProjectPlayback,
+  ]);
   const scheduledActions = useMemo(() => {
     if (!activeScene) return {};
-    const capabilities: Record<string, ("head-rotation" | "arm-gesture" | "facial-expression")[]> = {};
+    const capabilities: Record<
+      string,
+      ("head-rotation" | "arm-gesture" | "facial-expression")[]
+    > = {};
     const gazeCapable = new Set<string>();
-    for (const instanceId of Object.keys(sceneCharacterData.characterInstances)) {
+    const joints: Record<string, readonly string[]> = {};
+    for (const instanceId of Object.keys(
+      sceneCharacterData.characterInstances,
+    )) {
       const instance = sceneCharacterData.characterInstances[instanceId];
-      const identity = instance && sceneCharacterData.characterIdentities[instance.characterId];
+      const identity =
+        instance &&
+        sceneCharacterData.characterIdentities[instance.characterId];
       const model = identity && characterModelRegistry.get(identity.modelId);
-      capabilities[instanceId] = model && !model.glb ? model.capabilities.animationCapabilities.filter((item): item is "head-rotation" | "arm-gesture" | "facial-expression" => item === "head-rotation" || item === "arm-gesture" || item === "facial-expression") : [];
+      capabilities[instanceId] =
+        model && !model.glb
+          ? model.capabilities.animationCapabilities.filter(
+              (
+                item,
+              ): item is
+                | "head-rotation"
+                | "arm-gesture"
+                | "facial-expression" =>
+                item === "head-rotation" ||
+                item === "arm-gesture" ||
+                item === "facial-expression",
+            )
+          : [];
+      joints[instanceId] = model && !model.glb ? model.attachmentPoints : [];
       if (model && supportedGazeCapability(model)) gazeCapable.add(instanceId);
     }
-    return evaluateSceneCharacterActions(activeScene, activeSceneTime?.localFrame ?? 0, projectFps, capabilities, gazeCapable);
-  }, [activeScene, activeSceneTime?.localFrame, projectFps, sceneCharacterData]);
+    return evaluateSceneCharacterActions(
+      activeScene,
+      activeSceneTime?.localFrame ?? 0,
+      projectFps,
+      capabilities,
+      gazeCapable,
+      joints,
+    );
+  }, [
+    activeScene,
+    activeSceneTime?.localFrame,
+    projectFps,
+    sceneCharacterData,
+  ]);
   const characterPreviews = useMemo(() => {
-    const scheduled: Record<string, CharacterPreviewPlayback> = Object.fromEntries(Object.entries(scheduledActions).filter(([, pose]) =>
-      pose.poseActive,
-    ).map(([id, timelinePose]) => [id, { actionId: "neutral" as const, startedAtMs: 0, durationSeconds: 0, timelinePose }]));
-    const manual = previewState.scopeKey === activeScopeKey ? previewState.byInstance : {};
+    const scheduled: Record<string, CharacterPreviewPlayback> =
+      Object.fromEntries(
+        Object.entries(scheduledActions)
+          .filter(([, pose]) => pose.poseActive)
+          .map(([id, timelinePose]) => [
+            id,
+            {
+              actionId: "neutral" as const,
+              startedAtMs: 0,
+              durationSeconds: 0,
+              timelinePose,
+            },
+          ]),
+      );
+    const manual =
+      previewState.scopeKey === activeScopeKey ? previewState.byInstance : {};
     return { ...manual, ...scheduled };
   }, [scheduledActions, previewState, activeScopeKey]);
   const characterGazes = useMemo(() => {
-    const scheduled = Object.fromEntries(Object.entries(scheduledActions).flatMap(([id, pose]) => pose.gaze ? [[id, pose.gaze]] : []));
-    const manual = gazeState.scopeKey === activeScopeKey ? gazeState.byInstance : {};
+    const scheduled = Object.fromEntries(
+      Object.entries(scheduledActions).flatMap(([id, pose]) =>
+        pose.gaze ? [[id, pose.gaze]] : [],
+      ),
+    );
+    const manual =
+      gazeState.scopeKey === activeScopeKey ? gazeState.byInstance : {};
     return { ...manual, ...scheduled };
   }, [scheduledActions, gazeState, activeScopeKey]);
   const setPreviewEntries = useCallback(
@@ -251,8 +470,13 @@ export function EditorShell() {
     selection && selection.projectId === projects.active?.id
       ? selection.propId
       : null;
-  const selectedProp = sceneArrangement?.props.find((prop) => prop.id === selectedId);
-  const selectedPropLabel = selectedProp && sceneArrangement ? propDisplayLabel(sceneArrangement, selectedProp) : null;
+  const selectedProp = sceneArrangement?.props.find(
+    (prop) => prop.id === selectedId,
+  );
+  const selectedPropLabel =
+    selectedProp && sceneArrangement
+      ? propDisplayLabel(sceneArrangement, selectedProp)
+      : null;
   const selectedCharacterId =
     characterSelection && characterSelection.projectId === projects.active?.id
       ? characterSelection.instanceId
@@ -327,7 +551,9 @@ export function EditorShell() {
             patch.durationSeconds ??
             (patch.mode === "attention" || previous?.mode === "attention"
               ? 2.4
-              : patch.mode === "neutral" ? 0.55 : 3600),
+              : patch.mode === "neutral"
+                ? 0.55
+                : 3600),
           transitionSeconds:
             patch.transitionSeconds ?? previous?.transitionSeconds ?? 0.45,
         };
@@ -337,7 +563,8 @@ export function EditorShell() {
     [projects.characterData, setGazeEntries],
   );
   const resetCharacterGaze = useCallback(
-    (instanceId: string) => changeCharacterGaze(instanceId, { mode: "neutral" }),
+    (instanceId: string) =>
+      changeCharacterGaze(instanceId, { mode: "neutral" }),
     [changeCharacterGaze],
   );
   const finishCharacterPreview = useCallback(
@@ -401,6 +628,7 @@ export function EditorShell() {
           sourceTimeSeconds: (performance.now() - current.startedAtMs) / 1000,
           durationSeconds: current.durationSeconds,
           capabilities,
+          attachmentPoints: model?.attachmentPoints ?? [],
           fromPose: current.fromPose,
           settings: current.settings,
         });
@@ -416,7 +644,14 @@ export function EditorShell() {
         }));
         return;
       }
-      if (!isPreviewActionSupported(actionId, capabilities)) return;
+      if (
+        !isPreviewActionSupported(
+          actionId,
+          capabilities,
+          model?.attachmentPoints ?? [],
+        )
+      )
+        return;
       setPreviewEntries((current) => ({
         ...current,
         [instanceId]: {
@@ -516,82 +751,218 @@ export function EditorShell() {
   }, [objectEdit.editingId]);
   const commitTransform = (id: string, transform: TransformConfig) => {
     try {
-      if (activeScene && projects.arrangement) projects.editScenes((sequence) => ({ ...sequence, scenes: {
-        ...sequence.scenes, [activeScene.id]: updateSceneArrangement(activeScene, projects.arrangement!, (current) => updateProp(current, id, { transform })),
-      } }));
-      else projects.editArrangement((current) => updateProp(current, id, { transform }));
-    } catch (error) { projects.setError(error instanceof Error ? error.message : "تغییر وسیله انجام نشد."); }
+      if (activeScene && projects.arrangement)
+        projects.editScenes((sequence) => ({
+          ...sequence,
+          scenes: {
+            ...sequence.scenes,
+            [activeScene.id]: updateSceneArrangement(
+              activeScene,
+              projects.arrangement!,
+              (current) => updateProp(current, id, { transform }),
+            ),
+          },
+        }));
+      else
+        projects.editArrangement((current) =>
+          updateProp(current, id, { transform }),
+        );
+    } catch (error) {
+      projects.setError(
+        error instanceof Error ? error.message : "تغییر وسیله انجام نشد.",
+      );
+    }
   };
-  const editArrangement = (edit: (current: import("@/lib/environments/arrangement").EnvironmentArrangement) => import("@/lib/environments/arrangement").EnvironmentArrangement) => {
+  const editArrangement = (
+    edit: (
+      current: import("@/lib/environments/arrangement").EnvironmentArrangement,
+    ) => import("@/lib/environments/arrangement").EnvironmentArrangement,
+  ) => {
     try {
-      if (activeScene && projects.arrangement) projects.editScenes((sequence) => ({ ...sequence, scenes: {
-        ...sequence.scenes, [activeScene.id]: updateSceneArrangement(activeScene, projects.arrangement!, edit),
-      } }));
+      if (activeScene && projects.arrangement)
+        projects.editScenes((sequence) => ({
+          ...sequence,
+          scenes: {
+            ...sequence.scenes,
+            [activeScene.id]: updateSceneArrangement(
+              activeScene,
+              projects.arrangement!,
+              edit,
+            ),
+          },
+        }));
       else projects.editArrangement(edit);
-    } catch (error) { projects.setError(error instanceof Error ? error.message : "تغییر چیدمان انجام نشد."); }
+    } catch (error) {
+      projects.setError(
+        error instanceof Error ? error.message : "تغییر چیدمان انجام نشد.",
+      );
+    }
   };
-  const characterEnvironment =
-    environmentRegistry.get(activeScene?.environmentId ?? projects.active?.environmentArrangement.environmentId ?? "");
+  const characterEnvironment = environmentRegistry.get(
+    activeScene?.environmentId ??
+      projects.active?.environmentArrangement.environmentId ??
+      "",
+  );
   const createIdentity = (name: string, modelId: string) =>
     projects.editCharacters((current) =>
       createCharacterIdentity(current, crypto.randomUUID(), name, modelId),
     );
   const addCharacter = (characterId: string) => {
     const instanceId = crypto.randomUUID();
-    const nextData = addCharacterInstance(projects.characterData, characterId, instanceId);
+    const nextData = addCharacterInstance(
+      projects.characterData,
+      characterId,
+      instanceId,
+    );
     projects.editCharacters(() => nextData);
     if (activeScene) {
       const state = nextData.characterStates[instanceId];
-      if (state) projects.editScenes((sequence) => ({ ...sequence, scenes: {
-        ...sequence.scenes, [activeScene.id]: setSceneCharacter(activeScene, instanceId, characterConfigFromState(state)),
-      } }));
-      setCharacterSelection(projects.active ? { projectId: projects.active.id, instanceId } : null);
+      if (state)
+        projects.editScenes((sequence) => ({
+          ...sequence,
+          scenes: {
+            ...sequence.scenes,
+            [activeScene.id]: setSceneCharacter(
+              activeScene,
+              instanceId,
+              characterConfigFromState(state),
+            ),
+          },
+        }));
+      setCharacterSelection(
+        projects.active ? { projectId: projects.active.id, instanceId } : null,
+      );
     }
   };
   const assignPlacement = (instanceId: string, anchorId: string | null) => {
     if (activeScene) {
-      const placed = assignCharacterPlacement(sceneCharacterData, instanceId, anchorId, characterEnvironment?.characterAnchors ?? []);
+      const placed = assignCharacterPlacement(
+        sceneCharacterData,
+        instanceId,
+        anchorId,
+        characterEnvironment?.characterAnchors ?? [],
+      );
       const state = placed.characterStates[instanceId];
-      if (state) projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes,
-        [activeScene.id]: setSceneCharacter(activeScene, instanceId, characterConfigFromState(state)) } }));
-    } else void projects.editCharactersAndSave((current) => assignCharacterPlacement(current, instanceId, anchorId, characterEnvironment?.characterAnchors ?? []));
+      if (state)
+        projects.editScenes((sequence) => ({
+          ...sequence,
+          scenes: {
+            ...sequence.scenes,
+            [activeScene.id]: setSceneCharacter(
+              activeScene,
+              instanceId,
+              characterConfigFromState(state),
+            ),
+          },
+        }));
+    } else
+      void projects.editCharactersAndSave((current) =>
+        assignCharacterPlacement(
+          current,
+          instanceId,
+          anchorId,
+          characterEnvironment?.characterAnchors ?? [],
+        ),
+      );
   };
   const setCharacterVisible = (instanceId: string, visible: boolean) => {
-    if (activeScene) projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes,
-      [activeScene.id]: updateSceneCharacter(activeScene, instanceId, { visible }) } }));
-    else projects.editCharacters((current) => updateCharacterState(current, instanceId, { visible }));
+    if (activeScene)
+      projects.editScenes((sequence) => ({
+        ...sequence,
+        scenes: {
+          ...sequence.scenes,
+          [activeScene.id]: updateSceneCharacter(activeScene, instanceId, {
+            visible,
+          }),
+        },
+      }));
+    else
+      projects.editCharacters((current) =>
+        updateCharacterState(current, instanceId, { visible }),
+      );
   };
   const removeCharacterFromScene = (instanceId: string) => {
-    if (!activeScene) return projects.editCharacters((current) => removeCharacterInstance(current, instanceId));
-    projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes,
-      [activeScene.id]: setSceneCharacter(activeScene, instanceId, null) } }));
+    if (!activeScene)
+      return projects.editCharacters((current) =>
+        removeCharacterInstance(current, instanceId),
+      );
+    projects.editScenes((sequence) => ({
+      ...sequence,
+      scenes: {
+        ...sequence.scenes,
+        [activeScene.id]: setSceneCharacter(activeScene, instanceId, null),
+      },
+    }));
     if (selectedCharacterId === instanceId) setCharacterSelection(null);
   };
   const restoreCharacterPlacement = (instanceId: string) => {
     const state = projects.characterData.characterStates[instanceId];
     if (!state) return;
-    if (activeScene) projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes,
-      [activeScene.id]: updateSceneCharacter(activeScene, instanceId, { transform: structuredClone(state.initialTransform), placementAnchorId: state.placementAnchorId ?? null }) } }));
-    else projects.editCharacters((current) => resetCharacterPlacement(current, instanceId));
+    if (activeScene)
+      projects.editScenes((sequence) => ({
+        ...sequence,
+        scenes: {
+          ...sequence.scenes,
+          [activeScene.id]: updateSceneCharacter(activeScene, instanceId, {
+            transform: structuredClone(state.initialTransform),
+            placementAnchorId: state.placementAnchorId ?? null,
+          }),
+        },
+      }));
+    else
+      projects.editCharacters((current) =>
+        resetCharacterPlacement(current, instanceId),
+      );
   };
   const commitCharacter = (
     instanceId: string,
     state: import("@/lib/characters/character-schema").CharacterState,
   ) =>
     activeScene
-      ? projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes,
-          [activeScene.id]: setSceneCharacter(activeScene, instanceId, characterConfigFromState(state)) } }))
-      : projects.editCharacters((current) => updateCharacterState(current, instanceId, state));
+      ? projects.editScenes((sequence) => ({
+          ...sequence,
+          scenes: {
+            ...sequence.scenes,
+            [activeScene.id]: setSceneCharacter(
+              activeScene,
+              instanceId,
+              characterConfigFromState(state),
+            ),
+          },
+        }))
+      : projects.editCharacters((current) =>
+          updateCharacterState(current, instanceId, state),
+        );
   const saveEditorCameraToScene = async () => {
-    const report = (text: string) => setCameraSaveMessage({ sceneId: activeScene?.id ?? null, text });
-    if (!activeScene) { report("ابتدا یک سکانس را انتخاب کنید."); return; }
-    if (productionCameraPreview || inspectPropId) { report("برای ذخیرهٔ نما، ابتدا به دوربین ویرایش برگردید و نمایش نزدیک وسیله را ببندید."); return; }
+    const report = (text: string) =>
+      setCameraSaveMessage({ sceneId: activeScene?.id ?? null, text });
+    if (!activeScene) {
+      report("ابتدا یک سکانس را انتخاب کنید.");
+      return;
+    }
+    if (productionCameraPreview || inspectPropId) {
+      report(
+        "برای ذخیرهٔ نما، ابتدا به دوربین ویرایش برگردید و نمایش نزدیک وسیله را ببندید.",
+      );
+      return;
+    }
     const capture = editorCameraCaptureRef.current?.();
-    if (!capture) { report("دوربین ویرایش هنوز آماده نیست. پس از بارگذاری نمای سه‌بعدی دوباره تلاش کنید."); return; }
+    if (!capture) {
+      report(
+        "دوربین ویرایش هنوز آماده نیست. پس از بارگذاری نمای سه‌بعدی دوباره تلاش کنید.",
+      );
+      return;
+    }
     const sceneId = activeScene.id;
     report("در حال ذخیرهٔ نمای دوربین…");
     try {
-      projects.editScenes((sequence) => setSceneCamera(sequence, sceneId, captureSceneCamera(activeScene.productionCamera, capture)));
+      projects.editScenes((sequence) =>
+        setSceneCamera(
+          sequence,
+          sceneId,
+          captureSceneCamera(activeScene.productionCamera, capture),
+        ),
+      );
       await projects.saveNow();
       report("نمای دوربین تولید این سکانس ذخیره شد.");
     } catch {
@@ -602,112 +973,325 @@ export function EditorShell() {
     activeSection === "help"
       ? helpItem
       : navigationItems.find((item) => item.id === activeSection);
-  const inspectorHelpTopic: ContextHelpId = activeSection === "characters"
-    ? "characters"
-    : activeSection === "scenes"
-      ? "sceneConfiguration"
-      : activeSection === "environments" && selectedProp?.definitionId === "prop:laptop"
-        ? "laptopMedia"
-        : activeSection === "environments" && selectedProp
-          ? "props"
-          : activeSection === "environments"
-            ? "environments"
-            : activeSection === "help" ? "workspace" : activeSection === "animations" ? "timelineActions" : activeSection as ContextHelpId;
+  const inspectorHelpTopic: ContextHelpId =
+    activeSection === "characters"
+      ? "characters"
+      : activeSection === "scenes"
+        ? "sceneConfiguration"
+        : activeSection === "environments" &&
+            selectedProp?.definitionId === "prop:laptop"
+          ? "laptopMedia"
+          : activeSection === "environments" && selectedProp
+            ? "props"
+            : activeSection === "environments"
+              ? "environments"
+              : activeSection === "help"
+                ? "workspace"
+                : activeSection === "animations"
+                  ? "timelineActions"
+                  : (activeSection as ContextHelpId);
 
   const selectScene = (sceneId: string) => {
-    const entry = computeSceneOffsets(projects.sceneOrder, projects.scenes).find((item) => item.sceneId === sceneId);
-    if (entry) { setProjectPlayback(() => ({ frame: entry.startFrame, status: "paused" })); if (activeSection !== "animations") setActiveSection("scenes"); dispatchPanel({ type: "selection" }); }
+    const entry = computeSceneOffsets(
+      projects.sceneOrder,
+      projects.scenes,
+    ).find((item) => item.sceneId === sceneId);
+    if (entry) {
+      setProjectPlayback(() => ({ frame: entry.startFrame, status: "paused" }));
+      if (activeSection !== "animations") setActiveSection("scenes");
+      dispatchPanel({ type: "selection" });
+    }
   };
-  const keepActiveScenePosition = (next: { sceneOrder: string[]; scenes: typeof projects.scenes }) => {
+  const keepActiveScenePosition = (next: {
+    sceneOrder: string[];
+    scenes: typeof projects.scenes;
+  }) => {
     if (activeSceneId && next.sceneOrder.includes(activeSceneId)) {
-      const frame = sceneLocalToGlobalFrame(activeSceneId, activeSceneTime?.localFrame ?? 0, next.sceneOrder, next.scenes);
-      setProjectPlayback((current) => ({ frame, status: current.status === "playing" ? "paused" : current.status }));
+      const frame = sceneLocalToGlobalFrame(
+        activeSceneId,
+        activeSceneTime?.localFrame ?? 0,
+        next.sceneOrder,
+        next.scenes,
+      );
+      setProjectPlayback((current) => ({
+        frame,
+        status: current.status === "playing" ? "paused" : current.status,
+      }));
     }
   };
   const addScene = () => {
     if (!projects.active) return;
     const sceneId = crypto.randomUUID();
     projects.editScenes((current) => {
-      const created = createScene(current, sceneId, projects.arrangement?.environmentId);
+      const created = createScene(
+        current,
+        sceneId,
+        projects.arrangement?.environmentId,
+      );
       const scene = created.scenes[sceneId];
-      return { ...created, scenes: { ...created.scenes, [sceneId]: scene ? seedSceneCharacters(scene, projects.characterData) : scene } };
+      return {
+        ...created,
+        scenes: {
+          ...created.scenes,
+          [sceneId]: scene
+            ? seedSceneCharacters(scene, projects.characterData)
+            : scene,
+        },
+      };
     });
     setProjectPlayback(() => ({ frame: totalFrames, status: "paused" }));
   };
   const cloneScene = (sceneId: string) => {
     const nextId = crypto.randomUUID();
-    const next = duplicateScene({ sceneOrder: projects.sceneOrder, scenes: projects.scenes }, sceneId, nextId);
+    const next = duplicateScene(
+      { sceneOrder: projects.sceneOrder, scenes: projects.scenes },
+      sceneId,
+      nextId,
+    );
     projects.editScenes(() => next);
-    const entry = computeSceneOffsets(next.sceneOrder, next.scenes).find((item) => item.sceneId === nextId);
-    if (entry) setProjectPlayback(() => ({ frame: entry.startFrame, status: "paused" }));
+    const entry = computeSceneOffsets(next.sceneOrder, next.scenes).find(
+      (item) => item.sceneId === nextId,
+    );
+    if (entry)
+      setProjectPlayback(() => ({ frame: entry.startFrame, status: "paused" }));
   };
   const removeScene = (sceneId: string) => {
     const oldIndex = projects.sceneOrder.indexOf(sceneId);
-    const next = deleteScene({ sceneOrder: projects.sceneOrder, scenes: projects.scenes }, sceneId);
+    const next = deleteScene(
+      { sceneOrder: projects.sceneOrder, scenes: projects.scenes },
+      sceneId,
+    );
     projects.editScenes(() => next);
-    const selectedId = activeSceneId !== sceneId && activeSceneId && next.sceneOrder.includes(activeSceneId)
-      ? activeSceneId : next.sceneOrder[Math.min(Math.max(0, oldIndex), next.sceneOrder.length - 1)];
-    const entry = selectedId ? computeSceneOffsets(next.sceneOrder, next.scenes).find((item) => item.sceneId === selectedId) : undefined;
-    const local = selectedId === activeSceneId && activeSceneTime ? activeSceneTime.localFrame : 0;
-    setProjectPlayback(() => ({ frame: entry ? sceneLocalToGlobalFrame(selectedId!, local, next.sceneOrder, next.scenes) : 0, status: "paused" }));
+    const selectedId =
+      activeSceneId !== sceneId &&
+      activeSceneId &&
+      next.sceneOrder.includes(activeSceneId)
+        ? activeSceneId
+        : next.sceneOrder[
+            Math.min(Math.max(0, oldIndex), next.sceneOrder.length - 1)
+          ];
+    const entry = selectedId
+      ? computeSceneOffsets(next.sceneOrder, next.scenes).find(
+          (item) => item.sceneId === selectedId,
+        )
+      : undefined;
+    const local =
+      selectedId === activeSceneId && activeSceneTime
+        ? activeSceneTime.localFrame
+        : 0;
+    setProjectPlayback(() => ({
+      frame: entry
+        ? sceneLocalToGlobalFrame(
+            selectedId!,
+            local,
+            next.sceneOrder,
+            next.scenes,
+          )
+        : 0,
+      status: "paused",
+    }));
   };
   const updateSceneDuration = (sceneId: string, seconds: number) => {
-    const frames = Math.min(1_000_000, Math.max(1, secondsToFrames(seconds, projectFps)));
-    const next = setSceneDuration({ sceneOrder: projects.sceneOrder, scenes: projects.scenes }, sceneId, frames);
+    const frames = Math.min(
+      1_000_000,
+      Math.max(1, secondsToFrames(seconds, projectFps)),
+    );
+    const next = setSceneDuration(
+      { sceneOrder: projects.sceneOrder, scenes: projects.scenes },
+      sceneId,
+      frames,
+    );
     projects.editScenes(() => next);
     keepActiveScenePosition(next);
   };
   const changeProjectFrameRate = (nextFps: number) => {
     if (![24, 25, 30, 50, 60].includes(nextFps)) return;
-    const nextScenes = convertSceneFrameRate({ sceneOrder: projects.sceneOrder, scenes: projects.scenes }, projectFps, nextFps);
-    const nextLocalFrame = secondsToFrames((activeSceneTime?.localFrame ?? 0) / projectFps, nextFps);
+    const nextScenes = convertSceneFrameRate(
+      { sceneOrder: projects.sceneOrder, scenes: projects.scenes },
+      projectFps,
+      nextFps,
+    );
+    const nextLocalFrame = secondsToFrames(
+      (activeSceneTime?.localFrame ?? 0) / projectFps,
+      nextFps,
+    );
     const nextFrame = activeSceneId
-      ? sceneLocalToGlobalFrame(activeSceneId, nextLocalFrame, nextScenes.sceneOrder, nextScenes.scenes)
+      ? sceneLocalToGlobalFrame(
+          activeSceneId,
+          nextLocalFrame,
+          nextScenes.sceneOrder,
+          nextScenes.scenes,
+        )
       : secondsToFrames(activePlayback.frame / projectFps, nextFps);
     projects.editFps(nextFps as 24 | 25 | 30 | 50 | 60);
-    setProjectPlayback((current) => ({ frame: nextFrame, status: current.status === "playing" ? "paused" : current.status }));
+    setProjectPlayback((current) => ({
+      frame: nextFrame,
+      status: current.status === "playing" ? "paused" : current.status,
+    }));
   };
-  const seekTimeline = (frame: number) => setProjectPlayback((current) => seekPlayback(current, frame, totalFrames));
+  const seekTimeline = (frame: number) =>
+    setProjectPlayback((current) => seekPlayback(current, frame, totalFrames));
+  const placeAudioAsset = (
+    assetId: string,
+    sceneId: string,
+    frame: number,
+    durationSeconds: number,
+    uploadVerified = false,
+  ) => {
+    const scene = projects.scenes[sceneId];
+    const sceneStartFrame = computeSceneOffsets(
+      projects.sceneOrder,
+      projects.scenes,
+    ).find((item) => item.sceneId === sceneId)?.startFrame;
+    const asset = projects.active?.assetManifest[assetId];
+    if (
+      !scene ||
+      sceneStartFrame === undefined ||
+      !isAudioAssetAvailable(asset?.kind, uploadVerified) ||
+      !Number.isFinite(durationSeconds) ||
+      durationSeconds <= 0 ||
+      frame < sceneStartFrame ||
+      frame >= sceneStartFrame + scene.durationFrames
+    )
+      return false;
+    const clip = createSceneAudioClip({
+      id: crypto.randomUUID(),
+      assetId,
+      sceneStartFrame,
+      sceneDurationFrames: scene.durationFrames,
+      localFrame: frame - sceneStartFrame,
+      sourceDurationSeconds: durationSeconds,
+    });
+    if (!clip) return false;
+    const region: SpeakerRegion = {
+      id: crypto.randomUUID(),
+      audioClipId: clip.id,
+      startSeconds: 0,
+      endSeconds: durationSeconds,
+      speakerId: null,
+      status: "unknown",
+    };
+    projects.editAudio((current: AudioProjectCollections) => ({
+      ...current,
+      audioClips: { ...current.audioClips, [clip.id]: clip },
+      speakerRegions: { ...current.speakerRegions, [region.id]: region },
+    }));
+    setTimelineAudioSelection({
+      projectId: projects.active!.id,
+      assetId,
+      clipId: clip.id,
+      regionId: region.id,
+    });
+    seekTimeline(frame);
+    return true;
+  };
+  const importAudioAtScene = async (
+    file: File,
+    sceneId: string,
+    frame: number,
+  ) => {
+    const durationSeconds = await new Promise<number>((resolve, reject) => {
+      const audio = new Audio();
+      const url = URL.createObjectURL(file);
+      audio.preload = "metadata";
+      audio.src = url;
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(url);
+        resolve(audio.duration);
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("فایل صوتی قابل خواندن نیست."));
+      };
+    }).catch(() => Number.NaN);
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return false;
+    const imported = await projects.uploadAudio(file, durationSeconds);
+    return imported
+      ? placeAudioAsset(
+          imported.assetId,
+          sceneId,
+          frame,
+          imported.durationSeconds,
+          true,
+        )
+      : false;
+  };
   const playTimeline = () => {
-    playStartFrameRef.current = activePlayback.frame >= totalFrames ? 0 : activePlayback.frame;
+    playStartFrameRef.current =
+      activePlayback.frame >= totalFrames ? 0 : activePlayback.frame;
     setProjectPlayback((current) => startPlayback(current, totalFrames));
   };
   const pauseTimeline = () => setProjectPlayback(pausePlayback);
-  const stopTimeline = () => { playStartFrameRef.current = 0; setProjectPlayback(() => stopPlayback()); };
+  const stopTimeline = () => {
+    playStartFrameRef.current = 0;
+    setProjectPlayback(() => stopPlayback());
+  };
   const jumpScene = (direction: -1 | 1) => {
     if (!activeSceneTime) return;
     const nextId = projects.sceneOrder[activeSceneTime.sceneIndex + direction];
     if (nextId) selectScene(nextId);
   };
   const moveScene = (sceneId: string, index: number) => {
-    const next = reorderScene({ sceneOrder: projects.sceneOrder, scenes: projects.scenes }, sceneId, index);
+    const next = reorderScene(
+      { sceneOrder: projects.sceneOrder, scenes: projects.scenes },
+      sceneId,
+      index,
+    );
     projects.editScenes(() => next);
     keepActiveScenePosition(next);
   };
-  const editActionEvents = (sceneId: string, update: (scene: SceneDefinition) => SceneDefinition) => {
+  const editActionEvents = (
+    sceneId: string,
+    update: (scene: SceneDefinition) => SceneDefinition,
+  ) => {
     try {
       projects.editScenes((sequence) => {
         const scene = sequence.scenes[sceneId];
         if (!scene) return sequence;
-        return { ...sequence, scenes: { ...sequence.scenes, [sceneId]: update(scene) } };
+        return {
+          ...sequence,
+          scenes: { ...sequence.scenes, [sceneId]: update(scene) },
+        };
       });
     } catch (error) {
-      projects.setError(error instanceof Error ? error.message : "تغییر حرکت در سکانس ذخیره نشد.");
+      projects.setError(
+        error instanceof Error
+          ? error.message
+          : "تغییر حرکت در سکانس ذخیره نشد.",
+      );
     }
   };
-  const selectActionEvent = (eventId: string) => {
-    if (activeSceneId) setSelectedActionEvent({ scopeKey: activeScopeKey, eventId });
+  const selectActionEvent = (eventId: string, sceneId = activeSceneId) => {
+    if (sceneId)
+      setSelectedActionEvent({
+        scopeKey: `${activeProjectId ?? ""}:${sceneId}`,
+        eventId,
+      });
     setActiveSection("animations");
     dispatchPanel({ type: "view", view: "properties" });
     dispatchPanel({ type: "selection" });
   };
   const previewActionEvent = (event: SceneActionEvent) => {
-    const entry = computeSceneOffsets(projects.sceneOrder, projects.scenes).find((item) => item.sceneId === activeSceneId);
+    const entry = computeSceneOffsets(
+      projects.sceneOrder,
+      projects.scenes,
+    ).find((item) => item.sceneId === activeSceneId);
     if (!entry || !event.enabled) return;
     const frame = entry.startFrame + event.startFrame;
     playStartFrameRef.current = frame;
     setProjectPlayback(() => ({ frame, status: "playing" }));
   };
+
+  const initialTimelineAudioSelection = (() => {
+    const selectedAudio = timelineAudioSelection;
+    if (!selectedAudio || selectedAudio.projectId !== projects.active?.id)
+      return null;
+    return {
+      assetId: selectedAudio.assetId,
+      clipId: selectedAudio.clipId,
+      regionId: selectedAudio.regionId,
+    };
+  })();
 
   const sectionEditor =
     activeSection === "projects" ? (
@@ -753,9 +1337,26 @@ export function EditorShell() {
       />
     ) : activeSection === "scenes" ? (
       <SceneManagementPanel
-        canEdit={Boolean(projects.active)} sceneOrder={projects.sceneOrder} scenes={projects.scenes} fps={projectFps} activeSceneId={activeSceneId} onHelp={setHelpTopic}
-        onCreate={addScene} onSelect={selectScene} onDuplicate={cloneScene} onDelete={removeScene} onReorder={moveScene}
-        onRename={(id, name) => { try { projects.editScenes((current) => renameScene(current, id, name)); } catch (error) { projects.setError(error instanceof Error ? error.message : "نام سکانس معتبر نیست."); } }}
+        canEdit={Boolean(projects.active)}
+        sceneOrder={projects.sceneOrder}
+        scenes={projects.scenes}
+        fps={projectFps}
+        activeSceneId={activeSceneId}
+        onHelp={setHelpTopic}
+        onCreate={addScene}
+        onSelect={selectScene}
+        onDuplicate={cloneScene}
+        onDelete={removeScene}
+        onReorder={moveScene}
+        onRename={(id, name) => {
+          try {
+            projects.editScenes((current) => renameScene(current, id, name));
+          } catch (error) {
+            projects.setError(
+              error instanceof Error ? error.message : "نام سکانس معتبر نیست.",
+            );
+          }
+        }}
       />
     ) : activeSection === "environments" ? (
       <EnvironmentEditor
@@ -778,10 +1379,70 @@ export function EditorShell() {
         onUpload={projects.uploadDisplay}
         onHelp={(topic) => setHelpTopic(topic)}
       />
+    ) : activeSection === "audio" ? (
+      <AudioEditor
+        key={projects.active?.id ?? ""}
+        project={projects.active}
+        audio={projects.audio}
+        fps={projectFps}
+        busy={projects.busy}
+        projectEndFrame={totalFrames}
+        initialSelection={initialTimelineAudioSelection}
+        scene={
+          activeScene && activeSceneTime
+            ? {
+                id: activeScene.id,
+                name: activeScene.name,
+                startFrame: activeSceneTime.startFrame,
+                durationFrames: activeScene.durationFrames,
+                localFrame: activeSceneTime.localFrame,
+              }
+            : null
+        }
+        onSelectClip={(assetId, clipId, regionId) => {
+          if (!projects.active || !assetId || !clipId) {
+            setTimelineAudioSelection(null);
+            return;
+          }
+          setTimelineAudioSelection({
+            projectId: projects.active.id,
+            assetId,
+            clipId,
+            ...(regionId ? { regionId } : {}),
+          });
+        }}
+        onHelp={setHelpTopic}
+        onUpload={projects.uploadAudio}
+        onDelete={projects.deleteAudioAsset}
+        onReplace={projects.replaceAudioAsset}
+        onEdit={projects.editAudio}
+      />
     ) : activeSection === "animations" ? (
-      <SceneActionEditor key={`${projects.active?.id ?? ""}:${activeScene?.id ?? ""}`} scene={activeScene} characters={sceneCharacterData} arrangement={sceneArrangement} fps={projectFps} localFrame={activeSceneTime?.localFrame ?? 0}
-        selectedEventId={selectedActionEventRecord?.id ?? null} onHelp={setHelpTopic} onSelectEvent={selectActionEvent} onReorderEvent={(id, index) => activeScene && editActionEvents(activeScene.id, (scene) => reorderSceneActionEvent(scene, id, index))}
-        onAdd={(event) => { if (activeScene) { editActionEvents(activeScene.id, (scene) => addSceneActionEvent(scene, event)); selectActionEvent(event.id); } }} />
+      <SceneActionEditor
+        key={`${projects.active?.id ?? ""}:${activeScene?.id ?? ""}`}
+        scene={activeScene}
+        characters={sceneCharacterData}
+        arrangement={sceneArrangement}
+        fps={projectFps}
+        localFrame={activeSceneTime?.localFrame ?? 0}
+        selectedEventId={selectedActionEventRecord?.id ?? null}
+        onHelp={setHelpTopic}
+        onSelectEvent={selectActionEvent}
+        onReorderEvent={(id, index) =>
+          activeScene &&
+          editActionEvents(activeScene.id, (scene) =>
+            reorderSceneActionEvent(scene, id, index),
+          )
+        }
+        onAdd={(event) => {
+          if (activeScene) {
+            editActionEvents(activeScene.id, (scene) =>
+              addSceneActionEvent(scene, event),
+            );
+            selectActionEvent(event.id);
+          }
+        }}
+      />
     ) : (
       <SectionContent section={activeSection} />
     );
@@ -835,9 +1496,28 @@ export function EditorShell() {
         onHelp={setHelpTopic}
       />
     ) : activeSection === "animations" ? (
-      <SceneActionInspector scene={activeScene} event={selectedActionEventRecord} characters={sceneCharacterData} arrangement={sceneArrangement} fps={projectFps} onHelp={setHelpTopic}
-        onUpdate={(id, change) => activeScene && editActionEvents(activeScene.id, (scene) => updateSceneActionEvent(scene, id, change))}
-        onDelete={(id) => { if (activeScene) editActionEvents(activeScene.id, (scene) => removeSceneActionEvent(scene, id)); setSelectedActionEvent(null); }} onPreview={previewActionEvent} />
+      <SceneActionInspector
+        scene={activeScene}
+        event={selectedActionEventRecord}
+        characters={sceneCharacterData}
+        arrangement={sceneArrangement}
+        fps={projectFps}
+        onHelp={setHelpTopic}
+        onUpdate={(id, change) =>
+          activeScene &&
+          editActionEvents(activeScene.id, (scene) =>
+            updateSceneActionEvent(scene, id, change),
+          )
+        }
+        onDelete={(id) => {
+          if (activeScene)
+            editActionEvents(activeScene.id, (scene) =>
+              removeSceneActionEvent(scene, id),
+            );
+          setSelectedActionEvent(null);
+        }}
+        onPreview={previewActionEvent}
+      />
     ) : activeSection === "scenes" ? (
       <SceneConfigurationPanel
         scene={activeScene}
@@ -846,24 +1526,117 @@ export function EditorShell() {
         arrangement={sceneArrangement}
         resolutionWarning={sceneArrangementResolution.warning}
         anchors={characterEnvironment?.characterAnchors ?? []}
-        onEnvironmentChange={(environmentId) => { if (activeScene) projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes, [activeScene.id]: setSceneEnvironment(activeScene, environmentId) } })); }}
-        onCharacterAdd={(id) => { const state = projects.characterData.characterStates[id]; if (activeScene && state) projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes, [activeScene.id]: setSceneCharacter(activeScene, id, characterConfigFromState(state)) } })); }}
-        onCharacterRemove={(id) => { if (activeScene) projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes, [activeScene.id]: setSceneCharacter(activeScene, id, null) } })); if (selectedCharacterId === id) setCharacterSelection(null); }}
-        onCharacterChange={(id, change) => { if (activeScene) projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes, [activeScene.id]: updateSceneCharacter(activeScene, id, change) } })); }}
-        onPropChange={(id, change) => { try { if (activeScene) projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes, [activeScene.id]: setScenePropOverride(activeScene, id, change) } })); } catch (error) { projects.setError(error instanceof Error ? error.message : "تغییر وسیله انجام نشد."); } }}
-        onLightingChange={(lighting) => { if (activeScene) projects.editScenes((sequence) => ({ ...sequence, scenes: { ...sequence.scenes, [activeScene.id]: setSceneLighting(activeScene, lighting) } })); }}
-        onCameraChange={(camera) => { if (activeScene) projects.editScenes((sequence) => setSceneCamera(sequence, activeScene.id, camera)); }}
-        onCameraPreset={(preset: SceneCameraPresetId) => { if (activeScene && sceneArrangement) projects.editScenes((sequence) => setSceneCamera(sequence, activeScene.id, applySceneCameraPreset(activeScene, preset, sceneArrangement, projects.characterData))); }}
+        onEnvironmentChange={(environmentId) => {
+          if (activeScene)
+            projects.editScenes((sequence) => ({
+              ...sequence,
+              scenes: {
+                ...sequence.scenes,
+                [activeScene.id]: setSceneEnvironment(
+                  activeScene,
+                  environmentId,
+                ),
+              },
+            }));
+        }}
+        onCharacterAdd={(id) => {
+          const state = projects.characterData.characterStates[id];
+          if (activeScene && state)
+            projects.editScenes((sequence) => ({
+              ...sequence,
+              scenes: {
+                ...sequence.scenes,
+                [activeScene.id]: setSceneCharacter(
+                  activeScene,
+                  id,
+                  characterConfigFromState(state),
+                ),
+              },
+            }));
+        }}
+        onCharacterRemove={(id) => {
+          if (activeScene)
+            projects.editScenes((sequence) => ({
+              ...sequence,
+              scenes: {
+                ...sequence.scenes,
+                [activeScene.id]: setSceneCharacter(activeScene, id, null),
+              },
+            }));
+          if (selectedCharacterId === id) setCharacterSelection(null);
+        }}
+        onCharacterChange={(id, change) => {
+          if (activeScene)
+            projects.editScenes((sequence) => ({
+              ...sequence,
+              scenes: {
+                ...sequence.scenes,
+                [activeScene.id]: updateSceneCharacter(activeScene, id, change),
+              },
+            }));
+        }}
+        onPropChange={(id, change) => {
+          try {
+            if (activeScene)
+              projects.editScenes((sequence) => ({
+                ...sequence,
+                scenes: {
+                  ...sequence.scenes,
+                  [activeScene.id]: setScenePropOverride(
+                    activeScene,
+                    id,
+                    change,
+                  ),
+                },
+              }));
+          } catch (error) {
+            projects.setError(
+              error instanceof Error ? error.message : "تغییر وسیله انجام نشد.",
+            );
+          }
+        }}
+        onLightingChange={(lighting) => {
+          if (activeScene)
+            projects.editScenes((sequence) => ({
+              ...sequence,
+              scenes: {
+                ...sequence.scenes,
+                [activeScene.id]: setSceneLighting(activeScene, lighting),
+              },
+            }));
+        }}
+        onCameraChange={(camera) => {
+          if (activeScene)
+            projects.editScenes((sequence) =>
+              setSceneCamera(sequence, activeScene.id, camera),
+            );
+        }}
+        onCameraPreset={(preset: SceneCameraPresetId) => {
+          if (activeScene && sceneArrangement)
+            projects.editScenes((sequence) =>
+              setSceneCamera(
+                sequence,
+                activeScene.id,
+                applySceneCameraPreset(
+                  activeScene,
+                  preset,
+                  sceneArrangement,
+                  projects.characterData,
+                ),
+              ),
+            );
+        }}
         onSaveEditorView={saveEditorCameraToScene}
-        previewing={productionCameraPreview} inspectionActive={Boolean(inspectPropId)} onPreviewChange={setProductionCameraPreview} onHelp={setHelpTopic}
+        previewing={productionCameraPreview}
+        inspectionActive={Boolean(inspectPropId)}
+        onPreviewChange={setProductionCameraPreview}
+        onHelp={setHelpTopic}
       />
     ) : (
       <PropertiesPanel
         section={activeSection}
         projectTitle={projects.active?.title}
-        arrangement={
-          activeSection === "environments" ? sceneArrangement : null
-        }
+        arrangement={activeSection === "environments" ? sceneArrangement : null}
         selectedId={selectedId}
         editing={objectEdit.editingId === selectedId}
         onEnterEdit={() =>
@@ -873,9 +1646,8 @@ export function EditorShell() {
             STUDIO_01.propDefinitions.find(
               (definition) =>
                 definition.id ===
-                sceneArrangement?.props.find(
-                  (prop) => prop.id === selectedId,
-                )?.definitionId,
+                sceneArrangement?.props.find((prop) => prop.id === selectedId)
+                  ?.definitionId,
             )?.editable !== false,
           )
         }
@@ -906,44 +1678,109 @@ export function EditorShell() {
       >
         پرش به محتوای اصلی
       </a>
-      <WorkspaceHeader projectTitle={projects.active?.title} saveStatus={projects.saveStatus} onHelp={() => setHelpTopic("all")} />
+      <WorkspaceHeader
+        projectTitle={projects.active?.title}
+        saveStatus={projects.saveStatus}
+        onHelp={() => setHelpTopic("all")}
+      />
+      <AudioTimelinePlayback
+        projectId={projects.active?.id ?? null}
+        clips={Object.values(projects.audio.audioClips)}
+        fps={projectFps}
+        frame={activePlayback.frame}
+        playing={activePlayback.status === "playing"}
+      />
       <div
         className={`editor-layout grid min-h-0 flex-1 ${navigationCollapsed ? "navigation-is-collapsed" : ""}`}
-        style={{ "--navigation-width": navigationCollapsed ? "68px" : "220px" } as CSSProperties}
+        style={
+          {
+            "--navigation-width": navigationCollapsed ? "68px" : "220px",
+          } as CSSProperties
+        }
         dir="rtl"
       >
-        <WorkspaceNavigation activeSection={activeSection} onSelect={openSection} collapsed={navigationCollapsed} onToggleCollapsed={() => setNavigationCollapsed((value) => !value)} onHelp={setHelpTopic} />
-        <main className="editor-workspace flex min-h-0 min-w-0 flex-col gap-2 p-2.5 max-[1120px]:p-2 max-[650px]:gap-2 max-[650px]:p-2">
+        <WorkspaceNavigation
+          activeSection={activeSection}
+          onSelect={openSection}
+          collapsed={navigationCollapsed}
+          onToggleCollapsed={() => setNavigationCollapsed((value) => !value)}
+          onHelp={setHelpTopic}
+        />
+        <main
+          className={`editor-workspace flex min-h-0 min-w-0 flex-col gap-2 p-2.5 max-[1120px]:p-2 max-[650px]:gap-2 max-[650px]:p-2 ${timelineCollapsed ? "timeline-is-collapsed" : ""}`}
+        >
           <div className="workspace-section-bar flex min-h-8 flex-none items-center justify-between gap-3 border-b border-line px-1 pb-1">
-            <div className="flex min-w-0 items-center gap-2"><span className="min-w-0 truncate text-xs font-semibold text-[#c9d8e5]">{activeItem?.label ?? "فضای کار"}</span>
-              <ContextHelpTrigger topic={activeSection === "help" ? "workspace" : activeSection === "animations" ? "timelineActions" : activeSection as ContextHelpId} onOpen={setHelpTopic} />
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="min-w-0 truncate text-xs font-semibold text-[#c9d8e5]">
+                {activeItem?.label ?? "فضای کار"}
+              </span>
+              <ContextHelpTrigger
+                topic={
+                  activeSection === "help"
+                    ? "workspace"
+                    : activeSection === "animations"
+                      ? "timelineActions"
+                      : (activeSection as ContextHelpId)
+                }
+                onOpen={setHelpTopic}
+              />
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
-            <button type="button" className="workspace-compact-action max-[850px]:hidden" title="بازنشانی اندازه و وضعیت پنل‌ها" onClick={() => { setNavigationCollapsed(false); setInspectorWidth(304); setTimelineHeight(280); setTimelineCollapsed(false); dispatchPanel({ type: "section" }); }}>بازنشانی چیدمان</button>
-            <button type="button" className="workspace-compact-action" aria-expanded={!timelineCollapsed} aria-controls="scene-timeline-panel" onClick={() => setTimelineCollapsed((value) => !value)} title={timelineCollapsed ? "بازکردن تایم‌لاین" : "جمع‌کردن تایم‌لاین"}>{timelineCollapsed ? "بازکردن تایم‌لاین" : "جمع‌کردن تایم‌لاین"}</button>
-            <button
-              type="button"
-              className="flex-none rounded-md px-2 py-1 text-xs text-[#c9d8e5] transition-colors duration-150 hover:bg-[#243244] hover:text-white focus-visible:outline-2 focus-visible:outline-accent"
-              aria-expanded={inspectorOpen}
-              aria-controls="workspace-inspector"
-              onClick={() => dispatchPanel({ type: "toggle" })}
-            >
-              {inspectorOpen ? "بستن پنل" : "نمایش پنل و ویژگی‌ها"}
-            </button>
+              <button
+                type="button"
+                className="workspace-compact-action max-[850px]:hidden"
+                title="اندازه و نمایش پنل‌ها را به چیدمان آغازین برمی‌گرداند."
+                onClick={() => {
+                  setNavigationCollapsed(false);
+                  setInspectorWidth(280);
+                  setTimelineHeight(230);
+                  setTimelineCollapsed(false);
+                  dispatchPanel({ type: "section" });
+                }}
+              >
+                بازنشانی چیدمان
+              </button>
+              <button
+                type="button"
+                className="workspace-compact-action"
+                aria-expanded={!timelineCollapsed}
+                aria-controls="scene-timeline-panel"
+                onClick={() => setTimelineCollapsed((value) => !value)}
+                title={
+                  timelineCollapsed ? "بازکردن تایم‌لاین" : "جمع‌کردن تایم‌لاین"
+                }
+              >
+                {timelineCollapsed ? "بازکردن تایم‌لاین" : "جمع‌کردن تایم‌لاین"}
+              </button>
+              <button
+                type="button"
+                className="flex-none rounded-md px-2 py-1 text-xs text-[#c9d8e5] transition-colors duration-150 hover:bg-[#243244] hover:text-white focus-visible:outline-2 focus-visible:outline-accent"
+                aria-expanded={inspectorOpen}
+                aria-controls="workspace-inspector"
+                onClick={() => dispatchPanel({ type: "toggle" })}
+              >
+                {inspectorOpen ? "بستن پنل" : "نمایش پنل و ویژگی‌ها"}
+              </button>
             </div>
           </div>
           <div
             className={`workspace-main min-h-0 flex-1 ${inspectorOpen ? "workspace-main-with-inspector" : "workspace-main-without-inspector"}`}
-            style={{ "--inspector-width": `${inspectorWidth}px` } as CSSProperties}
+            style={
+              { "--inspector-width": `${inspectorWidth}px` } as CSSProperties
+            }
           >
             <section
               className="workspace-canvas relative min-h-0 min-w-0"
               data-scene-id={activeSceneId ?? undefined}
               aria-label="پیش‌نمایش سه‌بعدی"
             >
-              {activeSceneId && <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border border-line/80 bg-[#101722]/85 px-2.5 py-1 text-[11px] text-[#d7e5ef]">
-                صحنه {projects.sceneOrder.indexOf(activeSceneId) + 1} · {projects.scenes[activeSceneId]?.name} <span className="text-[#9fb1c3]">(دوربین ویرایش جداست)</span>
-              </div>}
+              {activeSceneId && (
+                <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border border-line/80 bg-[#101722]/85 px-2.5 py-1 text-[11px] text-[#d7e5ef]">
+                  صحنه {projects.sceneOrder.indexOf(activeSceneId) + 1} ·{" "}
+                  {projects.scenes[activeSceneId]?.name}{" "}
+                  <span className="text-[#9fb1c3]">(دوربین ویرایش جداست)</span>
+                </div>
+              )}
               <StudioViewport
                 arrangement={sceneArrangement}
                 selectedId={selectedId}
@@ -968,15 +1805,30 @@ export function EditorShell() {
                 onCharacterPreviewComplete={finishCharacterPreview}
                 productionCamera={activeScene?.productionCamera}
                 productionCameraTarget={productionCameraTarget}
-                productionCameraPreview={productionCameraPreview && Boolean(activeScene)}
+                productionCameraPreview={
+                  productionCameraPreview && Boolean(activeScene)
+                }
                 onCameraCaptureReady={setEditorCameraCapture}
                 onSaveProductionCamera={() => void saveEditorCameraToScene()}
                 onProductionCameraPreviewChange={setProductionCameraPreview}
-                cameraSaveMessage={cameraSaveMessage?.sceneId === activeSceneId ? cameraSaveMessage.text : null}
+                cameraSaveMessage={
+                  cameraSaveMessage?.sceneId === activeSceneId
+                    ? cameraSaveMessage.text
+                    : null
+                }
                 onHelp={setHelpTopic}
               />
             </section>
-            {inspectorOpen && <WorkspaceResizeHandle axis="x" value={inspectorWidth} min={250} max={440} onChange={setInspectorWidth} label="تغییر عرض پنل ویژگی‌ها" />}
+            {inspectorOpen && (
+              <WorkspaceResizeHandle
+                axis="x"
+                value={inspectorWidth}
+                min={250}
+                max={440}
+                onChange={setInspectorWidth}
+                label="تغییر عرض پنل ویژگی‌ها"
+              />
+            )}
             <aside
               id="workspace-inspector"
               className={`workspace-inspector min-h-0 ${inspectorOpen ? "workspace-inspector-open" : "workspace-inspector-closed"}`}
@@ -984,48 +1836,97 @@ export function EditorShell() {
               aria-hidden={!inspectorOpen}
             >
               <div className="workspace-inspector-heading flex min-h-[42px] flex-none items-center gap-2 border-b border-line px-3">
-                <span className="h-[15px] w-[3px] rounded bg-accent" aria-hidden="true"/>
-                <h2 id="workspace-inspector-title" className="min-w-0 flex-1 truncate text-xs font-bold">
-                  {activeSection === "projects" ? "مدیریت پروژه‌ها" : activeSection === "characters" && selectedCharacterId ? `شخصیت · ${selectedCharacterIdentity?.name ?? "ویژگی‌ها"}` : activeSection === "environments" && selectedPropLabel ? `وسیله · ${selectedPropLabel}` : activeSection === "scenes" && activeScene && inspectorView === "properties" ? `سکانس · ${activeScene.name}` : activeItem?.label ?? "فضای کار"}
+                <span
+                  className="h-[15px] w-[3px] rounded bg-accent"
+                  aria-hidden="true"
+                />
+                <h2
+                  id="workspace-inspector-title"
+                  className="min-w-0 flex-1 truncate text-xs font-bold"
+                >
+                  {activeSection === "projects"
+                    ? "مدیریت پروژه‌ها"
+                    : activeSection === "characters" && selectedCharacterId
+                      ? `شخصیت · ${selectedCharacterIdentity?.name ?? "ویژگی‌ها"}`
+                      : activeSection === "environments" && selectedPropLabel
+                        ? `وسیله · ${selectedPropLabel}`
+                        : activeSection === "scenes" &&
+                            activeScene &&
+                            inspectorView === "properties"
+                          ? `سکانس · ${activeScene.name}`
+                          : (activeItem?.label ?? "فضای کار")}
                 </h2>
-                <ContextHelpTrigger topic={inspectorHelpTopic} onOpen={setHelpTopic}/>
-                <button type="button" className="hidden rounded-md px-2 py-1 text-xs focus-visible:outline-2 focus-visible:outline-accent max-[650px]:inline-flex" onClick={() => dispatchPanel({ type: "close" })} aria-label="بستن پنل ویرایش" title="پنل را می‌بندد؛ انتخاب‌ها و تغییرهای ذخیره‌نشده باقی می‌مانند.">✕</button>
+                <ContextHelpTrigger
+                  topic={inspectorHelpTopic}
+                  onOpen={setHelpTopic}
+                />
+                <button
+                  type="button"
+                  className="hidden rounded-md px-2 py-1 text-xs focus-visible:outline-2 focus-visible:outline-accent max-[767px]:inline-flex"
+                  data-close-mobile-inspector
+                  onClick={closeInspector}
+                  aria-label="بستن پنل ویرایش"
+                  title="پنل را می‌بندد؛ انتخاب‌ها و تغییرهای ذخیره‌نشده باقی می‌مانند."
+                >
+                  ✕
+                </button>
               </div>
-              {(activeSection === "characters" || activeSection === "scenes" || activeSection === "environments" || activeSection === "animations") && <div className="workspace-inspector-tabs flex flex-none items-center border-b border-line" role="tablist" aria-label="نمایش ابزارها یا ویژگی‌های انتخاب‌شده">
-                <button
-                  type="button"
-                  role="tab"
-                  id="workspace-section-tab"
-                  aria-controls="workspace-section-pane"
-                  aria-selected={inspectorView === "section"}
-                  title="ابزارهای فهرست و مدیریت همین بخش را باز می‌کند و انتخاب‌های شما را نگه می‌دارد."
-                  className="workspace-inspector-tab min-w-0 flex-1 truncate px-3 py-2.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-accent"
-                  onClick={() =>
-                    dispatchPanel({ type: "view", view: "section" })
-                  }
+              {(activeSection === "characters" ||
+                activeSection === "scenes" ||
+                activeSection === "environments" ||
+                activeSection === "animations") && (
+                <div
+                  className="workspace-inspector-tabs flex flex-none items-center border-b border-line"
+                  role="tablist"
+                  aria-label="نمایش ابزارها یا ویژگی‌های انتخاب‌شده"
                 >
-                  {activeItem?.label ? `${activeItem.label} · ابزارها` : "ابزارهای بخش"}
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  id="workspace-properties-tab"
-                  aria-controls="workspace-properties-pane"
-                  aria-selected={inspectorView === "properties"}
-                  title="کنترل‌های ویرایش مربوط به سکانس، شخصیت یا وسیلهٔ انتخاب‌شده را نشان می‌دهد."
-                  className="workspace-inspector-tab min-w-0 flex-1 px-3 py-2.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-accent"
-                  onClick={() =>
-                    dispatchPanel({ type: "view", view: "properties" })
-                  }
-                >
-                  {activeSection === "animations" ? "ویژگی‌های رویداد" : selectedCharacterId ? "ویژگی‌های شخصیت" : selectedPropLabel ? "ویژگی‌های وسیله" : activeSection === "scenes" && activeScene ? "تنظیمات سکانس" : "ویژگی‌های محیط"}
-                </button>
-              </div>}
+                  <button
+                    type="button"
+                    role="tab"
+                    id="workspace-section-tab"
+                    aria-controls="workspace-section-pane"
+                    aria-selected={inspectorView === "section"}
+                    title="ابزارهای فهرست و مدیریت همین بخش را باز می‌کند و انتخاب‌های شما را نگه می‌دارد."
+                    className="workspace-inspector-tab min-w-0 flex-1 truncate px-3 py-2.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-accent"
+                    onClick={() =>
+                      dispatchPanel({ type: "view", view: "section" })
+                    }
+                  >
+                    {activeItem?.label
+                      ? `${activeItem.label} · ابزارها`
+                      : "ابزارهای بخش"}
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    id="workspace-properties-tab"
+                    aria-controls="workspace-properties-pane"
+                    aria-selected={inspectorView === "properties"}
+                    title="کنترل‌های ویرایش مربوط به سکانس، شخصیت یا وسیلهٔ انتخاب‌شده را نشان می‌دهد."
+                    className="workspace-inspector-tab min-w-0 flex-1 px-3 py-2.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-accent"
+                    onClick={() =>
+                      dispatchPanel({ type: "view", view: "properties" })
+                    }
+                  >
+                    {activeSection === "animations"
+                      ? "ویژگی‌های رویداد"
+                      : selectedCharacterId
+                        ? "ویژگی‌های شخصیت"
+                        : selectedPropLabel
+                          ? "ویژگی‌های وسیله"
+                          : activeSection === "scenes" && activeScene
+                            ? "تنظیمات سکانس"
+                            : "ویژگی‌های محیط"}
+                  </button>
+                </div>
+              )}
               <div
                 id="workspace-section-pane"
                 role="tabpanel"
                 aria-labelledby="workspace-inspector-title"
-                hidden={activeSection !== "projects" && inspectorView !== "section"}
+                hidden={
+                  activeSection !== "projects" && inspectorView !== "section"
+                }
                 className="workspace-pane min-h-0 flex-1"
               >
                 {sectionEditor}
@@ -1034,38 +1935,183 @@ export function EditorShell() {
                 id="workspace-properties-pane"
                 role="tabpanel"
                 aria-labelledby="workspace-inspector-title"
-                hidden={!(activeSection === "characters" || activeSection === "scenes" || activeSection === "environments" || activeSection === "animations") || inspectorView !== "properties"}
+                hidden={
+                  !(
+                    activeSection === "characters" ||
+                    activeSection === "scenes" ||
+                    activeSection === "environments" ||
+                    activeSection === "animations"
+                  ) || inspectorView !== "properties"
+                }
                 className="workspace-pane min-h-0 flex-1"
               >
                 {propertiesEditor}
               </div>
             </aside>
           </div>
-          {!timelineCollapsed && <WorkspaceResizeHandle axis="y" value={timelineHeight} min={220} max={380} invert label="تغییر ارتفاع تایم‌لاین" onChange={setTimelineHeight} />}
-          {timelineCollapsed ? <div id="scene-timeline-panel" className="workspace-timeline-collapsed"><span>تایم‌لاین جمع شده</span><button type="button" className="workspace-compact-action" onClick={() => setTimelineCollapsed(false)}>بازکردن</button></div> : <div id="scene-timeline-panel" className="workspace-timeline flex-none" style={{ height: `${timelineHeight}px` }}>
-            <SceneAuthoring canEdit={Boolean(projects.active)} sceneOrder={projects.sceneOrder} scenes={projects.scenes} fps={projectFps} currentFrame={activePlayback.frame} totalFrames={totalFrames} onHelp={setHelpTopic} activeWorkspace={activeSection === "animations" ? "animations" : "scenes"} localFrame={activeSceneTime?.localFrame ?? 0} characterCapabilities={characterActionSupport.capabilities} gazeSupportedIds={characterActionSupport.gazeIds}
-              activeSceneId={activeSceneId} playbackStatus={activePlayback.status} onCreate={addScene} onSelect={selectScene}
-              onRename={(id, name) => { try { projects.editScenes((current) => renameScene(current, id, name)); } catch (error) { projects.setError(error instanceof Error ? error.message : "نام صحنه معتبر نیست."); } }}
-              onContentChange={(id, content) => { try { projects.editScenes((current) => updateSceneContent(current, id, content)); } catch (error) { projects.setError(error instanceof Error ? error.message : "محتوای صحنه معتبر نیست."); } }}
-              onDuplicate={cloneScene} onDelete={removeScene}
-              onReorder={moveScene}
-              onDurationChange={updateSceneDuration} onFrameRateChange={changeProjectFrameRate} onPlay={playTimeline} onPause={pauseTimeline} onStop={stopTimeline}
-              onSeek={seekTimeline} onPreviousScene={() => jumpScene(-1)} onNextScene={() => jumpScene(1)} selectedEventId={selectedActionEventRecord?.id ?? null}
-              characterNames={Object.fromEntries(Object.values(sceneCharacterData.characterInstances).flatMap((instance) => {
-                const identity = sceneCharacterData.characterIdentities[instance.characterId];
-                return identity ? [[instance.id, identity.name]] : [];
-              }))}
-              onSelectEvent={selectActionEvent} onSeekEvent={seekTimeline}
-              onReorderEvent={(id, index) => activeScene && editActionEvents(activeScene.id, (scene) => reorderSceneActionEvent(scene, id, index))}
-              onMoveEvent={(id, startFrame) => activeScene && editActionEvents(activeScene.id, (scene) => moveSceneActionEvent(scene, id, startFrame))} />
-          </div>}
+          {!timelineCollapsed && (
+            <WorkspaceResizeHandle
+              axis="y"
+              value={timelineHeight}
+              min={190}
+              max={360}
+              invert
+              label="تغییر ارتفاع تایم‌لاین"
+              onChange={setTimelineHeight}
+            />
+          )}
+          {timelineCollapsed ? (
+            <div
+              id="scene-timeline-panel"
+              className="workspace-timeline-collapsed"
+            >
+              <span>تایم‌لاین جمع شده</span>
+              <button
+                type="button"
+                className="workspace-compact-action"
+                onClick={() => setTimelineCollapsed(false)}
+              >
+                بازکردن
+              </button>
+            </div>
+          ) : (
+            <div
+              id="scene-timeline-panel"
+              className="workspace-timeline flex-none"
+              style={{ height: `${timelineHeight}px` }}
+            >
+              <SceneAuthoring
+                canEdit={Boolean(projects.active)}
+                sceneOrder={projects.sceneOrder}
+                scenes={projects.scenes}
+                fps={projectFps}
+                currentFrame={activePlayback.frame}
+                totalFrames={totalFrames}
+                onHelp={setHelpTopic}
+                activeWorkspace={
+                  activeSection === "animations" ? "animations" : "scenes"
+                }
+                activeSceneId={activeSceneId}
+                playbackStatus={activePlayback.status}
+                onCreate={addScene}
+                onSelect={selectScene}
+                onRename={(id, name) => {
+                  try {
+                    projects.editScenes((current) =>
+                      renameScene(current, id, name),
+                    );
+                  } catch (error) {
+                    projects.setError(
+                      error instanceof Error
+                        ? error.message
+                        : "نام صحنه معتبر نیست.",
+                    );
+                  }
+                }}
+                onContentChange={(id, content) => {
+                  try {
+                    projects.editScenes((current) =>
+                      updateSceneContent(current, id, content),
+                    );
+                  } catch (error) {
+                    projects.setError(
+                      error instanceof Error
+                        ? error.message
+                        : "محتوای صحنه معتبر نیست.",
+                    );
+                  }
+                }}
+                onDuplicate={cloneScene}
+                onDelete={removeScene}
+                onReorder={moveScene}
+                onDurationChange={updateSceneDuration}
+                onFrameRateChange={changeProjectFrameRate}
+                onPlay={playTimeline}
+                onPause={pauseTimeline}
+                onStop={stopTimeline}
+                onSeek={seekTimeline}
+                onPreviousScene={() => jumpScene(-1)}
+                onNextScene={() => jumpScene(1)}
+                selectedEventId={selectedActionEventRecord?.id ?? null}
+                audio={projects.audio}
+                assetNames={Object.fromEntries(
+                  Object.values(projects.active?.assetManifest ?? {})
+                    .filter((asset) => asset.kind === "audio")
+                    .map((asset) => [asset.id, asset.displayName]),
+                )}
+                selectedAudioClipId={
+                  initialTimelineAudioSelection?.clipId ?? null
+                }
+                selectedSpeakerRegionId={
+                  initialTimelineAudioSelection?.regionId ?? null
+                }
+                characterNames={Object.fromEntries(
+                  Object.values(
+                    projects.characterData.characterInstances,
+                  ).flatMap((instance) => {
+                    const identity =
+                      projects.characterData.characterIdentities[
+                        instance.characterId
+                      ];
+                    return identity ? [[instance.id, identity.name]] : [];
+                  }),
+                )}
+                identityNames={Object.fromEntries(
+                  Object.values(projects.characterData.characterIdentities).map(
+                    (identity) => [identity.id, identity.name],
+                  ),
+                )}
+                assetDurations={Object.fromEntries(
+                  Object.values(projects.active?.assetManifest ?? {})
+                    .filter(
+                      (asset) =>
+                        asset.kind === "audio" &&
+                        asset.audioDurationSeconds !== undefined,
+                    )
+                    .map((asset) => [asset.id, asset.audioDurationSeconds!]),
+                )}
+                onEditAudio={projects.editAudio}
+                onDropAudioFile={importAudioAtScene}
+                onDropAudioAsset={(assetId, sceneId, frame) =>
+                  placeAudioAsset(
+                    assetId,
+                    sceneId,
+                    frame,
+                    projects.active?.assetManifest[assetId]
+                      ?.audioDurationSeconds ?? Number.NaN,
+                  )
+                }
+                onSelectEvent={(sceneId, eventId, frame) => {
+                  seekTimeline(frame);
+                  selectActionEvent(eventId, sceneId);
+                }}
+                onMoveEvent={(sceneId, eventId, startFrame) =>
+                  editActionEvents(sceneId, (scene) =>
+                    moveSceneActionEvent(scene, eventId, startFrame),
+                  )
+                }
+                onSelectAudio={(assetId, clipId, frame, regionId) => {
+                  if (projects.active)
+                    setTimelineAudioSelection({
+                      projectId: projects.active.id,
+                      assetId,
+                      clipId,
+                      ...(regionId ? { regionId } : {}),
+                    });
+                  setActiveSection("audio");
+                  dispatchPanel({ type: "section" });
+                  seekTimeline(frame);
+                }}
+              />
+            </div>
+          )}
         </main>
         {inspectorOpen && (
           <button
             type="button"
             className="workspace-mobile-scrim"
             aria-label="بستن پنل ویرایش"
-            onClick={() => dispatchPanel({ type: "close" })}
+            onClick={closeInspector}
           />
         )}
       </div>

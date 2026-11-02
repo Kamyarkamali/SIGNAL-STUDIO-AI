@@ -38,7 +38,7 @@ test("explicit source timestamps are deterministic, seekable, bounded, and keep 
   assert.deepEqual(repeated, first, "seeking elsewhere cannot change the result for an absolute timestamp");
   assert.ok(Math.abs(first.headRotation[1]) <= 0.3);
   assert.deepEqual(evaluateCharacterPreviewPose({ ...input, sourceTimeSeconds: 5 }).headRotation, [0, 0, 0]);
-  assert.deepEqual(Object.keys(first).sort(), ["headRotation", "leftArmRotation", "rightArmRotation"]);
+  assert.deepEqual(Object.keys(first).sort(), ["headRotation", "leftArmRotation", "leftElbowRotation", "leftHandRotation", "leftWristRotation", "neckRotation", "rightArmRotation", "rightElbowRotation", "rightHandRotation", "rightWristRotation", "torsoRotation"]);
   assert.deepEqual(evaluateCharacterPreviewPose({ ...input, actionId: "head-nod" }), evaluateCharacterPreviewPose({ ...input, actionId: "head-nod" }));
 });
 
@@ -52,6 +52,27 @@ test("emotional and gesture presets are distinct and facial previews require a r
   assert.equal(getPreviewExpression("happy", [...capabilities, "facial-expression"]), "happy");
   assert.equal(isPreviewActionSupported("hand-wave", ["arm-gesture"]), true);
   assert.equal(isPreviewActionSupported("hand-wave", ["head-rotation"]), false);
+});
+
+test("hand-to-chin thinking requires the full named joint chain and interpolates smoothly", () => {
+  const kamyar = characterModelRegistry.get("character-model:kamyar");
+  const joints = kamyar.attachmentPoints;
+  assert.equal(isPreviewActionSupported("thinking", allChannels, []), false);
+  assert.equal(isPreviewActionSupported("thinking", allChannels, joints), true);
+  const sample = (time) => evaluateCharacterPreviewPose({ actionId: "thinking", sourceTimeSeconds: time, durationSeconds: 2.6, capabilities: allChannels, attachmentPoints: joints });
+  const before = sample(0.55); const after = sample(0.551);
+  assert.ok(Math.abs(after.rightElbowRotation[2] - before.rightElbowRotation[2]) < 0.03);
+  assert.ok(before.rightElbowRotation[2] < -0.2);
+  assert.ok(before.rightWristRotation[2] < 0);
+  assert.deepEqual(sample(0.55), sample(0.55));
+});
+
+test("laughing preset coordinates head and upper body while retaining a visible laugh expression", () => {
+  const pose = evaluateCharacterPreviewPose({ actionId: "laughing", sourceTimeSeconds: 0.55, durationSeconds: 1.8, capabilities: allChannels });
+  assert.ok(pose.headRotation[0] !== 0);
+  assert.ok(pose.torsoRotation[0] !== 0);
+  assert.ok(pose.rightElbowRotation[2] !== 0);
+  assert.equal(getPreviewExpression("laughing", allChannels), "laughing");
 });
 
 test("ChatGPT expression presets have distinct visible eye, brow and mouth configurations", async () => {
@@ -68,8 +89,8 @@ test("ChatGPT expression presets have distinct visible eye, brow and mouth confi
   assert.ok(p.surprised.browLift > p.happy.browLift);
   assert.ok(p.excited.mouthScale[0] > p.happy.mouthScale[0]);
   const renderers = await readFile(new URL("../src/components/characters/character-renderers.tsx", import.meta.url), "utf8");
-  assert.match(renderers, /name="eye-shape" scale=\{\[1, poseExpression\.eyeScaleY, 1\]\}/);
-  assert.match(renderers, /name="eyebrow" position=/);
+  assert.match(renderers, /name="eye-shape"\s+scale=\{\[1, poseExpression\.eyeScaleY, 1\]\}/);
+  assert.match(renderers, /name="eyebrow"\s+position=/);
   assert.match(renderers, /name="mouth-display"/);
   assert.match(renderers, /"left-eyebrow" : "right-eyebrow"/);
   assert.match(renderers, /claudeOpenMouth/);
@@ -138,12 +159,12 @@ test("runtime wires renderer facial values into demand rendering without replaci
   const layer = await readFile(new URL("../src/components/characters/character-layer.tsx", import.meta.url), "utf8");
   const adapter = await readFile(new URL("../src/lib/characters/character-pose-adapter.ts", import.meta.url), "utf8");
   const renderers = await readFile(new URL("../src/components/characters/character-renderers.tsx", import.meta.url), "utf8");
-  assert.match(layer, /applyFacialExpressionPose\(group\.current/);
-  assert.match(layer, /evaluateFacialExpressionWeight\(preview\.actionId, elapsed/);
+  assert.match(layer, /applyFacialExpressionPose\(\s*group\.current/);
+  assert.match(layer, /evaluateFacialExpressionWeight\(\s*preview\.actionId,\s*elapsed/);
   assert.match(layer, /invalidate\(\)/);
-  assert.match(layer, /applyCharacterActionPose\(group\.current, pose, gazePose/);
+  assert.match(layer, /applyCharacterActionPose\(\s*group\.current,\s*pose,\s*gazePose,/);
   assert.match(adapter, /composeGazeHeadRotation\(pose\.headRotation, gazePose/);
-  assert.match(renderers, /<ExpressionMouth expression=\{face\}/);
+  assert.match(renderers, /<ExpressionMouth\s+expression=\{face\}/);
   assert.match(renderers, /name="mouth-smile"/);
   assert.match(renderers, /name="mouth-frown"/);
   assert.match(renderers, /name="mouth-open"/);
@@ -204,9 +225,8 @@ test("preview poses are independent and unsupported actions resolve to neutral",
   const head = evaluateCharacterPreviewPose({ actionId: "head-nod", sourceTimeSeconds: 0.55, durationSeconds: 2.4, capabilities: ["head-rotation"] });
   const arm = evaluateCharacterPreviewPose({ actionId: "arm-gesture", sourceTimeSeconds: 0.55, durationSeconds: 2.4, capabilities: ["arm-gesture"] });
   assert.notDeepEqual(head, arm);
-  assert.deepEqual(evaluateCharacterPreviewPose({ actionId: "arm-gesture", sourceTimeSeconds: 0.55, durationSeconds: 2.4, capabilities: ["head-rotation"] }), {
-    headRotation: [0, 0, 0], leftArmRotation: [0, 0, 0], rightArmRotation: [0, 0, 0],
-  });
+  const unsupported = evaluateCharacterPreviewPose({ actionId: "arm-gesture", sourceTimeSeconds: 0.55, durationSeconds: 2.4, capabilities: ["head-rotation"] });
+  assert.ok(Object.values(unsupported).every((rotation) => rotation.every((value) => value === 0)));
   const independent = evaluateCharacterPreviewPose({ actionId: "head-turn", sourceTimeSeconds: 0.8, durationSeconds: 2.4, capabilities: allChannels });
   assert.notEqual(independent, head);
   assert.deepEqual(head, evaluateCharacterPreviewPose({ actionId: "head-nod", sourceTimeSeconds: 0.55, durationSeconds: 2.4, capabilities: ["head-rotation"] }));
@@ -217,7 +237,7 @@ test("return-to-idle deterministically blends the transient pose to neutral", ()
   const halfway = evaluateCharacterPreviewPose({ actionId: "return-idle", sourceTimeSeconds: 0.275, durationSeconds: 0.55, capabilities: [], fromPose });
   const finished = evaluateCharacterPreviewPose({ actionId: "return-idle", sourceTimeSeconds: 0.55, durationSeconds: 0.55, capabilities: [], fromPose });
   assert.ok(Math.abs(halfway.rightArmRotation[2]) < Math.abs(fromPose.rightArmRotation[2]));
-  assert.deepEqual(finished, { headRotation: [0, 0, 0], leftArmRotation: [0, 0, 0], rightArmRotation: [0, 0, 0] });
+  assert.ok(Object.values(finished).every((rotation) => rotation.every((value) => value === 0)));
 });
 
 test("preview playback remains transient and does not alter saved identity, instance, or transform data", async () => {

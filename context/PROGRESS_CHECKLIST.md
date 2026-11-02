@@ -1,10 +1,45 @@
 # Signal Studio AI — Progress Checklist
 
 **Document:** `context/PROGRESS_CHECKLIST.md`  
-**Status:** Phase 05-A scene/time and authoring refinement implemented; automated verification passes, while full acceptance remains open. User reported 12 PASS / 1 NOT VERIFIED (exact scene boundary); Phase 05-B implemented; browser verification pending.
+**Status (2026-11-04):** Phase 05-C explicitly accepted by the user for MVP/prototype development; this is not production acceptance and supplies no item-level PASS results. Phase 06 audio assets and manual speaker assignment are implemented in code with automated checks; browser interaction, audible playback, visual and save/reopen checks remain pending. Earlier Phase 05-A/B verification debt and BUG-0024/0029/0030 remain open.
 **Roadmap:** `context/ROADMAP.md`  
-**Last reviewed:** 2026-11-02
+**Last reviewed:** 2026-11-03
 **Project mode:** Single-user, local Windows application
+
+## Workspace architecture and timeline discoverability iteration (2026-11-03)
+
+- [x] Reorganized the existing workspace dock around a unified project-time overview while retaining existing project/scene state, edit APIs, contextual inspector and the shell-mounted viewport.
+- [x] Exposed existing scene/action/audio clip/speaker interval data in distinct LTR lanes; speaker labels are evaluated from existing ranges at the current integer project frame. Lane activation routes to the existing scene/event/audio editors.
+- [x] Marked camera automation and subtitles unavailable/future and extended the centralized Persian help registry, including a Getting Started workflow.
+- [x] Added focused projection, interval, routing, single-viewport and help coverage; `npm test` passes 170/170, with typecheck, lint, build and `git diff --check` passing.
+- [ ] Browser/manual acceptance: viewport prominence and panel resizing at 1920×1080, 1366×768, 1024×768, 768×1024 and 390×844; keyboard/touch operation; audio lane navigation; help search/navigation; save/refresh and no Canvas remount regression. No browser surface was available in this session.
+- **Status:** Implemented, browser/device UNVERIFIED. This UI iteration does not advance or accept a roadmap phase; Phase 06 remains in progress. BUG-0040 and BUG-0041 remain open pending manual verification; BUG-0024, BUG-0029 and BUG-0030 remain open.
+
+## Audio-to-scene workflow repair (2026-11-04)
+
+**Current repair status (2026-11-04):** The implementation below has been superseded by the completed scene-first import fix. «افزودن صدا» now imports, attaches a clip at the selected scene playhead using the server-confirmed media duration, and adds an editable unknown-speaker interval. The project frame schema remains unchanged. Speaker strips share the clip lane, clip preview honors source trim, and project playback maps current integer frames to source time. Automated two-scene/two-file persistence and deletion checks are included. Browser workflow, audible playback, scene switching and visual review remain UNVERIFIED because no browser surface is available. `npm run typecheck`, `npm run lint`, `npm test` (179/179), `npm run build`, and `git diff --check` passed. See BUG-0041 for the recorded audit and exact limits.
+
+**Beginner audio UI update (2026-11-04):** Speaker assignment now offers project characters directly in each clip’s interval selector and creates the required independent stable speaker identity on selection. Clip rows show human-readable start time, duration and assigned speaker; frame-based placement, source trim, gain and mute remain available under “تنظیمات پیشرفتهٔ کلیپ”. Existing waveform, preview, replace-file and delete-clip controls remain available. Automated assertions cover these UI paths; the whole 179-test suite, typecheck, lint and a clean production build passed. One initial build attempt hit a transient `spawn EPERM` worker error; the clean retry completed successfully. Browser interaction and visual acceptance remain open.
+
+- [ ] IMPLEMENTED_UNVERIFIED: scene-relative audio placement uses original-source trim seconds and converts the scene-local integer offset to project-global `startFrame`; reuses existing IDs, schema v9 validation and save path.
+- [ ] IMPLEMENTED_UNVERIFIED: clips crossing a scene boundary require an explicit user choice, remain intact, and show when they continue beyond project end.
+- [ ] IMPLEMENTED_UNVERIFIED: scene boundaries and placement metadata remain visible; source trim, project-frame placement and clip settings are behind an advanced disclosure; speaker labels remain grouped with the audio clip.
+- [ ] IMPLEMENTED_UNVERIFIED: Persian audio help covers direct scene attachment and manual speaker selection; no automatic speaker inference or reactions are implied.
+- [x] Automated checks: scene/global frame conversion, boundary rejection/classification, source duration and speaker mapping; two-scene/two-file save/reopen/deletion; beginner speaker selection and advanced disclosure assertions. Full suite 179/179.
+- [ ] Verify browser flow: add trimmed audio to two selected scenes, create/edit/split/merge speaker ranges, confirm visible cross-scene status, save/refresh/reopen and duplicate; inspect 1920×1080, 1366×768, 1024×768, 768×1024 and 390×844 layouts. No browser is available in this session.
+- **Status:** Implemented; current typecheck, lint and 179/179 tests pass. Build retry and diff check are recorded below. Manual/browser verification remains UNVERIFIED; Phase 06 and all official phase gates are unchanged. BUG-0041 and BUG-0024/0029/0030 remain open.
+- **Visual references:** Reviewed the supplied CapCut, Blender and DaVinci screenshots in `references/ui-redesign/`. Comparison against the running application remains pending because no browser surface is available.
+
+## Shared timeline audio editing (2026-11-05)
+
+**Implemented, browser-unverified:** The shared LTR project timeline accepts WAV/MP3 drops from desktop and audio-library assets onto scene regions. Drop X maps through the rendered content rectangle to global project frames, accounting for zoom and scroll; the scene row provides the scene offset and visual target. Imported assets remain project-local source files and clips retain their full source duration across scene boundaries. Existing schema v9 persists clip frame coordinates without migration.
+
+- [x] Pure frame conversion, snapping, clip move, source-safe edge trim, split-at-playhead, and compatible sequential merge with preserve-speakers / mark-unknown choice.
+- [x] Ctrl/Command multi-select, separate overlapping clips for simultaneous Mix, keyboard clip move, and timeline-local undo/redo for clip edits.
+- [x] Automated tests cover zoom/scroll/LTR mapping, scene/clip snapping, cross-scene movement, trimming and speaker intervals, split, merge choices, and schema v9 save/reopen. `npm run typecheck` passed; `npm test` passes 185/185.
+- [ ] Browser verification of desktop/library drag, pointer capture, trim handles, split/merge dialogs, undo/redo, and audible timeline playback. Browser inventory returned no apps or browsers in this session. Do not mark Phase 06 complete.
+- **Merge limit:** Sequential Merge is currently supported only when both clips use the same asset and adjacent contiguous source ranges. Overlapping clips remain separate and play simultaneously as a mix. No compound/multi-source clip schema is introduced.
+- **Status:** Implemented; interaction and actual audio playback remain UNVERIFIED. Production build, lint and diff check are pending this implementation pass.
 
 ## 1. How to Use This Checklist
 
@@ -383,7 +418,7 @@
 
 ## 7. Phase 05 — Scene Manager, Storyboard & Timing
 
-**Phase status:** Not started.
+**Phase status:** Phase 05-A/B/C implementation exists; Phase 05-C received explicit MVP/prototype acceptance 2026-11-03. Earlier Phase 05-A exact-boundary and Phase 05-B/C browser checks remain open.
 
 - [ ] Create, rename, duplicate, delete and drag/reorder scene cards.
 - [ ] Define independent scene settings, duration and environment references.
@@ -393,17 +428,20 @@
 - [ ] Verify changes persist after restart and scene duration affects actual preview behavior.
 - [ ] Obtain Phase 05 approval.
 
+**Phase 05-C MVP acceptance (2026-11-03):** The user explicitly accepted the implemented Phase 05-C functionality for MVP/prototype development. No individual manual test outcomes were added or inferred. Browser/visual verification and production-quality acceptance remain open. BUG-0024, BUG-0029 and BUG-0030 remain OPEN.
+
 ## 8. Phase 06 — Audio Assets & Manual Speaker Assignment
 
-**Phase status:** Not started.
+**Phase status:** Implemented / browser-unverified; manual acceptance is pending.
 
-- [ ] Upload, preview, replace, remove and persist WAV/MP3 audio files locally.
-- [ ] Render a real waveform and editable speaker intervals.
-- [ ] Assign any interval to a character ID, audio-only speaker or explicitly unassigned/silent state.
-- [ ] Support split, merge, drag, resize, seek and segment-only preview.
-- [ ] Ensure mixed recordings do not default to Kamyar and deleted audio never returns automatically.
-- [ ] Verify speaker changes across several intervals, plus save/reload behavior.
-- [ ] Obtain Phase 06 approval.
+- [ ] Add backward-compatible project schema v9 for stable audio assets, timeline clips, speaker identities and clip-local speaker ranges. Automated migration, reference validation and persistence tests pass; legacy projects retain their existing scene and character records. Browser persistence verification remains pending.
+- [ ] Import and stream WAV/MP3 assets from managed project-local storage; replacement preserves the asset ID; referenced files cannot be removed; duplicate projects copy audio bytes. Service regression tests pass; browser interaction remains pending.
+- [ ] Add audio navigation editor, browser-native file preview, real-sample waveform decoding, clip placement/frame editing, source trim/gain metadata, manual character/audio-only speakers, unknown/silent states, interval edits, split/merge and selected-range preview. Source wiring is implemented; browser interaction is unverified.
+- [ ] Verify upload/replace/delete, playback and waveform decode for actual WAV and MP3 files in a browser.
+- [ ] Verify interval assignment, split/merge, selected-range preview, clip edits, save/reopen and duplicate-project audio after refresh.
+- [ ] Verify keyboard/touch behavior, responsive layouts and no interference with the existing viewport, timeline or help center.
+- [ ] Browser-verify the implemented timeline drag/move/trim/split/merge and actual audible project playback; audible gain above unity remains metadata-only. Phase 06 remains open.
+- [ ] Obtain Phase 06 MVP/prototype acceptance after browser review.
 
 ## 9. Phase 07 — Deterministic Timeline & Behavior Priorities
 
@@ -808,3 +846,81 @@ Copy for each development phase (append below or link to a dated handoff):
 - **Status:** IMPLEMENTED_UNVERIFIED. Orbit range and damping were refined; selected-object focus uses rendered bounds and model forward direction; pointer-locked free-fly supports WASD, Q/E, Shift speed and Escape. Navigation remains transient and production-camera capture remains explicit.
 - **Automated coverage:** Tests cover focus framing, forward-facing placement, free-fly movement/speed/time bounds, pointer-lock/input guards, listener cleanup wiring and production-camera separation.
 - **Remaining:** Browser-check orbit/pan/zoom, ChatGPT face framing, laptop/prop focus, free-fly lock/escape, scene switching, touch use, and save/reload of explicitly captured production views. No browser surface was available during implementation.
+# UI/UX redesign pass — 2026-11-03 (implemented, browser-unverified)
+
+- [x] Preserve the current single viewport, section navigation, contextual inspector routing, scene/action/audio/speaker timeline projection, and existing persistence/evaluation boundaries. (Source and regression tests inspected; this check records implementation scope, not browser acceptance.)
+- [x] Add presentation-only timeline zoom from 50% to 400%, project-scale reset, responsive tick density, and keyboard-accessible named controls while retaining project-frame positions.
+- [ ] Verify workspace navigation, selected-item inspector routing, canvas stability, zoom/scroll/event placement, audio and speaker selection, camera controls, and save/refresh in a real browser.
+- [ ] Inspect 1920×1080, 1366×768, 1024×768, 768×1024, and 390×844 for clipping, overlap, touch targets, and horizontal page overflow.
+- [ ] Complete visual acceptance and manual regression; this pass does not close BUG-0024, BUG-0029, or BUG-0030 and does not accept Phase 06 or complete Phase 10.
+
+## UI/timeline stabilization verification — 2026-11-04
+
+- [x] Confirmed the local app responds at `http://127.0.0.1:3000` (HTTP 200). Source audit confirms timeline zoom only changes rendered width: scene, event, audio, speaker and playhead positions remain mapped from their existing project frames; seek callbacks still receive frame values.
+- [x] Re-ran `npm run typecheck`, `npm run lint`, `npm test` (173/173), `npm run build`, and `git diff --check`; all passed.
+- [x] Audited BUG-0024/0029/0030 without changing animation evaluation: face adapter targets named eye/brow/mouth nodes; arm adapter currently rotates named left/right arm pivots only; the thinking preview has head/facial channels and no hand-to-chin pose. Automated tests do not establish visual quality or clearance.
+- [ ] Browser testing was attempted through CUA and Edge. CUA exposed no browser or app surface and could not bind Edge; no viewport screenshots or interactive results were obtained.
+- [ ] Check 375×812, 768×1024, 1024×768, 1440×900, and 1920×1080; zoom/reset/ticks/scroll/playhead; selection and scene navigation; lane alignment with multiple scenes and overlapping events; Persian RTL, keyboard/touch, focus, tooltips, overflow and canvas stability.
+- [ ] BUG-0024, BUG-0029, BUG-0030 remain OPEN pending real browser inspection. Phase 06 and Phase 10 remain incomplete/unaccepted.
+
+## Character animation stabilization plan — 2026-11-04
+
+**Audit:** Built-in characters use procedural Three.js groups and meshes, not skeleton bones. Kamyar/Hamid have shoulder and hand named groups, but their sleeves were static geometry without elbow/wrist pivots; ChatGPT had static arm segments; Claude has no arm gesture capability. Supported faces have named eye/brow/mouth nodes, but no jaw node. Imported GLBs advertise no runtime animation capability.
+
+**Scoped plan:** (1) Add named torso/neck and articulated shoulder/elbow/wrist/hand pivots to Kamyar, Hamid, and ChatGPT while retaining their current rest transforms; leave Claude and imported GLBs unadvertised. (2) Validate required joint names against each built-in model's existing attachment metadata; gate hand-to-chin thinking on the required rig. (3) Extend the transient pose value and per-channel priority blend with torso/neck/elbow/wrist/hand channels, sampled deterministically from normalized-time emotion presets. (4) Add regression coverage for rest-pose compatibility, missing-joint capability rejection, smooth arbitrary-time interpolation, face/expression output, and scene-event priority/frame determinism. (5) Run typecheck, lint, all tests, build, then record browser-visual acceptance separately. Do not change project schema, event IDs, saved frame coordinates, audio, or persistence.
+
+- [x] Added named elbow/wrist/hand pivots to Kamyar, Hamid, and ChatGPT procedural arm hierarchies; exposed those names in the corresponding model attachment metadata. Claude and imported GLBs remain unsupported for those channels.
+- [x] Added deterministic thinking and laughing motion presets, added articulated pose channels to the existing per-channel priority blend, and gated the thinking hand-to-chin action on the complete right arm joint chain. Scene event IDs, integer frame timing, persistence, audio, and evaluation remain unchanged.
+- [x] Added regression coverage for missing-joint rejection, smooth arbitrary-time pose sampling, expression availability, and scheduled-event frame determinism.
+- [ ] Add/verify actual torso and neck pivots; these are not present in the renderers and their channels currently have no visual target.
+- [ ] Inspect rendered hand-to-chin and laughing poses from front and three-quarter views; verify contact, collisions, mouth visibility, and recovery before closing BUG-0024/0029/0030.
+- **Automated status:** all 176 tests pass; typecheck passes. Lint and production build remain to be run for this stabilization pass.
+- **Acceptance:** BUG-0024, BUG-0029, BUG-0030 remain OPEN pending visual acceptance. Phase 06 and unresolved animation defects are not marked complete.
+
+## Shared timeline audio editing — 2026-11-05
+
+- [x] Added desktop and audio-library scene drops, global-frame mapping, snapping, clip moves/trims/splits, multi-select, compatible sequential merge with speaker choice, and non-destructive overlapping Mix behavior.
+- [x] Added automated coordinate, scene-boundary, edit operation, and project save/reopen coverage without changing persisted schemas or project-frame coordinates.
+- [x] Verification: `npm run typecheck`, `npm run lint`, `npm test` (186/186), `npm run build`, and `git diff --check` passed.
+- [ ] Real browser drag/drop, clip playback, undo/redo, trimming, split/merge, scene crossing, RTL and responsive behavior remain unverified. Browser integration returned no available browser or app surfaces; actual playback therefore has not been established.
+- **Status:** Implemented with automated coverage; not accepted as complete until browser interaction and audible playback are verified. Phase 06 remains open.
+
+### Browser QA follow-up
+
+- [x] Ran Chrome/Playwright and inspected screenshots at 375×812, 768×1024, 1024×768, 1440×900, and 1920×1080; no document-level horizontal overflow, uncaught page exceptions, or failed requests were observed in the responsive run. Mobile navigation text is partially clipped by its horizontal scroller; tablet layouts compress the viewer.
+- [x] Exercised two-scene desktop audio drop, clip move, edge trim, playback source-time progression against the project playhead, split, sequential merge, undo/redo, save/reload, second audio asset import, library-to-scene drop, clip deletion and reload persistence. Zoom and project-scale reset preserved the clip's project-frame placement. Temporary browser test project was deleted.
+- [x] Fixed stale project-manifest validation after a server-confirmed upload; desktop drop now persists and attaches the uploaded source to its intended scene. Fixed timeline playback to honor clip mute/gain rather than always playing at unity gain.
+- [ ] Human audible acceptance, assignment to distinct actual character identities, mobile touch gestures, keyboard-only complete edit flow, cross-scene overlapping/merge edge cases, and final visual acceptance remain open. Browser playback time progression does not prove that a human listener heard the media.
+- **Status:** Browser-verified for the tested desktop paths only. Phase 06 remains open; do not infer full phase acceptance from the E2E pass.
+- **Final automated check:** `npm run typecheck`, `npm run lint`, `npm run build`, `git diff --check`, and `npm run test:e2e` (2/2) passed. `tests/audio.test.mjs` (9/9) and `tests/unified-timeline.test.mjs` (12/12) passed. Full `npm test` reported 177/187 passing; 10 failures are older brittle source-text assertions for scene event authoring, Scenes navigation, transform controls, ChatGPT facial rendering, editor layout/inspector and Help drawer. They assert markup patterns that no longer match the current component structure; they are not audio/timeline test failures. Do not treat the full suite as passing until those assertions are reviewed and updated without weakening their intent.
+- [x] BUG-0043 fixed and browser-verified: a native RTL section picker replaces the overflowing navigation row through 1023px. Keyboard selection, focus transfer to the mobile inspector, focus return on close, Persian help, and no navigation/document horizontal overflow were checked at 375×812 and 768×1024. Manual touch review remains open.
+
+## Final regression stabilization checkpoint
+
+All ten failures in the prior 177/187 run were outdated source-pattern assertions. Their intended components and wiring remained present; the old patterns required single-line JSX or adjacent tokens that formatting and wrapper parentheses changed. No test infrastructure fault or confirmed application regression caused these ten failures. Each assertion was updated to retain its behavioral target:
+
+| Test | Classification and preserved check |
+| --- | --- |
+| #34 scene event authoring | Outdated markup pattern; keyed `SceneActionEditor` still receives the project and scene scope. |
+| #36 Scenes navigation | Outdated adjacent-prop patterns; shared scenes and create/select/reorder handlers remain wired. |
+| #62 object edit | Outdated JSX pattern; character gizmo still requires selection and editor helpers. |
+| #119 laptop presentation | Outdated JSX pattern; selected-character outline and gizmo remain gated by helper visibility. |
+| #132 ChatGPT renderer | Outdated JSX pattern; the expression mouth and existing named face nodes remain. |
+| #148 expression presets | Outdated JSX pattern; eye scale and brow position still consume expression values. |
+| #152 facial runtime | Outdated multiline calls; facial evaluation and character action pose still run with gaze composition. |
+| #178 workspace layout | Outdated JSX pattern; the horizontal inspector resize handle remains. |
+| #179 contextual inspector | Outdated JSX wrappers; scene/object selection, properties visibility, and laptop details remain wired. |
+| #182 Help drawer | Outdated JSX pattern; expandable topics still render from the shared registry. |
+
+The navigation root cause was an oversized horizontal row with partly visible labels and no clear scroll cue. The compact picker shows the full selected section. The central Persian Help text now explains the picker and current project-synchronized audio playback; its earlier unsynchronized-playback statement was incorrect. Historical test totals above remain recorded as prior outcomes.
+
+- [x] Final regression gate: `npm run typecheck`, `npm run lint`, `npm test` (187/187), `npm run build`, `npm run test:e2e` (2/2), and `git diff --check` passed.
+- [x] Browser E2E rechecked all five target sizes, with no document or narrow navigation horizontal overflow, uncaught page errors, or failed requests. Keyboard selection, focus styling, inspector focus transfer and return passed at mobile width; the desktop two-scene audio editing/reload path also passed.
+- [ ] Human touch operation and audible media acceptance remain required. Facial animation visual quality, speaker reassignment between distinct character identities, cross-scene overlap edge cases, and full Phase 06 production acceptance remain open.
+
+## Audio editor crash stabilization
+
+- [x] BUG-0044: guarded source draft selection against absent draft and absent asset; audited adjacent placement and speaker draft guards.
+- [x] Chrome E2E verified no-project and empty-library renders, upload with a null source draft, two-scene switching, selected clip deletion, final asset deletion, and empty-library reopen without a page exception.
+- [x] Direct null-draft and empty-selection regression added; typecheck, lint, unit tests (188/188), production build, and browser E2E (3/3) passed.
+- [ ] Human audible playback and touch editing acceptance remain separate open checks for Phase 06.

@@ -40,7 +40,8 @@ export function createHamidTorsoGeometry(fullness: number) {
     const belly = Math.exp(-Math.pow((y - 0.02) / 0.48, 2));
     const shoulder = Math.exp(-Math.pow((y - 0.64) / 0.27, 2));
     const hip = Math.exp(-Math.pow((y + 0.7) / 0.35, 2));
-    const width = 0.305 + 0.018 * shoulder - 0.012 * hip + safeFullness * 0.047 * belly;
+    const width =
+      0.305 + 0.018 * shoulder - 0.012 * hip + safeFullness * 0.047 * belly;
     const depth = 0.205 + 0.018 * shoulder + safeFullness * 0.085 * belly;
     const frontRound = Math.max(0, z);
     positions.setXYZ(

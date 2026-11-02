@@ -9,6 +9,7 @@ import type { CharacterProjectData } from "@/lib/characters/character-schema";
 import { characterModelRegistry } from "@/lib/characters/character-registry";
 import type { SceneDefinition } from "@/lib/scenes/scene-schema";
 import { convertSceneFrameRate, type SceneSequence } from "@/lib/scenes/scene-operations";
+import type { AudioProjectCollections } from "@/lib/audio/audio-schema";
 
 export type { SaveStatus } from "@/lib/projects/save-state";
 
@@ -25,6 +26,7 @@ export function useProjects() {
   const [sceneOrder, setSceneOrder] = useState<string[]>([]);
   const [scenes, setScenes] = useState<Record<string, SceneDefinition>>({});
   const [fps, setFps] = useState<ProjectDocument["fps"]>(30);
+  const [audio, setAudio] = useState<AudioProjectCollections>({ speakers: {}, audioClips: {}, speakerRegions: {} });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const activeRef = useRef<ProjectDocument | null>(null);
   const draftRef = useRef("");
@@ -34,6 +36,7 @@ export function useProjects() {
   const sceneOrderRef = useRef<string[]>([]);
   const scenesRef = useRef<Record<string, SceneDefinition>>({});
   const fpsRef = useRef<ProjectDocument["fps"]>(30);
+  const audioRef = useRef<AudioProjectCollections>({ speakers: {}, audioClips: {}, speakerRegions: {} });
   const pendingSave = useRef<Promise<void> | null>(null);
 
   const select = useCallback((project: ProjectDocument | null) => {
@@ -47,6 +50,7 @@ export function useProjects() {
     sceneOrderRef.current = project?.sceneOrder ?? [];
     scenesRef.current = project?.scenes ?? {};
     fpsRef.current = project?.fps ?? 30;
+    audioRef.current = project ? { speakers: project.speakers, audioClips: project.audioClips, speakerRegions: project.speakerRegions } : { speakers: {}, audioClips: {}, speakerRegions: {} };
     setActive(project);
     setDraftName(project?.title ?? "");
     setArrangement(project?.environmentArrangement ?? null);
@@ -55,6 +59,7 @@ export function useProjects() {
     setSceneOrder(sceneOrderRef.current);
     setScenes(scenesRef.current);
     setFps(fpsRef.current);
+    setAudio(audioRef.current);
     setSaveStatus("saved");
     try {
       if (project) sessionStorage.setItem("signal-studio-active-project", project.id);
@@ -139,11 +144,20 @@ export function useProjects() {
     setSaveStatus("dirty");
   };
 
+  const editAudio = (updater: (current: AudioProjectCollections) => AudioProjectCollections) => {
+    if (!activeRef.current) return;
+    const next = updater(audioRef.current);
+    audioRef.current = next;
+    setAudio(next);
+    setSaveStatus("dirty");
+  };
+
   const hasChanges = () => activeRef.current && (draftRef.current.trim() !== activeRef.current.title ||
     JSON.stringify(arrangementRef.current) !== JSON.stringify(activeRef.current.environmentArrangement) ||
     JSON.stringify(displayRef.current) !== JSON.stringify(activeRef.current.displayAssignments) ||
     fpsRef.current !== activeRef.current.fps || JSON.stringify(sceneOrderRef.current) !== JSON.stringify(activeRef.current.sceneOrder) ||
     JSON.stringify(scenesRef.current) !== JSON.stringify(activeRef.current.scenes) ||
+    JSON.stringify(audioRef.current) !== JSON.stringify({ speakers: activeRef.current.speakers, audioClips: activeRef.current.audioClips, speakerRegions: activeRef.current.speakerRegions }) ||
     JSON.stringify(characterRef.current) !== JSON.stringify({ characterIdentities: activeRef.current.characterIdentities,
       characterInstances: activeRef.current.characterInstances, characterStates: activeRef.current.characterStates }));
 
@@ -164,12 +178,13 @@ export function useProjects() {
     const orderSnapshot = sceneOrderRef.current;
     const scenesSnapshot = scenesRef.current;
     const fpsSnapshot = fpsRef.current;
+    const audioSnapshot = audioRef.current;
     const operation = (async () => {
       setSaveStatus("saving");
       try {
         const saved = await projectRequest<ProjectDocument>(projectUrl(project.id), "PATCH", { title, expectedRevision: project.revision,
           environmentArrangement: snapshot, displayAssignments: displaySnapshot, ...charactersSnapshot,
-          fps: fpsSnapshot, sceneOrder: orderSnapshot, scenes: scenesSnapshot });
+          fps: fpsSnapshot, sceneOrder: orderSnapshot, scenes: scenesSnapshot, ...audioSnapshot });
         if (activeRef.current?.id === saved.id) {
           activeRef.current = saved;
           setActive(saved);
@@ -178,7 +193,7 @@ export function useProjects() {
             JSON.stringify(displaySnapshot) === JSON.stringify(displayRef.current) &&
             JSON.stringify(charactersSnapshot) === JSON.stringify(characterRef.current) &&
             fpsSnapshot === fpsRef.current && JSON.stringify(orderSnapshot) === JSON.stringify(sceneOrderRef.current) &&
-            JSON.stringify(scenesSnapshot) === JSON.stringify(scenesRef.current) ? "saved" : "dirty");
+            JSON.stringify(scenesSnapshot) === JSON.stringify(scenesRef.current) && JSON.stringify(audioSnapshot) === JSON.stringify(audioRef.current) ? "saved" : "dirty");
         }
         await refresh().catch(() => setError("پروژه ذخیره شد، اما تازه‌سازی فهرست ممکن نشد."));
       } catch (cause) {
@@ -196,7 +211,60 @@ export function useProjects() {
     if (!active || saveStatus !== "dirty") return;
     const timer = setTimeout(() => { void saveNow().catch(() => undefined); }, 800);
     return () => clearTimeout(timer);
-  }, [active, draftName, arrangement, displayAssignments, characterData, sceneOrder, scenes, fps, saveStatus, saveNow]);
+  }, [active, draftName, arrangement, displayAssignments, characterData, sceneOrder, scenes, fps, audio, saveStatus, saveNow]);
+
+  const uploadAudio = async (file: File, durationSeconds: number): Promise<{ assetId: string; durationSeconds: number } | null> => {
+    const project = activeRef.current;
+    if (!project) return null;
+    setBusy(true); setError("");
+    try {
+      if (hasChanges()) await saveNow();
+      const current = activeRef.current!;
+      const form = new FormData(); form.set("file", file); form.set("durationSeconds", String(durationSeconds));
+      const response = await fetch(`${projectUrl(current.id)}/audio-assets`, { method: "POST", body: form });
+      const data: unknown = await response.json();
+      if (!response.ok) throw new Error((data as { error?: { message?: string } }).error?.message || "بارگذاری صدا انجام نشد.");
+      const updated = data as ProjectDocument;
+      const addedId = Object.keys(updated.assetManifest).find((id) => !current.assetManifest[id]);
+      select(updated); await refresh();
+      const asset = addedId ? updated.assetManifest[addedId] : undefined;
+      return asset?.kind === "audio" && asset.audioDurationSeconds !== undefined
+        ? { assetId: asset.id, durationSeconds: asset.audioDurationSeconds }
+        : null;
+    } catch (cause) { const message = cause instanceof Error ? cause.message : "بارگذاری صدا انجام نشد."; setError(message); return null; }
+    finally { setBusy(false); }
+  };
+
+  const deleteAudioAsset = async (assetId: string): Promise<boolean> => {
+    const project = activeRef.current;
+    if (!project) return false;
+    setBusy(true); setError("");
+    try {
+      if (hasChanges()) await saveNow();
+      const current = activeRef.current!;
+      const response = await fetch(`${projectUrl(current.id)}/audio-assets/${encodeURIComponent(assetId)}`, { method: "DELETE" });
+      const body: unknown = await response.json();
+      if (!response.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "حذف فایل صوتی انجام نشد.");
+      select(body as ProjectDocument); await refresh(); return true;
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "حذف فایل صوتی انجام نشد."); return false; }
+    finally { setBusy(false); }
+  };
+
+  const replaceAudioAsset = async (assetId: string, file: File, durationSeconds: number): Promise<boolean> => {
+    const project = activeRef.current;
+    if (!project) return false;
+    setBusy(true); setError("");
+    try {
+      if (hasChanges()) await saveNow();
+      const current = activeRef.current!;
+      const form = new FormData(); form.set("file", file); form.set("durationSeconds", String(durationSeconds));
+      const response = await fetch(`${projectUrl(current.id)}/audio-assets/${encodeURIComponent(assetId)}`, { method: "PATCH", body: form });
+      const body: unknown = await response.json();
+      if (!response.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "جایگزینی فایل صوتی انجام نشد.");
+      select(body as ProjectDocument); await refresh(); return true;
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "جایگزینی فایل صوتی انجام نشد."); return false; }
+    finally { setBusy(false); }
+  };
 
   const uploadDisplay = async (file: File): Promise<string | null> => {
     const project = activeRef.current;
@@ -306,6 +374,6 @@ export function useProjects() {
   });
 
   return { list, loading, busy, error, setError, active, arrangement, editArrangement, displayAssignments, editDisplay, characterData, editCharacters,
-    sceneOrder, scenes, fps, editScenes, editFps,
+    sceneOrder, scenes, fps, editScenes, editFps, audio, editAudio, uploadAudio, deleteAudioAsset, replaceAudioAsset,
     editCharactersAndSave, uploadDisplay, deleteDisplayImage, adoptImportedProject, removeImportedCharacterModel, draftName, saveStatus, refresh, editName, saveNow, create, open, rename, duplicate, remove, close };
 }

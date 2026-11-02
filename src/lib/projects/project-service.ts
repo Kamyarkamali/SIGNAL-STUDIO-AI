@@ -46,6 +46,30 @@ function projectName(name: string): string {
   return parsed.data;
 }
 
+function parseWavDuration(bytes: Uint8Array): number | null {
+  if (bytes.length < 44) return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (view.getUint32(0, false) !== 0x52494646 || view.getUint32(8, false) !== 0x57415645) return null;
+  let offset = 12, byteRate = 0, dataLength = 0, formatValid = false;
+  while (offset + 8 <= bytes.length) {
+    const id = view.getUint32(offset, false), length = view.getUint32(offset + 4, true);
+    const content = offset + 8;
+    if (content + length > bytes.length) return null;
+    if (id === 0x666d7420 && length >= 16) {
+      const format = view.getUint16(content, true), channels = view.getUint16(content + 2, true);
+      const sampleRate = view.getUint32(content + 4, true); byteRate = view.getUint32(content + 8, true);
+      const blockAlign = view.getUint16(content + 12, true), bitsPerSample = view.getUint16(content + 14, true);
+      formatValid = (format === 1 || format === 3) && channels > 0 && channels <= 8 && sampleRate >= 8_000 && sampleRate <= 384_000 &&
+        byteRate > 0 && blockAlign > 0 && bitsPerSample > 0 && blockAlign === channels * Math.ceil(bitsPerSample / 8);
+    }
+    if (id === 0x64617461) { dataLength = length; break; }
+    offset = content + length + (length % 2);
+  }
+  if (!formatValid || dataLength <= 0 || byteRate <= 0) return null;
+  const duration = dataLength / byteRate;
+  return Number.isFinite(duration) && duration > 0 && duration <= 86_400 ? duration : null;
+}
+
 /** Finds all project-data references, including references added by future scene contracts. */
 export function displayImageReferenceLabels(project: ProjectDocument, assetId: string): string[] {
   const paths: string[] = [];
@@ -125,7 +149,7 @@ export class ProjectService {
     let value: unknown;
     try { value = JSON.parse(content); }
     catch { throw new ProjectError("CORRUPT", "فایل پروژه آسیب دیده است.", 422); }
-    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5 && value.schemaVersion !== 6 && value.schemaVersion !== 7 && value.schemaVersion !== 8) {
+    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5 && value.schemaVersion !== 6 && value.schemaVersion !== 7 && value.schemaVersion !== 8 && value.schemaVersion !== 9) {
       throw new ProjectError("UNSUPPORTED_VERSION", "نسخهٔ این پروژه پشتیبانی نمی‌شود؛ فایل اصلی تغییر نکرده است.", 422);
     }
     const parsed = migrateProject(value);
@@ -185,7 +209,8 @@ export class ProjectService {
   async save(id: string, name: string, expectedRevision: number, environmentArrangement?: EnvironmentArrangement,
     displayAssignments?: z.infer<typeof displayAssignmentsSchema>, characterIdentities?: CharacterProjectData["characterIdentities"],
     characterInstances?: CharacterProjectData["characterInstances"], characterStates?: CharacterProjectData["characterStates"],
-    fps?: ProjectDocument["fps"], sceneOrder?: ProjectDocument["sceneOrder"], scenes?: ProjectDocument["scenes"]): Promise<ProjectDocument> {
+    fps?: ProjectDocument["fps"], sceneOrder?: ProjectDocument["sceneOrder"], scenes?: ProjectDocument["scenes"],
+    speakers?: ProjectDocument["speakers"], audioClips?: ProjectDocument["audioClips"], speakerRegions?: ProjectDocument["speakerRegions"]): Promise<ProjectDocument> {
     id = projectId(id);
     const title = projectName(name);
     if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new ProjectError("INVALID_REVISION", "شمارهٔ بازبینی نامعتبر است.");
@@ -200,6 +225,9 @@ export class ProjectService {
       const projectFps = fps ?? current.fps;
       const order = sceneOrder ?? current.sceneOrder;
       const sceneRecords = scenes ?? current.scenes;
+      const speakerRecords = speakers ?? current.speakers;
+      const clipRecords = audioClips ?? current.audioClips;
+      const regionRecords = speakerRegions ?? current.speakerRegions;
       const raw = JSON.parse(await readFile(this.projectFile(id), "utf8")) as { schemaVersion?: number };
       if (current.title === title && JSON.stringify(current.environmentArrangement) === JSON.stringify(arrangement) &&
         JSON.stringify(current.displayAssignments) === JSON.stringify(displays) &&
@@ -207,9 +235,11 @@ export class ProjectService {
         JSON.stringify(current.characterInstances) === JSON.stringify(instances) &&
         JSON.stringify(current.characterStates) === JSON.stringify(states) && current.fps === projectFps &&
         JSON.stringify(current.sceneOrder) === JSON.stringify(order) && JSON.stringify(current.scenes) === JSON.stringify(sceneRecords) &&
-        raw.schemaVersion === 8) return current;
+        JSON.stringify(current.speakers) === JSON.stringify(speakerRecords) && JSON.stringify(current.audioClips) === JSON.stringify(clipRecords) &&
+        JSON.stringify(current.speakerRegions) === JSON.stringify(regionRecords) && raw.schemaVersion === 9) return current;
       const updated = projectSchema.parse({ ...current, title, environmentArrangement: arrangement, displayAssignments: displays,
         characterIdentities: identities, characterInstances: instances, characterStates: states, fps: projectFps, sceneOrder: order, scenes: sceneRecords,
+        speakers: speakerRecords, audioClips: clipRecords, speakerRegions: regionRecords,
         revision: current.revision + 1, updatedAt: new Date().toISOString() });
       const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
       await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
@@ -299,6 +329,101 @@ export class ProjectService {
       await handle.close();
       try { await this.atomicWrite(this.projectFile(id), updated); }
       catch (error) { await unlink(target).catch(() => undefined); throw error; }
+      return updated;
+    });
+  }
+
+  async importAudioAsset(id: string, name: string, mediaType: string, durationSeconds: number, bytes: Uint8Array): Promise<ProjectDocument> {
+    id = projectId(id);
+    const header = Buffer.from(bytes.subarray(0, 4096));
+    const wavDuration = parseWavDuration(bytes);
+    const isWave = (mediaType === "audio/wav" || mediaType === "audio/x-wav") && wavDuration !== null;
+    const isMp3 = mediaType === "audio/mpeg" && (header.toString("ascii", 0, 3) === "ID3" ||
+      [...header.subarray(0, Math.min(4092, header.length))].some((byte, index, data) => byte === 0xff && (data[index + 1]! & 0xe0) === 0xe0));
+    const actualDuration = wavDuration ?? durationSeconds;
+    if ((!isWave && !isMp3) || bytes.length === 0 || bytes.length > 64 * 1024 * 1024 || !Number.isFinite(actualDuration) || actualDuration <= 0 || actualDuration > 86_400) {
+      throw new ProjectError("INVALID_AUDIO", "فایل باید WAV یا MP3 معتبر، حداکثر ۶۴ مگابایت و دارای مدت قابل‌خواندن باشد.", 415);
+    }
+    const displayName = name.split(/[\\/]/).pop()?.trim().slice(0, 120) || "صدای واردشده";
+    const ext = isWave ? "wav" : "mp3";
+    return this.lock(id, async () => {
+      const current = await this.readProject(id);
+      const assetId = randomUUID();
+      const relativePath = `assets/${assetDirectories.audio}/${assetId}.${ext}`;
+      const target = join(this.projectDir(id), ...relativePath.split("/"));
+      const asset: AssetRecord = { id: assetId, kind: "audio", displayName, mediaType: isWave ? "audio/wav" : "audio/mpeg", relativePath,
+        fileSizeBytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), origin: "imported", audioDurationSeconds: actualDuration };
+      const updated = projectSchema.parse({ ...current, assetManifest: { ...current.assetManifest, [assetId]: asset }, revision: current.revision + 1, updatedAt: new Date().toISOString() });
+      const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
+      await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
+      await mkdir(dirname(target), { recursive: true });
+      const handle = await open(target, "wx", 0o600);
+      try { await handle.writeFile(bytes); await handle.sync(); }
+      catch (error) { await handle.close(); await unlink(target).catch(() => undefined); throw error; }
+      await handle.close();
+      try { await this.atomicWrite(this.projectFile(id), updated); }
+      catch (error) { await unlink(target).catch(() => undefined); throw error; }
+      return updated;
+    });
+  }
+
+  async removeAudioAsset(id: string, assetId: string): Promise<ProjectDocument> {
+    id = projectId(id);
+    return this.lock(id, async () => {
+      const current = await this.readProject(id);
+      const asset = current.assetManifest[assetId];
+      if (!asset || asset.kind !== "audio") throw new ProjectError("NOT_FOUND", "فایل صوتی پیدا نشد.", 404);
+      if (Object.values(current.audioClips).some((clip) => clip.assetId === assetId)) throw new ProjectError("ASSET_IN_USE", "این فایل در یک یا چند کلیپ استفاده می‌شود. ابتدا کلیپ‌های مرتبط را حذف کنید.", 409);
+      const path = await this.resolveAssetFile(id, asset);
+      const assetManifest = { ...current.assetManifest }; delete assetManifest[assetId];
+      const updated = projectSchema.parse({ ...current, assetManifest, revision: current.revision + 1, updatedAt: new Date().toISOString() });
+      const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
+      await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
+      const tombstone = `${path}.deleting-${randomUUID()}`;
+      await rename(path, tombstone);
+      try { await this.atomicWrite(this.projectFile(id), updated); }
+      catch (error) { await rename(tombstone, path).catch(() => undefined); throw error; }
+      await unlink(tombstone).catch(() => undefined);
+      return updated;
+    });
+  }
+
+  async replaceAudioAsset(id: string, assetId: string, name: string, mediaType: string, durationSeconds: number, bytes: Uint8Array): Promise<ProjectDocument> {
+    id = projectId(id);
+    const header = Buffer.from(bytes.subarray(0, 4096));
+    const wavDuration = parseWavDuration(bytes);
+    const isWave = (mediaType === "audio/wav" || mediaType === "audio/x-wav") && wavDuration !== null;
+    const isMp3 = mediaType === "audio/mpeg" && (header.toString("ascii", 0, 3) === "ID3" ||
+      [...header.subarray(0, Math.min(4092, header.length))].some((byte, index, data) => byte === 0xff && (data[index + 1]! & 0xe0) === 0xe0));
+    durationSeconds = wavDuration ?? durationSeconds;
+    if ((!isWave && !isMp3) || bytes.length === 0 || bytes.length > 64 * 1024 * 1024 || !Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 86_400) {
+      throw new ProjectError("INVALID_AUDIO", "فایل جایگزین باید WAV یا MP3 معتبر، حداکثر ۶۴ مگابایت و دارای مدت قابل‌خواندن باشد.", 415);
+    }
+    return this.lock(id, async () => {
+      const current = await this.readProject(id);
+      const old = current.assetManifest[assetId];
+      if (!old || old.kind !== "audio") throw new ProjectError("NOT_FOUND", "فایل صوتی پیدا نشد.", 404);
+      if (old.mediaType !== (isWave ? "audio/wav" : "audio/mpeg")) throw new ProjectError("FORMAT_MISMATCH", "برای حفظ ارجاع‌های کلیپ، فایل جایگزین باید هم‌قالب فایل فعلی باشد.", 409);
+      if (Object.values(current.audioClips).some((clip) => clip.assetId === assetId && clip.sourceEndSeconds > durationSeconds)) {
+        throw new ProjectError("DURATION_MISMATCH", "مدت فایل جایگزین از برش یکی از کلیپ‌های وابسته کوتاه‌تر است.", 409);
+      }
+      const path = await this.resolveAssetFile(id, old);
+      const temp = `${path}.upload-${randomUUID()}`;
+      const tombstone = `${path}.previous-${randomUUID()}`;
+      const updatedAsset = { ...old, displayName: name.split(/[\\/]/).pop()?.trim().slice(0, 120) || old.displayName,
+        audioDurationSeconds: durationSeconds, fileSizeBytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+      const updated = projectSchema.parse({ ...current, assetManifest: { ...current.assetManifest, [assetId]: updatedAsset }, revision: current.revision + 1, updatedAt: new Date().toISOString() });
+      const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
+      await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
+      const handle = await open(temp, "wx", 0o600);
+      try { await handle.writeFile(bytes); await handle.sync(); } catch (error) { await handle.close(); await unlink(temp).catch(() => undefined); throw error; }
+      await handle.close();
+      await rename(path, tombstone);
+      try { await rename(temp, path); }
+      catch (error) { await rename(tombstone, path).catch(() => undefined); await unlink(temp).catch(() => undefined); throw error; }
+      try { await this.atomicWrite(this.projectFile(id), updated); }
+      catch (error) { await unlink(path).catch(() => undefined); await rename(tombstone, path).catch(() => undefined); throw error; }
+      await unlink(tombstone).catch(() => undefined);
       return updated;
     });
   }

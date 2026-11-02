@@ -19,7 +19,7 @@ async function withStore(action) {
 test("create validates name and initializes empty versioned data and managed folders", async () => withStore(async (store, root) => {
   const project = await store.create("  آزمون  ");
   assert.equal(project.title, "آزمون");
-  assert.equal(project.schemaVersion, 8);
+  assert.equal(project.schemaVersion, 9);
   assert.equal(project.environmentArrangement.props.length, 16);
   assert.deepEqual(project.sceneOrder, []);
   assert.deepEqual(project.assetManifest, {});

@@ -12,9 +12,24 @@ test("context help registry covers implemented and planned work areas with pract
     assert.ok(content.controls.length > 0, `${topic} controls`);
     assert.ok(["available", "planned"].includes(content.status), `${topic} status`);
   }
-  for (const topic of ["audio", "dialogue", "behaviors", "camera", "export", "settings"]) assert.equal(contextHelp[topic].status, "planned");
+  assert.equal(contextHelp.audio.status, "available");
+  for (const topic of ["dialogue", "behaviors", "camera", "export", "settings"]) assert.equal(contextHelp[topic].status, "planned");
   assert.match(contextHelp.scenes.limits, /خودکار/);
   assert.match(contextHelp.gaze.limits, /پذیرفته/);
+  assert.match(contextHelp.audio.steps.join(" "), /WAV|MP3/);
+  assert.match(contextHelp.audio.steps.join(" "), /گوینده/);
+  assert.match(contextHelp.audio.limits, /دستی/);
+});
+
+test("Phase 06 audio editor is routed through Audio navigation and the central help trigger", async () => {
+  const shell = await readFile(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8");
+  const editor = await readFile(new URL("../src/components/audio/audio-editor.tsx", import.meta.url), "utf8");
+  assert.match(shell, /activeSection === "audio"[\s\S]*?<AudioEditor/);
+  assert.match(editor, /ContextHelpTrigger topic="audio"/);
+  assert.match(editor, /decodeAudioData/);
+  assert.match(editor, /پخش بازه/);
+  assert.match(editor, /__silence/);
+  assert.match(editor, /جایگزینی فایل/);
 });
 
 test("context help uses accessible triggers and a native keyboard-dismissible drawer", async () => {
@@ -29,7 +44,10 @@ test("context help uses accessible triggers and a native keyboard-dismissible dr
   assert.match(shell, /onHelp=\{\(\) => setHelpTopic\("all"\)\}/);
   assert.match(trigger, /topic === "all"/);
   assert.match(trigger, /type="search"/);
-  assert.match(trigger, /<details key=\{id\}/);
+  assert.match(trigger, /<details\s+key=\{id\}/);
+  const { contextHelp } = await import("../src/lib/help/context-help-content.ts");
+  assert.match(contextHelp.workspace.steps.join(" "), /فهرست «بخش»/);
+  assert.match(contextHelp.workspace.steps.join(" "), /کلیدهای جهت‌دار/);
 });
 
 test("layout controls remain editor-only and restore bounded default panel sizes", async () => {

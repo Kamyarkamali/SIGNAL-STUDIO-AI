@@ -400,3 +400,36 @@ Use IDs `ADR-001`, `ADR-002`, etc. Each entry states **Decision**, **Reason**, *
 - **Status:** Implemented; browser input verification pending.
 - **Decision:** Keep event timing text in transient component state while users type. Accept seconds for event start and convert with the existing nearest-frame rule (`Math.round(seconds * fps)`); accept only positive integer frame counts for duration. Validate scene bounds at commit, preserve rejected input with a Persian error, and use Escape to revert the draft.
 - **Reason/trade-off:** Controlled numeric updates were normalizing intermediate input and silently clamping timing. A text draft allows clearing/replacement while leaving schema, timeline, and persistence contracts unchanged. It requires manual confirmation of browser focus/caret and touch keyboard behavior.
+
+### ADR-054 — Persist Phase 06 audio metadata separately from managed audio bytes
+
+- **Status:** Implemented; automated persistence tests pass; browser verification pending.
+- **Decision:** Bump project schema v8 to v9. Keep WAV/MP3 bytes in the established project-local `assets/audio/` directory and place only validated metadata/references in JSON. Model speaker identity, clip placement/source trim and manual clip-local speaker intervals as separate stable-ID records. Use the existing revision/backup save path, local asset APIs and project duplication path. Deletion is blocked while clips reference an audio file; same-format replacement retains its asset ID and rejects shorter media that would invalidate a clip.
+- **Timing:** Clip placement uses integer global project frames. Speaker ranges use source seconds local to the clip/file, positive half-open intervals, no overlaps per clip, and optional assigned/unknown/silence status. No project playback clock or audio evaluation was added; gain/mute remain persisted metadata until a playback evaluator exists.
+- **Reason/trade-offs:** This preserves the local asset security model and separates sound bytes, clip scheduling and speaker identity. Same-format replacement avoids converter assumptions. Browser audio decoding, touch/keyboard interaction and the full media workflow still require manual verification.
+
+### ADR-055 — Present existing timeline data in one project-time dock
+
+- **Status:** Implemented; browser and device acceptance pending.
+- **Decision:** Build the workspace dock from a pure projection of the existing scene order, scene action events and Phase 06 audio clip/speaker records. Keep scene and action mutation in existing project state APIs. Keep audio selection transient and scoped to the active project, routing into the existing Audio editor. Keep camera and subtitle tracks visibly unavailable until their roadmap phases.
+- **Reason/trade-off:** Users can discover where saved audio clips and speaker intervals belong without adding a second domain store, playback engine, audio synchronization, camera automation or subtitle system. The main viewport remains mounted by the existing shell. Browser layout and interaction require manual acceptance.
+
+### ADR-056 — Place audio relative to the selected scene without changing the audio schema
+
+- **Status:** Implemented; browser workflow and persistence review pending.
+- **Decision:** The selected project-timeline scene supplies its global start frame and duration. Convert a validated scene-local offset into the existing global clip `startFrame`; keep source trim and speaker intervals as file-relative seconds. Require explicit acknowledgement for a clip crossing the selected scene boundary, preserve it as one record, and explicitly warn when it extends beyond project end. Keep selected audio record IDs transient and route to the existing editor.
+- **Reason/trade-off:** This makes scene placement understandable while preserving schema v9 records, stable clip/asset IDs, save/migration behavior and audio-only ownership. It intentionally does not split clips, create scene-owned audio data, synchronize playback or infer character behavior.
+# ADR — Workspace and shared timeline presentation (2026-11-03)
+
+**Decision:** Keep the current editor shell as the presentation owner and project models/services as the domain source of truth. Keep one mounted viewport and project-frame timeline. Add zoom by scaling the rendered timeline width, with bounded controls and a base project-scale reset.
+
+**Reasoning:** Scene boundaries, action events, clips, and speaker intervals already project onto one project frame axis. A pixel scale can improve precision and overview without adding a competing timebase, changing IDs, or migrating saved projects. The current split between storyboard/animation authoring and a unified track projection is retained while Phase 06 verification is open.
+
+**Trade-off:** This incremental pass improves timeline scale control but does not extract all callback coordination from `EditorShell`. Browser evidence is still required for responsive layout, pointer behavior, canvas stability, and persistence. Camera event tracks, subtitles, lip sync, synchronized audio playback, and export stay gated by their roadmap phases.
+
+### ADR-057 — Edit audio clips on the existing project-frame axis
+
+- **Status:** Implemented; automated checks pass; browser pointer and audible playback verification pending (2026-11-05).
+- **Decision:** Keep clip placement in global integer `startFrame` and source trims in seconds. Add pure coordinate/edit functions, pointer-only interaction state in the existing shared timeline, and route clip updates through the existing `useProjects.editAudio`/autosave path. Do not add a scene ID to the clip record because scene association is derived from the project-frame scene boundaries. Undo/redo snapshots are session-local.
+- **Merge policy:** Merge only adjacent clips that reference the same source asset and have contiguous source ranges; preserve source bytes and stable clip identity. If speaker assignments differ, explicitly preserve the intervals or replace them with one unknown interval. Overlapping clips remain separate simultaneous Mix playback.
+- **Reason/trade-off:** This delivers common clip edits without a schema migration or second playback model. Merging different source files would require a compound-clip schema and migration; it is intentionally not represented as supported. Imported media remains in the library after undoing its placement. Browser behavior, including media playback, must be verified before Phase 06 acceptance.

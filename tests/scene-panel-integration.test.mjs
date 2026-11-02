@@ -6,10 +6,10 @@ test("Scenes navigation is connected to the project's shared scene state and sup
   const shell = await readFile(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8");
   const panel = await readFile(new URL("../src/components/scenes/scene-management-panel.tsx", import.meta.url), "utf8");
   assert.match(shell, /activeSection === "scenes"\s*\?\s*\(\s*<SceneManagementPanel/);
-  assert.match(shell, /sceneOrder=\{projects\.sceneOrder\} scenes=\{projects\.scenes\}/);
-  assert.match(shell, /onCreate=\{addScene\}[\s\S]*?onDuplicate=\{cloneScene\} onDelete=\{removeScene\} onReorder=\{moveScene\}/);
+  assert.match(shell, /sceneOrder=\{projects\.sceneOrder\}\s+scenes=\{projects\.scenes\}/);
+  assert.match(shell, /onCreate=\{addScene\}[\s\S]*?onDuplicate=\{cloneScene\}\s+onDelete=\{removeScene\}\s+onReorder=\{moveScene\}/);
   assert.match(shell, /onSelect=\{selectScene\}/);
-  assert.match(shell, /setActiveSection\("scenes"\); dispatchPanel\(\{ type: "selection" \}\)/);
+  assert.match(shell, /setActiveSection\("scenes"\);\s*dispatchPanel\(\{ type: "selection" \}\)/);
   assert.match(shell, /activeSceneId=\{activeSceneId\}/);
   assert.match(shell, /<SceneAuthoring[\s\S]*?onSeek=\{seekTimeline\}/);
   assert.match(panel, /ContextHelpTrigger topic="scenes"/);

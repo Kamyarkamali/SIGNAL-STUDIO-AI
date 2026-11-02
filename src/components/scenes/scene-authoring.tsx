@@ -5,9 +5,8 @@ import type { SceneDefinition } from "@/lib/scenes/scene-schema";
 import { computeSceneOffsets, formatTimecode } from "@/lib/scenes/scene-time";
 import { ContextHelpTrigger } from "@/components/help/context-help";
 import type { ContextHelpId } from "@/lib/help/context-help-content";
-import { sceneActionCategory, sceneActionLabels } from "@/lib/scenes/scene-action-labels";
-import { SceneActionTimeline } from "./scene-action-timeline";
-import type { SceneActionEvent } from "@/lib/scenes/scene-schema";
+import type { AudioProjectCollections } from "@/lib/audio/audio-schema";
+import { UnifiedTimelineTracks } from "./unified-timeline-tracks";
 
 const button =
   "min-h-8 rounded-md border border-[#354355] bg-[#1d2939] px-2 text-xs text-[#d8e4ef] transition-colors hover:bg-[#28394b] focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45";
@@ -42,14 +41,19 @@ type Props = {
   onNextScene: () => void;
   selectedEventId: string | null;
   characterNames: Record<string, string>;
-  characterCapabilities: Record<string, readonly ("head-rotation" | "arm-gesture" | "facial-expression")[]>;
-  gazeSupportedIds: string[];
+  audio: AudioProjectCollections;
+  assetNames: Record<string, string>;
+  selectedAudioClipId: string | null;
+  selectedSpeakerRegionId: string | null;
+  onSelectAudio: (assetId: string, clipId: string, frame: number, regionId?: string) => void;
+  onEditAudio: (update: (current: AudioProjectCollections) => AudioProjectCollections) => void;
+  onDropAudioFile: (file: File, sceneId: string, frame: number) => Promise<boolean>;
+  onDropAudioAsset: (assetId: string, sceneId: string, frame: number) => boolean;
+  assetDurations: Readonly<Record<string, number>>;
+  identityNames: Record<string, string>;
   activeWorkspace?: "scenes" | "animations";
-  localFrame: number;
-  onReorderEvent: (id: string, index: number) => void;
-  onMoveEvent: (id: string, startFrame: number) => void;
-  onSelectEvent: (id: string) => void;
-  onSeekEvent: (frame: number) => void;
+  onSelectEvent: (sceneId: string, id: string, frame: number) => void;
+  onMoveEvent: (sceneId: string, id: string, startFrame: number) => void;
 };
 
 function timeLabel(frame: number, fps: number) {
@@ -65,7 +69,7 @@ const sceneTypeLabels = {
 } as const;
 
 export function SceneAuthoring(props: Props) {
-  const [focusedByWorkspace, setFocusedByWorkspace] = useState({ scenes: false, animations: true });
+  const [focusedByWorkspace, setFocusedByWorkspace] = useState({ scenes: true, animations: true });
   const workspaceKey = props.activeWorkspace ?? "scenes";
   const animationFocused = focusedByWorkspace[workspaceKey];
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -80,7 +84,6 @@ export function SceneAuthoring(props: Props) {
   const selected = props.activeSceneId
     ? props.scenes[props.activeSceneId]
     : undefined;
-  const selectedOffset = selected ? offsetById.get(selected.id) : undefined;
 
   return (
     <section
@@ -92,7 +95,7 @@ export function SceneAuthoring(props: Props) {
           <span className="h-3.5 w-[3px] rounded bg-accent" />
           <span>استوری‌بورد و تایم‌لاین</span>
           <ContextHelpTrigger topic="timeline" onOpen={props.onHelp} />
-          {!animationFocused && <label
+          <label
             className="flex items-center gap-1 font-normal text-[#b7c6d5]"
             title="نرخ فریم پروژه؛ مدت‌ها برای حفظ زمان واقعی تبدیل می‌شوند"
           >
@@ -111,7 +114,7 @@ export function SceneAuthoring(props: Props) {
                 </option>
               ))}
             </select>
-          </label>}
+          </label>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <span
@@ -135,12 +138,13 @@ export function SceneAuthoring(props: Props) {
           >
             ◀◀
           </button>
-          <button type="button" className={`${button} ${animationFocused ? "border-accent bg-[#17343a]" : ""}`} aria-pressed={animationFocused} onClick={() => setFocusedByWorkspace((current) => ({ ...current, [workspaceKey]: !current[workspaceKey] }))} title="نمای ترک‌های حرکت را از نمای مدیریت و ترتیب صحنه‌ها جدا می‌کند؛ زمان‌بندی و محتوای صحنه تغییر نمی‌کند.">{animationFocused ? "نمای کلی صحنه‌ها" : "ترک‌های حرکت"}</button>
+          <button type="button" className={`${button} ${!animationFocused ? "border-accent bg-[#17343a]" : ""}`} aria-expanded={!animationFocused} aria-controls="timeline-scene-management" onClick={() => setFocusedByWorkspace((current) => ({ ...current, [workspaceKey]: !current[workspaceKey] }))} title="جزئیات و کارت‌های مدیریت سکانس را در بالای تایم‌لاین باز یا جمع می‌کند؛ داده و زمان‌بندی تغییر نمی‌کند.">{animationFocused ? "نمایش جزئیات سکانس‌ها" : "جمع‌کردن جزئیات سکانس‌ها"}</button>
           {props.playbackStatus === "playing" ? (
             <button
               type="button"
               className={button}
               title="مکث؛ زمان فعلی حفظ می‌شود"
+              data-transport="pause"
               onClick={props.onPause}
             >
               مکث
@@ -151,6 +155,7 @@ export function SceneAuthoring(props: Props) {
               className={button}
               title="پخش از زمان فعلی"
               disabled={!props.totalFrames}
+              data-transport="play"
               onClick={props.onPlay}
             >
               پخش
@@ -164,6 +169,7 @@ export function SceneAuthoring(props: Props) {
               !props.totalFrames ||
               (props.playbackStatus === "stopped" && props.currentFrame === 0)
             }
+            data-transport="stop"
             onClick={props.onStop}
           >
             توقف
@@ -192,8 +198,8 @@ export function SceneAuthoring(props: Props) {
         </div>
       </header>
 
-      <div hidden={animationFocused}
-        className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(220px,280px)] gap-2 px-2 py-2 max-[650px]:grid-cols-1"
+      <div id="timeline-scene-management" hidden={animationFocused}
+        className="workspace-scene-cards grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(220px,280px)] gap-2 px-2 py-2 max-[650px]:grid-cols-1"
         dir="rtl"
       >
         <div
@@ -452,99 +458,7 @@ export function SceneAuthoring(props: Props) {
         )}
       </div>
 
-      <div hidden={animationFocused} className="grid grid-cols-[minmax(120px,180px)_minmax(0,1fr)] items-center gap-3 border-t border-line px-3 py-1.5 max-[650px]:grid-cols-1 max-[650px]:gap-1">
-        <div className="flex items-center justify-between gap-2 text-[10px] text-[#b7c6d5]">
-          <span>خط‌کش زمان · جابه‌جایی</span>
-          <span dir="ltr" className="font-mono tabular-nums">
-            {formatTimecode(props.currentFrame, props.fps)}
-          </span>
-        </div>
-        <div className="min-w-0" dir="ltr">
-          <div
-            className="relative mb-1 flex h-3 overflow-hidden rounded-sm border border-[#314153] bg-[#0b111a] cursor-pointer"
-            aria-label="خط‌کش و مرز صحنه‌ها"
-            onPointerDown={(event) => {
-              if (!props.totalFrames) return;
-              const bounds = event.currentTarget.getBoundingClientRect();
-              const ratio = Math.max(
-                0,
-                Math.min(1, (event.clientX - bounds.left) / bounds.width),
-              );
-              props.onSeek(Math.round(ratio * props.totalFrames));
-            }}
-          >
-            {props.sceneOrder.map((id, index) => {
-              const scene = props.scenes[id];
-              const entry = offsetById.get(id);
-              if (!scene || !entry || !props.totalFrames) return null;
-              return (
-                <div
-                  key={id}
-                  title={`${index + 1}. ${scene.name} · شروع ${timeLabel(entry.startFrame, props.fps)}`}
-                  className={`h-full border-r border-[#09111a] ${id === props.activeSceneId ? "bg-accent/80" : "bg-[#355064]"}`}
-                  style={{
-                    width: `${(scene.durationFrames / props.totalFrames) * 100}%`,
-                  }}
-                />
-              );
-            })}
-            {props.totalFrames > 0 && (
-              <span
-                className="pointer-events-none absolute inset-y-0 w-px bg-white shadow-[0_0_4px_1px_#fff8]"
-                style={{
-                  left: `${Math.min(100, (props.currentFrame / props.totalFrames) * 100)}%`,
-                }}
-              />
-            )}
-          </div>
-          <div
-            className="mb-0.5 flex justify-between px-0.5 font-mono text-[9px] tabular-nums text-[#8fa1b4]"
-            aria-hidden="true"
-          >
-            {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
-              <span key={ratio}>
-                {timeLabel(Math.round(props.totalFrames * ratio), props.fps)}
-              </span>
-            ))}
-          </div>
-          <input
-            className="timeline-playhead w-full accent-[#4fd1c5]"
-            type="range"
-            min={0}
-            max={Math.max(0, props.totalFrames)}
-            step={1}
-            value={Math.min(props.currentFrame, props.totalFrames)}
-            aria-label="جابه‌جایی در خط زمان پروژه"
-            title="پخش‌نما را به فریم انتخاب‌شده می‌برد و وضعیت همان لحظه را در نمای سه‌بعدی ارزیابی می‌کند؛ دادهٔ پروژه تغییر نمی‌کند."
-            disabled={!props.totalFrames}
-            onChange={(event) => props.onSeek(Number(event.target.value))}
-          />
-        </div>
-      </div>
-      <div hidden={animationFocused} className="border-t border-line px-3 py-2" dir="rtl">
-        <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-muted">
-          <span>رویدادهای حرکتی · {selected?.name ?? "سکانسی انتخاب نشده"}</span>
-          <ContextHelpTrigger topic="timelineActions" onOpen={props.onHelp} />
-        </div>
-        {selected && <div className="relative h-8 overflow-hidden rounded border border-line bg-[#101722]" dir="ltr" aria-label="رویدادهای حرکتی سکانس فعال">
-          {selected.actionEvents.map((event) => {
-            const start = Math.max(0, Math.min(100, event.startFrame / selected.durationFrames * 100));
-            const width = Math.max(1.2, Math.min(100 - start, event.durationFrames / selected.durationFrames * 100));
-            const category = sceneActionCategory(event.action);
-            const color = category === "gaze" ? "border-violet-400/70 bg-violet-500/25" : category === "gesture" ? "border-amber-300/70 bg-amber-400/25" : category === "expression" ? "border-pink-300/70 bg-pink-400/25" : "border-sky-300/70 bg-sky-400/25";
-            return <button key={event.id} type="button" className={`absolute inset-y-0.5 truncate rounded border px-1 text-[9px] text-[#e8f1f8] transition-colors focus-visible:outline-2 focus-visible:outline-accent ${color} ${props.selectedEventId === event.id ? "ring-2 ring-accent" : ""} ${event.enabled ? "" : "opacity-40"}`} style={{ left: `${start}%`, width: `${width}%` }} onClick={() => { props.onSelectEvent(event.id); props.onSeekEvent((selectedOffset?.startFrame ?? 0) + event.startFrame); }} title={`${sceneActionLabels[event.action]} · شروع ${timeLabel(event.startFrame, props.fps)} · ${event.durationFrames} فریم؛ برای انتخاب و رفتن به زمان شروع کلیک کنید.`} aria-label={`انتخاب رویداد ${sceneActionLabels[event.action]} در ${timeLabel(event.startFrame, props.fps)}`}>
-              {props.characterNames[event.characterInstanceId] ?? "شخصیت"} · {sceneActionLabels[event.action]}
-            </button>;
-          })}
-          {props.activeSceneId === selected.id && <span className="pointer-events-none absolute inset-y-0 w-px bg-white/80" style={{ left: `${Math.max(0, Math.min(100, ((props.currentFrame - (selectedOffset?.startFrame ?? 0)) / selected.durationFrames) * 100))}%` }} aria-hidden="true" />}
-        </div>}
-        {selected && !selected.actionEvents.length && <p className="rounded border border-dashed border-line px-2 py-1.5 text-[10px] text-muted">حرکت‌های افزوده‌شده در این نوار دیده می‌شوند؛ playhead را جابه‌جا کنید و از بخش «حرکت‌ها» رویداد بسازید.</p>}
-      </div>
-      <div hidden={!animationFocused} className="min-h-[170px] flex-1 overflow-hidden border-t border-line">
-        {selected ? <SceneActionTimeline events={selected.actionEvents} characterNames={props.characterNames} characterCapabilities={props.characterCapabilities} gazeSupportedIds={props.gazeSupportedIds} durationFrames={selected.durationFrames} localFrame={props.localFrame} fps={props.fps} selectedEventId={props.selectedEventId} onHelp={props.onHelp}
-          onSelect={(event: SceneActionEvent) => { props.onSelectEvent(event.id); props.onSeekEvent((selectedOffset?.startFrame ?? 0) + event.startFrame); }} onMove={props.onMoveEvent} />
-          : <p className="p-3 text-xs text-muted">برای ویرایش حرکت‌ها ابتدا یک صحنه بسازید یا انتخاب کنید.</p>}
-      </div>
+      <UnifiedTimelineTracks sceneOrder={props.sceneOrder} scenes={props.scenes} audio={props.audio} assetNames={props.assetNames} assetDurations={props.assetDurations} characterNames={props.characterNames} identityNames={props.identityNames} fps={props.fps} currentFrame={props.currentFrame} totalFrames={props.totalFrames} activeSceneId={props.activeSceneId} selectedEventId={props.selectedEventId} selectedAudioClipId={props.selectedAudioClipId} selectedSpeakerRegionId={props.selectedSpeakerRegionId} onHelp={props.onHelp} onSeek={props.onSeek} onSelectScene={props.onSelect} onSelectEvent={props.onSelectEvent} onMoveEvent={props.onMoveEvent} onSelectAudio={props.onSelectAudio} onEditAudio={props.onEditAudio} onDropAudioFile={props.onDropAudioFile} onDropAudioAsset={props.onDropAudioAsset} />
     </section>
   );
 }

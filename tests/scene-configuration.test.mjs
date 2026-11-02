@@ -137,7 +137,7 @@ test("schema v6 migrates scenes by copying existing project character states int
     sceneOrder: sequence.sceneOrder, scenes: { [scene.id]: { ...scene, characters: {}, propOverrides: { "studio-01:room": { visible: false } }, lightingOverride: undefined } },
   });
   const migrated = migrateProject(v6);
-  assert.equal(migrated.schemaVersion, 8);
+  assert.equal(migrated.schemaVersion, 9);
   assert.deepEqual(migrated.scenes[scene.id].characters[instanceId].transform, characters.characterStates[instanceId].transform);
   assert.equal(projectSchema.safeParse(migrated).success, true);
   const legacyResolution = resolveSceneArrangement(defaultArrangement(), migrated.scenes[scene.id]);

@@ -3,8 +3,9 @@ import { arrangementSchema, defaultArrangement } from "../environments/arrangeme
 import { characterProjectDataSchema } from "../characters/character-schema.ts";
 import { characterModelDefinitionSchema } from "../characters/character-registry.ts";
 import { projectFrameRateSchema, sceneOrderSchema, scenesSchema } from "../scenes/scene-schema.ts";
+import { audioProjectCollectionsSchema, validateAudioCollections } from "../audio/audio-schema.ts";
 
-export const PROJECT_SCHEMA_VERSION = 8;
+export const PROJECT_SCHEMA_VERSION = 9;
 export const PROJECT_MAX_BYTES = 1024 * 1024;
 export const REQUEST_MAX_BYTES = 256 * 1024;
 
@@ -34,6 +35,7 @@ const assetRecordSchema = z.object({
   mediaType: z.string().min(1).max(100),
   relativePath: z.string().min(1).max(240),
   fileSizeBytes: z.number().int().nonnegative(),
+  audioDurationSeconds: z.number().finite().positive().max(86_400).optional(),
   sha256: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   origin: z.enum(["built-in", "imported"]),
   characterModel: characterModelDefinitionSchema.optional(),
@@ -47,13 +49,14 @@ const assetRecordSchema = z.object({
     context.addIssue({ code: "custom", message: "Character model metadata must reference its project asset." });
   }
   if (asset.kind === "character-model" && !asset.characterModel) context.addIssue({ code: "custom", message: "Character model metadata is required." });
+  if (asset.audioDurationSeconds !== undefined && asset.kind !== "audio") context.addIssue({ code: "custom", message: "Audio duration belongs only to audio assets." });
 });
 
 export type AssetRecord = z.infer<typeof assetRecordSchema>;
 
-const emptyCollection = z.record(z.string(), z.never());
+const emptyCollection = z.record(z.uuid(), z.unknown());
 const baseProjectSchema = z.object({
-  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8)]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9)]),
   id: projectIdSchema,
   title: projectNameSchema,
   createdAt: z.iso.datetime(),
@@ -66,6 +69,7 @@ const baseProjectSchema = z.object({
   characters: emptyCollection,
   speakers: emptyCollection,
   audioClips: emptyCollection,
+  speakerRegions: emptyCollection.optional(),
   tracks: emptyCollection,
   events: emptyCollection,
   assetManifest: z.record(z.uuid(), assetRecordSchema),
@@ -101,13 +105,24 @@ export const version3ProjectSchema = baseProjectSchema.safeExtend({
   displayAssignments: displayAssignmentsSchema,
 });
 
-function projectWithCharacterSchema(version: 4 | 5 | 6 | 7 | 8) {
-  return baseProjectSchema.safeExtend({
+function projectWithCharacterSchema(version: 4 | 5 | 6 | 7 | 8 | 9) {
+  return z.object({
+    ...baseProjectSchema.shape,
     schemaVersion: z.literal(version),
     environmentArrangement: arrangementSchema,
     displayAssignments: displayAssignmentsSchema,
+    ...(version === 9 ? { speakers: z.record(z.uuid(), z.unknown()), audioClips: z.record(z.uuid(), z.unknown()), speakerRegions: z.record(z.uuid(), z.unknown()) } : {}),
     ...characterProjectDataSchema.shape,
-  }).superRefine((project, context) => {
+  }).strict().superRefine((project, context) => {
+  if (version < 6 && (project.fps !== 30 || project.sceneOrder.length || Object.keys(project.scenes).length)) {
+    context.addIssue({ code: "custom", message: "Scene and frame-rate metadata require project schema v6 or later." });
+  }
+  for (const [id, asset] of Object.entries(project.assetManifest)) {
+    if (id !== asset.id) context.addIssue({ code: "custom", message: "Asset key must match its stable ID." });
+  }
+  if (version < 9) for (const collection of [project.speakers, project.audioClips, project.speakerRegions]) {
+    if (collection && Object.keys(collection).length) context.addIssue({ code: "custom", message: "Audio records require project schema v9 or later." });
+  }
   if (version >= 6) {
     const ids = new Set<string>();
     for (const sceneId of project.sceneOrder) {
@@ -168,6 +183,17 @@ function projectWithCharacterSchema(version: 4 | 5 | 6 | 7 | 8) {
       context.addIssue({ code: "custom", message: "Scene prop IDs must match their override keys.", path: ["scenes", sceneId, "propOverrides", propId] });
     }
   }
+  if (version >= 9) {
+    const audioProject = audioProjectCollectionsSchema.safeParse({ speakers: project.speakers, audioClips: project.audioClips, speakerRegions: project.speakerRegions });
+    if (!audioProject.success) {
+      for (const issue of audioProject.error.issues) context.addIssue({ code: "custom", message: issue.message, path: issue.path });
+      return;
+    }
+    const assets = Object.fromEntries(Object.values(project.assetManifest).filter((asset) => asset.kind === "audio")
+      .map((asset) => [asset.id, { audioDurationSeconds: asset.audioDurationSeconds }]));
+    for (const message of validateAudioCollections(audioProject.data,
+      assets, new Set(Object.keys(project.characterIdentities)))) context.addIssue({ code: "custom", message });
+  }
   });
 }
 
@@ -175,14 +201,16 @@ export const version4ProjectSchema = projectWithCharacterSchema(4);
 export const version5ProjectSchema = projectWithCharacterSchema(5);
 export const version6ProjectSchema = projectWithCharacterSchema(6);
 export const version7ProjectSchema = projectWithCharacterSchema(7);
-export const projectSchema = projectWithCharacterSchema(PROJECT_SCHEMA_VERSION);
-
-export type ProjectDocument = z.infer<typeof projectSchema>;
+export const version8ProjectSchema = projectWithCharacterSchema(8);
+const untypedProjectSchema = projectWithCharacterSchema(9);
+export type ProjectDocument = Omit<z.infer<typeof untypedProjectSchema>, "speakers" | "audioClips" | "speakerRegions"> & import("../audio/audio-schema.ts").AudioProjectCollections;
+export const projectSchema = untypedProjectSchema as z.ZodType<ProjectDocument>;
 export type ProjectSummary = Pick<ProjectDocument, "id" | "title" | "createdAt" | "updatedAt" | "revision">;
 
 export const createInputSchema = z.object({ title: projectNameSchema }).strict();
 export const saveInputSchema = z.object({ title: projectNameSchema, expectedRevision: z.number().int().nonnegative(), environmentArrangement: arrangementSchema.optional(), displayAssignments: displayAssignmentsSchema.optional(),
   fps: projectFrameRateSchema.optional(), sceneOrder: sceneOrderSchema.optional(), scenes: scenesSchema.optional(),
+  speakers: audioProjectCollectionsSchema.shape.speakers.optional(), audioClips: audioProjectCollectionsSchema.shape.audioClips.optional(), speakerRegions: audioProjectCollectionsSchema.shape.speakerRegions.optional(),
   characterIdentities: characterProjectDataSchema.shape.characterIdentities.optional(), characterInstances: characterProjectDataSchema.shape.characterInstances.optional(), characterStates: characterProjectDataSchema.shape.characterStates.optional() }).strict();
 export const deleteInputSchema = z.object({ expectedRevision: z.number().int().nonnegative() }).strict();
 
@@ -191,7 +219,7 @@ export function newProject(id: string, title: string, now = new Date()): Project
   return projectSchema.parse({
     schemaVersion: PROJECT_SCHEMA_VERSION, id, title, createdAt: timestamp, updatedAt: timestamp, revision: 0,
     fps: 30, resolution: { width: 1280, height: 720 }, sceneOrder: [], scenes: {}, characters: {}, speakers: {},
-    audioClips: {}, tracks: {}, events: {}, assetManifest: {}, exportSettings: { fps: 30, width: 1280, height: 720 },
+    audioClips: {}, speakerRegions: {}, tracks: {}, events: {}, assetManifest: {}, exportSettings: { fps: 30, width: 1280, height: 720 },
     environmentArrangement: defaultArrangement(), displayAssignments: {}, ...characterProjectDataSchema.parse({ characterIdentities: {}, characterInstances: {}, characterStates: {} }),
   });
 }
@@ -199,6 +227,8 @@ export function newProject(id: string, title: string, now = new Date()): Project
 export function migrateProject(value: unknown): ProjectDocument | null {
   const current = projectSchema.safeParse(value);
   if (current.success) return current.data;
+  const version8 = version8ProjectSchema.safeParse(value);
+  if (version8.success) return projectSchema.parse({ ...version8.data, schemaVersion: PROJECT_SCHEMA_VERSION, speakers: {}, audioClips: {}, speakerRegions: {} });
   const version7 = version7ProjectSchema.safeParse(value);
   if (version7.success) return projectSchema.parse({ ...version7.data, schemaVersion: PROJECT_SCHEMA_VERSION });
   const version6 = version6ProjectSchema.safeParse(value);

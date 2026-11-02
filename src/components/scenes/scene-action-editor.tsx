@@ -39,7 +39,7 @@ export function SceneActionEditor({ scene, characters, arrangement, fps, localFr
     const identity = instance && characters.characterIdentities[instance.characterId];
     const model = identity && characterModelRegistry.get(identity.modelId);
     if (!instance || !identity || !scene.characters[id]?.visible) return [];
-    return [{ id, name: identity.name, capabilities: model && !model.glb ? model.capabilities.animationCapabilities.filter((item): item is "head-rotation" | "arm-gesture" | "facial-expression" => item === "head-rotation" || item === "arm-gesture" || item === "facial-expression") : [], canGaze: Boolean(model && supportedGazeCapability(model)) }];
+    return [{ id, name: identity.name, capabilities: model && !model.glb ? model.capabilities.animationCapabilities.filter((item): item is "head-rotation" | "arm-gesture" | "facial-expression" => item === "head-rotation" || item === "arm-gesture" || item === "facial-expression") : [], joints: model?.attachmentPoints ?? [], canGaze: Boolean(model && supportedGazeCapability(model)) }];
   }) : [], [scene, characters]);
   const actor = characterOptions.find((item) => item.id === characterId) ?? characterOptions[0];
   const effectiveCharacterId = actor?.id ?? "";
@@ -49,7 +49,7 @@ export function SceneActionEditor({ scene, characters, arrangement, fps, localFr
   ], [arrangement, characterOptions, effectiveCharacterId]);
   const availableActions = useMemo(() => {
     if (!actor) return [] as SceneActionEvent["action"][];
-    const supported = new Set(getPreviewActionAvailability(actor.capabilities).filter((item) => item.supported).map((item) => item.id));
+    const supported = new Set(getPreviewActionAvailability(actor.capabilities, actor.joints).filter((item) => item.supported).map((item) => item.id));
     return [
       ...actionOptions.filter((item) => item === "return-idle" || supported.has(item as CharacterPreviewActionId)),
       ...(actor.canGaze && targetOptions.some((item) => item.value.startsWith("character:")) ? ["gaze-character" as const] : []),

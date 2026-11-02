@@ -40,7 +40,7 @@ test("editor layout retains the viewport, timeline and existing feature panels",
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 7px var\(--inspector-width/);
   assert.match(styles, /\.workspace-pane\[hidden\] \{ display: none; \}/);
   assert.match(styles, /@media \(max-width: 767px\)/);
-  assert.match(shell, /WorkspaceResizeHandle axis="x"/);
+  assert.match(shell, /<WorkspaceResizeHandle\s+axis="x"/);
   assert.match(shell, /timelineHeight/);
   assert.match(shell, /بازنشانی چیدمان/);
 });
@@ -48,12 +48,12 @@ test("editor layout retains the viewport, timeline and existing feature panels",
 test("inspector follows scene and object selection while Projects remains a single management view", () => {
   const shell = readFileSync(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8");
   const properties = readFileSync(new URL("../src/components/layout/properties-panel.tsx", import.meta.url), "utf8");
-  assert.match(shell, /setActiveSection\("scenes"\); dispatchPanel\(\{ type: "selection" \}\)/);
+  assert.match(shell, /setActiveSection\("scenes"\);\s*dispatchPanel\(\{ type: "selection" \}\)/);
   assert.match(shell, /setActiveSection\("characters"\);[\s\S]*?dispatchPanel\(\{ type: "selection" \}\)/);
   assert.match(shell, /setActiveSection\("environments"\);[\s\S]*?dispatchPanel\(\{ type: "selection" \}\)/);
   assert.match(shell, /activeSection === "projects" \? \([\s\S]*?<ProjectManager projects=\{projects\} \/>/);
-  assert.match(shell, /hidden=\{!\(activeSection === "characters" \|\| activeSection === "scenes" \|\| activeSection === "environments" \|\| activeSection === "animations"\) \|\| inspectorView !== "properties"\}/);
+  assert.match(shell, /hidden=\{\s*!\(\s*activeSection === "characters"\s*\|\|\s*activeSection === "scenes"\s*\|\|\s*activeSection === "environments"\s*\|\|\s*activeSection === "animations"\s*\)\s*\|\|\s*inspectorView !== "properties"\s*\}/);
   assert.match(shell, /topic=\{inspectorHelpTopic\}/);
-  assert.match(properties, /selected\.definitionId === "prop:laptop" && project && <details/);
+  assert.match(properties, /selected\.definitionId === "prop:laptop" && project &&\s*\(\s*<details/);
   assert.match(properties, /برای ویرایش وسایل، پروژه‌ای باز کنید و به بخش محیط‌ها بروید/);
 });

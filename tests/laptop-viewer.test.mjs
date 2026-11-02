@@ -103,8 +103,8 @@ test("device-framed presentation retains the 3D laptop while hiding helpers temp
   assert.match(props, /showEditorHelpers && editing && selected && definition\.editable !== false && <TransformControls/);
   assert.match(props, /\(!showEditorHelpers \|\| !editing\) && dragging\.current/);
   assert.match(props, /restoreOrbit\.current\?\.\(\);\s*restoreOrbit\.current = null;\s*commit\(\)/);
-  assert.match(characters, /showEditorHelpers && selected && <TransformControls/);
-  assert.match(characters, /showEditorHelpers && selected && <mesh/);
+  assert.match(characters, /showEditorHelpers && selected &&\s*\(\s*<TransformControls/);
+  assert.match(characters, /showEditorHelpers && selected &&\s*\(\s*<mesh/);
   assert.match(shell, /onInspectChange=\{setInspectPropId\}/);
   assert.match(shell, /laptopContentViewerOpen=\{laptopContentViewerOpen\}/);
   assert.match(shell, /onLaptopViewerOpenChange=\{setLaptopContentViewerOpen\}/);
