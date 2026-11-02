@@ -7,6 +7,8 @@ import type { EnvironmentArrangement } from "@/lib/environments/arrangement";
 import { emptyCharacterData } from "@/lib/characters/character-operations";
 import type { CharacterProjectData } from "@/lib/characters/character-schema";
 import { characterModelRegistry } from "@/lib/characters/character-registry";
+import type { SceneDefinition } from "@/lib/scenes/scene-schema";
+import { convertSceneFrameRate, type SceneSequence } from "@/lib/scenes/scene-operations";
 
 export type { SaveStatus } from "@/lib/projects/save-state";
 
@@ -20,12 +22,18 @@ export function useProjects() {
   const [arrangement, setArrangement] = useState<EnvironmentArrangement | null>(null);
   const [displayAssignments, setDisplayAssignments] = useState<ProjectDocument["displayAssignments"]>({});
   const [characterData, setCharacterData] = useState<CharacterProjectData>(emptyCharacterData);
+  const [sceneOrder, setSceneOrder] = useState<string[]>([]);
+  const [scenes, setScenes] = useState<Record<string, SceneDefinition>>({});
+  const [fps, setFps] = useState<ProjectDocument["fps"]>(30);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const activeRef = useRef<ProjectDocument | null>(null);
   const draftRef = useRef("");
   const arrangementRef = useRef<EnvironmentArrangement | null>(null);
   const displayRef = useRef<ProjectDocument["displayAssignments"]>({});
   const characterRef = useRef<CharacterProjectData>(emptyCharacterData());
+  const sceneOrderRef = useRef<string[]>([]);
+  const scenesRef = useRef<Record<string, SceneDefinition>>({});
+  const fpsRef = useRef<ProjectDocument["fps"]>(30);
   const pendingSave = useRef<Promise<void> | null>(null);
 
   const select = useCallback((project: ProjectDocument | null) => {
@@ -36,11 +44,17 @@ export function useProjects() {
     displayRef.current = project?.displayAssignments ?? {};
     characterRef.current = project ? { characterIdentities: project.characterIdentities, characterInstances: project.characterInstances,
       characterStates: project.characterStates } : emptyCharacterData();
+    sceneOrderRef.current = project?.sceneOrder ?? [];
+    scenesRef.current = project?.scenes ?? {};
+    fpsRef.current = project?.fps ?? 30;
     setActive(project);
     setDraftName(project?.title ?? "");
     setArrangement(project?.environmentArrangement ?? null);
     setDisplayAssignments(project?.displayAssignments ?? {});
     setCharacterData(characterRef.current);
+    setSceneOrder(sceneOrderRef.current);
+    setScenes(scenesRef.current);
+    setFps(fpsRef.current);
     setSaveStatus("saved");
     try {
       if (project) sessionStorage.setItem("signal-studio-active-project", project.id);
@@ -103,9 +117,33 @@ export function useProjects() {
     setSaveStatus("dirty");
   };
 
+  const editScenes = (updater: (current: SceneSequence) => SceneSequence) => {
+    if (!activeRef.current) return;
+    const next = updater({ sceneOrder: sceneOrderRef.current, scenes: scenesRef.current });
+    sceneOrderRef.current = next.sceneOrder;
+    scenesRef.current = next.scenes;
+    setSceneOrder(next.sceneOrder);
+    setScenes(next.scenes);
+    setSaveStatus("dirty");
+  };
+
+  const editFps = (nextFps: ProjectDocument["fps"]) => {
+    if (!activeRef.current || fpsRef.current === nextFps) return;
+    const converted = convertSceneFrameRate({ sceneOrder: sceneOrderRef.current, scenes: scenesRef.current }, fpsRef.current, nextFps);
+    fpsRef.current = nextFps;
+    sceneOrderRef.current = converted.sceneOrder;
+    scenesRef.current = converted.scenes;
+    setFps(nextFps);
+    setSceneOrder(converted.sceneOrder);
+    setScenes(converted.scenes);
+    setSaveStatus("dirty");
+  };
+
   const hasChanges = () => activeRef.current && (draftRef.current.trim() !== activeRef.current.title ||
     JSON.stringify(arrangementRef.current) !== JSON.stringify(activeRef.current.environmentArrangement) ||
     JSON.stringify(displayRef.current) !== JSON.stringify(activeRef.current.displayAssignments) ||
+    fpsRef.current !== activeRef.current.fps || JSON.stringify(sceneOrderRef.current) !== JSON.stringify(activeRef.current.sceneOrder) ||
+    JSON.stringify(scenesRef.current) !== JSON.stringify(activeRef.current.scenes) ||
     JSON.stringify(characterRef.current) !== JSON.stringify({ characterIdentities: activeRef.current.characterIdentities,
       characterInstances: activeRef.current.characterInstances, characterStates: activeRef.current.characterStates }));
 
@@ -123,18 +161,24 @@ export function useProjects() {
     const snapshot = arrangementRef.current;
     const displaySnapshot = displayRef.current;
     const charactersSnapshot = characterRef.current;
+    const orderSnapshot = sceneOrderRef.current;
+    const scenesSnapshot = scenesRef.current;
+    const fpsSnapshot = fpsRef.current;
     const operation = (async () => {
       setSaveStatus("saving");
       try {
         const saved = await projectRequest<ProjectDocument>(projectUrl(project.id), "PATCH", { title, expectedRevision: project.revision,
-          environmentArrangement: snapshot, displayAssignments: displaySnapshot, ...charactersSnapshot });
+          environmentArrangement: snapshot, displayAssignments: displaySnapshot, ...charactersSnapshot,
+          fps: fpsSnapshot, sceneOrder: orderSnapshot, scenes: scenesSnapshot });
         if (activeRef.current?.id === saved.id) {
           activeRef.current = saved;
           setActive(saved);
           setSaveStatus(statusAfterSave(saved.title, draftRef.current) === "saved" &&
             JSON.stringify(snapshot) === JSON.stringify(arrangementRef.current) &&
             JSON.stringify(displaySnapshot) === JSON.stringify(displayRef.current) &&
-            JSON.stringify(charactersSnapshot) === JSON.stringify(characterRef.current) ? "saved" : "dirty");
+            JSON.stringify(charactersSnapshot) === JSON.stringify(characterRef.current) &&
+            fpsSnapshot === fpsRef.current && JSON.stringify(orderSnapshot) === JSON.stringify(sceneOrderRef.current) &&
+            JSON.stringify(scenesSnapshot) === JSON.stringify(scenesRef.current) ? "saved" : "dirty");
         }
         await refresh().catch(() => setError("پروژه ذخیره شد، اما تازه‌سازی فهرست ممکن نشد."));
       } catch (cause) {
@@ -152,7 +196,7 @@ export function useProjects() {
     if (!active || saveStatus !== "dirty") return;
     const timer = setTimeout(() => { void saveNow().catch(() => undefined); }, 800);
     return () => clearTimeout(timer);
-  }, [active, draftName, arrangement, displayAssignments, characterData, saveStatus, saveNow]);
+  }, [active, draftName, arrangement, displayAssignments, characterData, sceneOrder, scenes, fps, saveStatus, saveNow]);
 
   const uploadDisplay = async (file: File): Promise<string | null> => {
     const project = activeRef.current;
@@ -262,5 +306,6 @@ export function useProjects() {
   });
 
   return { list, loading, busy, error, setError, active, arrangement, editArrangement, displayAssignments, editDisplay, characterData, editCharacters,
+    sceneOrder, scenes, fps, editScenes, editFps,
     editCharactersAndSave, uploadDisplay, deleteDisplayImage, adoptImportedProject, removeImportedCharacterModel, draftName, saveStatus, refresh, editName, saveNow, create, open, rename, duplicate, remove, close };
 }

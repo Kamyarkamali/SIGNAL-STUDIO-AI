@@ -60,6 +60,9 @@ export function getPreviewExpression(actionId: CharacterPreviewActionId, capabil
   const expression = actionDefinitions[actionId].expression;
   return expression && capabilities.includes("facial-expression") && supportedFacialExpressions.includes(expression) ? expression : undefined;
 }
+export function getPreviewActionChannels(actionId: CharacterPreviewActionId): readonly CharacterAnimationCapability[] {
+  return actionDefinitions[actionId].channels;
+}
 export function isPreviewActionSupported(actionId: CharacterPreviewActionId, capabilities: readonly CharacterAnimationCapability[]): boolean {
   if (actionId === "return-idle") return true;
   return actionDefinitions[actionId].channels.some((channel) => capabilities.includes(channel));

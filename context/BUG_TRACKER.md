@@ -1,7 +1,7 @@
 # Signal Studio AI — Bug Tracker
 
 **Path:** `context/BUG_TRACKER.md`  
-**Status:** Phase 03-A through 03-E accepted; Phase 04-A accepted; Phase 04-B MVP/prototype handoff accepted; Phase 04-C3 MVP accepted after user-confirmed 8/8 manual tests; Phase 04-C2 visual failures remain open in BUG-0024, with arm/hand and thinking behavior tracked in BUG-0029/0030; BUG-0027/0028 implemented with browser verification pending; Phase 04-B and C3 production-quality checks remain separate; Phase 05 handoff accepted for development but not started
+**Status:** Phase 03-A through 03-E accepted; Phase 04-A accepted; Phase 04-B MVP/prototype handoff accepted; Phase 04-C3 MVP accepted after user-confirmed 8/8 manual tests; Phase 04-C2 visual failures remain open in BUG-0024, with arm/hand and thinking behavior tracked in BUG-0029/0030; Phase 05-A refinement implemented but not fully accepted after 12 PASS / 1 NOT VERIFIED and open BUG-0031/0032; Phase 05-B implemented with browser verification pending; BUG-0027/0028 implemented with browser verification pending; Phase 04-B and C3 production-quality checks remain separate
 **Product:** Local-only Windows 3D animation editor
 
 ## Purpose
@@ -382,3 +382,120 @@ These are **test scenarios**, not active bugs in the new project:
 - **Implementation:** Added a confirmed imported-image delete flow with busy/error feedback and refreshed active project/list state. The locked project-service check blocks deletion while the image is referenced by a laptop assignment, studio sign/frame, or any other serialized project data; the conflict explains that references must first be removed. Laptop image assignment removal is separately available and preserves video assignment.
 - **Regression coverage:** `tests/display.test.mjs` verifies unreferenced file/manifest deletion, unrelated video preservation, reference blocking and intact persistence, future-reference scan and assignment-only removal.
 - **Verification:** Automated checks pass (114/114 suite, typecheck, lint, build, diff check). Browser review of dialog usability, dependency workflow and persistence remains pending; this issue is not marked fixed.
+
+### Phase 05-A verification record — multi-scene foundation
+
+- **Status:** IMPLEMENTED_UNVERIFIED; browser acceptance pending.
+- **Evidence:** Automated scene/schema/persistence/playback tests are added. Manual browser checks for create, edit, reorder, delete confirmation, playback, refresh/reopen and viewport synchronization have not been performed in this task.
+- **Limitations:** Project-level character placements and studio arrangement remain shared across scenes until Phase 05-B. Per-scene production-camera data is persisted, but camera controls and evaluation are not implemented. BUG-0024, BUG-0029 and BUG-0030 remain OPEN.
+
+### BUG-0031 — Scene content is not meaningfully authorable
+
+- **Status:** OPEN · **Severity:** P2 · **Area:** Phase 05-A scene authoring
+- **User report:** Scene operations work, but scenes do not yet feel meaningfully authorable. Manual Phase 05-A report: 12 PASS / 1 NOT VERIFIED; exact scene-boundary selection is NOT VERIFIED.
+- **Implemented refinement:** Added per-scene description, optional organizational type, title, duration and director notes; added selected-scene properties UI and card summaries. Metadata does not cause automatic acting or camera behavior.
+- **Verification remaining:** Automated persistence/duplication and field tests are added. Keep this issue open until the user confirms the authoring workflow is clear and metadata saves/reopens correctly in the real browser. Preserve the exact-boundary result as NOT VERIFIED.
+
+### BUG-0032 — Storyboard management is confusing and lacks drag-and-drop
+
+- **Status:** OPEN · **Severity:** P2 · **Area:** Phase 05-A storyboard UX
+- **User report:** Scene management is confusing and does not provide drag-and-drop reordering.
+- **Implemented refinement:** Added a visible native drag handle, drop-target highlight, immediate persisted order updates and retained keyboard-operable move buttons. Dragging is isolated from scene selection. Added a visual LTR ruler with proportional scene boundaries, playhead and ruler click-to-seek.
+- **Verification remaining:** Automated source/domain coverage does not establish interaction quality. Browser-check pointer drag, drop feedback, keyboard reordering, selection retention, offset updates, viewport/timeline synchronization and responsive layout before closing.
+
+### Professional workspace UX redesign — browser verification debt
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Workspace layout and contextual help
+- **Scope:** Redesigned the shell around a larger viewport, compact header, collapsible navigation, bounded inspector/timeline resizing, responsive panel behavior and centralized Persian contextual help. Existing project/scene/character/viewport workflows and project/API data contracts were retained.
+- **Automated verification:** Typecheck, lint, 132/132 tests, production build and `git diff --check` pass. Tests cover help registry completeness, help interaction wiring, resize bounds and layout structure.
+- **Verification remaining:** No browser/app surface was available. Review requested desktop, laptop, tablet and mobile sizes; check resize and reset, Escape/focus behavior, full-screen, no overflow, viewport stability and existing workflows. Do not mark visually accepted based on automated checks.
+- **Related open reports:** BUG-0024, BUG-0029 and BUG-0030 remain OPEN; BUG-0031/0032 and exact scene-boundary NOT VERIFIED are preserved.
+
+### Phase 05-B verification record — scene-local authoring and production camera
+
+- **Status:** IMPLEMENTED; browser/visual verification pending. The user has not accepted Phase 05-B.
+- **Delivered:** Independent scene-local character presence/transforms, registered environment reference, Studio 01 prop and lighting overrides, production-camera configuration/preview, schema v7 migration and Scenes navigation integration using the existing scene state/actions.
+- **Coverage:** Typecheck, lint, production build, `git diff --check`, and 138/138 automated tests pass. Tests cover scene override independence, camera target fallback/presets, v6 migration, duplicate and persistence, and Scenes panel wiring to the same CRUD/reorder/select callbacks as the storyboard/timeline.
+- **Unverified:** Real viewport camera framing/clipping, scene switching in browser, prop/character visible changes, panel usability/responsiveness, save/reopen interaction, and full manual verification. The old Phase 05-A result remains 12 PASS / 1 NOT VERIFIED (exact scene-boundary selection); no new manual outcome is inferred.
+- **Limits:** Studio 01 is the only registered environment. Unsupported future environments, camera animation/keyframes, framing crop and automatic camera behavior are not implemented.
+- **Preserved defects:** BUG-0024, BUG-0029 and BUG-0030 remain OPEN.
+
+### Camera capture and premium guidance refinement — verification record
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Area:** Production camera and workspace UX
+- **Reported defect:** Saving/restoring a scene production camera was unreliable. Investigation found that capturing the editor FOV retained a previous scene zoom, so preview divided the captured FOV again. The action could also capture a temporary laptop inspection pose and silently do nothing when the camera was unavailable.
+- **Change:** Normalize zoom to 1 on capture, clear the old target reference, reject temporary inspection/preview states, restore editor FOV on reset, and acknowledge the actual project save or report failure. The global Help button now opens searchable accordion guidance from the existing registry; the viewport toolbar groups controls and keeps secondary actions accessible.
+- **Automated checks:** Typecheck, lint, 140/140 tests, production build and `git diff --check` pass; camera capture and unchanged neighboring scene have focused regression coverage.
+- **Verification remaining:** Browser save/reopen, scene switching, camera framing/restore, laptop inspection, help interaction and responsive visual review. Keep this record open until manual verification. BUG-0024, BUG-0029 and BUG-0030 remain OPEN.
+
+### BUG-0033 — Contextual inspector mixes project and editing controls
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Workspace inspector
+- **User report:** The inspector was crowded and disconnected from current work. The generic Properties view could show unrelated guidance in Projects or future-only sections.
+- **Change:** Scene selection from storyboard/timeline now opens selected-scene configuration. Existing character and prop selection continues to route to dedicated editors; laptop selection retains media controls. Projects uses a single project-management view, while unrelated property tabs are hidden. Inspector heading and help follow the current section and selection.
+- **Verification remaining:** Automated selection wiring and existing scene, character, laptop and project regressions; browser review of each selection path, preserving edits across section changes, panel resizing and responsive behavior. Keep open until visual verification.
+
+### BUG-0034 — Fixed room prop override crashes scene resolution
+
+- **Status:** FIXED_UNVERIFIED · **Severity:** P1 · **Area:** Phase 05-B scene-local prop configuration.
+- **Confirmed root cause:** `arrangementSchema` intentionally requires non-editable room-shell and acoustic-wall instances to match the registered defaults exactly. Scene override writes accepted these stable prop IDs, and `resolveSceneArrangement` merged their overrides before calling `arrangementSchema.parse`, producing the reported ZodError.
+- **Change:** Kept the schema refinements intact; disabled fixed-structure controls, rejected writes to fixed props with Persian feedback, validated supported transforms/decorations, and changed resolution to safely ignore unsupported legacy overrides while returning a warning. Valid scene-local prop overrides remain independent.
+- **Automated coverage:** Focused tests cover fixed structure, valid visibility/transforms, strict schema rejection, scene isolation, duplicate independence, v6 migration fallback, and save/reopen.
+- **Verification remaining:** Browser reproduction and visual confirmation of scene switching/warning feedback remain pending. BUG-0024, BUG-0029 and BUG-0030 remain OPEN.
+
+### Phase 05-C verification record — deterministic scene-local character actions
+
+- **Status:** IMPLEMENTED_UNVERIFIED. This phase record does not close any earlier acting defect.
+- **Delivered:** Schema v8 timed scene-local character actions; deterministic frame evaluation, capability gating, channel priority, scene duplication/migration behavior, main navigation, timeline event lane, contextual inspector and centralized Persian help.
+- **Regression risks preserved:** BUG-0024 facial expression quality/emotional energy, BUG-0029 limited arm/hand gestures, and BUG-0030 insufficient thinking gestures remain OPEN. The editor schedules existing supported channels; it does not claim to fix visual quality or add unsupported rigs.
+- **Verification:** Typecheck, lint, production build and 152/152 automated tests pass, including project-service save/reopen and project-duplication persistence plus navigation/editor/help wiring. Browser interaction, real viewport poses and responsive layout remain UNVERIFIED until manual review.
+- **Limits:** No audio/dialogue scheduling, lip sync, full Phase 07 behavior resolver, camera events, subtitle/educational tracks or export. BUG-0034 room-structure error and BUG-0035 camera navigation remain IMPLEMENTED_UNVERIFIED pending their recorded browser checks.
+
+### BUG-0035 — Editor camera is difficult to navigate and frame precisely
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Viewport camera navigation.
+- **User report:** Orbit constraints make it difficult to explore the studio and position the camera in front of a selected character, including close face framing.
+- **Change:** Expanded orbit range with damping, added transient pointer-locked free-fly and bounds-based smooth focus (head bounds/model forward axis for characters). Scene production cameras remain separate and are saved only with the existing explicit action.
+- **Automated coverage:** Focus framing and front-facing direction; free-fly movement, vertical motion, speed and bounded delta; pointer-lock, text-input guards, cleanup and production-camera separation wiring.
+- **Verification remaining:** Real browser checks for orbit/pan/zoom feel, ChatGPT face framing, prop/laptop focus, pointer capture/escape, scene switching, touch and save/reload are pending. No browser surface was available. Existing open animation defects are unchanged.
+
+### BUG-0036 — Animation workspace controls overflow and crowd the editing panel
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Animation workspace layout.
+- **User report:** Controls overlap or clip, the inspector feels narrow and dense, and the viewport loses visual prominence.
+- **Audit:** The project has no shadcn/ui/Radix component dependency. Existing panes already have independent overflow and resize support, but animation selects lacked explicit width constraints and the event list/advanced controls were always expanded.
+- **Change:** Constrained inspector inputs to available width, applied `min-width: 0` to the main workspace grid, capped the event-list scroll area, and collapsed the event list and advanced settings behind native keyboard-operable disclosures. Reused the current workspace, single canvas, timeline and help infrastructure; no dependency or application-state change.
+- **Verification:** Typecheck, lint, tests, production build and diff check pass. Browser viewport review at 1920×1080, 1366×768, 1024×768 and 390×844 remains pending; keep open until visual behavior is confirmed.
+
+### BUG-0037 — Animation timing fields cannot be typed into
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P1 · **Area:** Phase 05-C event creation and inspector.
+- **User report:** Start seconds and duration frames could not be cleared/replaced. A later manual browser check confirmed both creation fields (`0.00`, `45`) reject typing and Ctrl+A replacement; the earlier inspector-only change did not fix them.
+- **Confirmed root cause:** The creation panel's two displayed inputs were explicitly `readOnly` and `addEvent` always used the playhead frame and default duration. The earlier inspector defect involved immediate `type="number"` normalization and was fixed separately. The viewport keyboard handler already ignores editable targets.
+- **Change:** Creation inputs now hold raw local LTR text while focused, validate/normalize on blur or Enter, revert on Escape, show Persian errors, and pass the entered scene-bounded integer frames into the existing add-event command. Scene/project switching resets drafts through a stable key. Selected-event inspector behavior remains unchanged.
+- **Verification:** Typecheck, lint, production build, 157/157 tests and `git diff --check` pass. Source wiring and frame/serialization regression checks were added. The project has no component DOM test runner, and the available browser tool exposes no browser. Actual keyboard typing, focus/caret, timeline update and save/reopen remain pending user browser retest. Keep open until confirmed.
+
+### BUG-0038 — Scheduled character actions are not visibly playing reliably
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P1 · **Area:** Phase 05-C playback and character viewport runtime.
+- **User report:** Creating and saving scheduled actions succeeds, but the intended character does not visibly perform the action during playback or seek.
+- **Confirmed root causes:** The project playback clock published frames only every 100 ms (10 Hz), so the demand-rendered character pose could update much less often than the project's frame rate. Also, the transient manual-preview map was spread after scheduled poses and could replace an active event for that character. The evaluator already resolved scene-local frames and stable instance IDs; renderer named pivots existed and were written by `useFrame`.
+- **Change:** Playback now samples the monotonic clock through requestAnimationFrame and only publishes changed integer frames. Active supported scene pose events, including a zero pose at their exact start frame, take precedence over manual previews; scheduled gaze takes precedence over temporary gaze previews. The shared character pose adapter applies evaluated rotations to actual named Three.js pivots and restores cached local baselines when seeking out of the interval.
+- **Verification:** Typecheck, lint, build, 160/160 tests and diff check pass. Added evaluator-to-Three.js pivot tests for target identity, start/midpoint/backward seek and baseline restoration, plus playback/priority wiring assertions. Browser playback, pause, gaze target framing, visual salience, scene switch and save/reload remain UNVERIFIED; no browser surface was available. Keep open until manual visual confirmation.
+
+### BUG-0039 — Animation event timing lacks clear start/end time controls
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Phase 05-C event timing UX.
+- **User report:** Start seconds plus duration frames are confusing; the user needs explicit start/end with hours, minutes, seconds and frames.
+- **Confirmed cause:** The editor exposed separate start-seconds and duration-frames fields, with no end field or timecode mode.
+- **Change:** Added a shared start/exclusive-end range editor with HH:MM:SS:FF and seconds modes, derived duration display, editable local drafts, blur/Enter validation, Escape revert, Persian errors, FPS-aware frame validation, and conversion into the unchanged integer `startFrame`/`durationFrames` schema. Creation and selected-event editing both use it.
+- **Verification:** Typecheck, lint, build, 160/160 tests and diff check pass. Added parse/format, FPS/frame bounds, scene boundary, renderer integration and input wiring tests. Actual browser typing, toggle behavior, timeline block synchronization and persistence after refresh remain UNVERIFIED. Keep open until manual browser verification.
+
+### BUG-0040 — Animation authoring workspace is cramped and event timing/order are difficult to understand
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Phase 05-C animation workspace and timeline editing.
+- **User report:** The preview is too small for the task, scene management competes with animation editing, overlapping actions are difficult to distinguish, and ordering, timing and priority are not clearly separate.
+- **Audit:** A single dock rendered the full storyboard plus one 32px event overlay lane. The list was sorted by start frame, so there was no independent saved presentation order. Event priority already resolved conflicting pose channels in the evaluator, and integer-frame scene-local timing was already persisted.
+- **Change:** The dock switches between scene overview and focused per-character/category tracks without remounting the viewport. Added per-scene zoom, a scene selector, pointer-drag frame movement that preserves event duration and clamps to scene bounds, persistent event-list reorder via existing array order with drag and keyboard arrow controls, and a visible per-channel priority field in the event inspector. No schema, evaluator, or time model changed.
+- **Automated coverage:** Tests verify list reorder leaves IDs/time/priority unchanged, movement snaps to an integer frame and remains scene-bounded, plus workspace/inspector integration. Typecheck, lint, production build, 162/162 tests and `git diff --check` pass.
+- **Verification remaining:** Run full checks and manually inspect event overlap, drag/drop, keyboard operation, persistence, actual viewport size, and the requested desktop/tablet/mobile sizes. No visual/browser acceptance is claimed. Keep open until verified.

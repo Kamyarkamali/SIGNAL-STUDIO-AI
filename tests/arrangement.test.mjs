@@ -85,13 +85,13 @@ test("v1 migration is read-only until save, then backs up original and persists 
   const legacy = { ...rest, schemaVersion: 1 };
   await writeFile(file, JSON.stringify(legacy));
   const opened = await store.open(created.id);
-  assert.equal(opened.schemaVersion, 5);
+  assert.equal(opened.schemaVersion, 8);
   assert.equal(opened.environmentArrangement.props.length, environmentArrangement.props.length);
   assert.equal(JSON.parse(await readFile(file, "utf8")).schemaVersion, 1);
   const changed = updateStudioLighting(updateProp(opened.environmentArrangement, "studio-01:laptop", { visible: false }),
     { keyIntensity: 2.2, temperature: "cool", practicalsEnabled: false });
   const saved = await store.save(created.id, created.title, opened.revision, changed);
-  assert.equal(saved.schemaVersion, 5);
+  assert.equal(saved.schemaVersion, 8);
   assert.equal(saved.revision, 1);
   assert.equal((await new ProjectService(root).open(created.id)).environmentArrangement.props.find((prop) => prop.id === "studio-01:laptop").visible, false);
   assert.deepEqual((await store.open(created.id)).environmentArrangement.lighting,

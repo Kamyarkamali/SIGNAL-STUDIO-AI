@@ -13,7 +13,7 @@ This is a **local-only, single-user, Persian RTL** 3D animation editor for Windo
 5. `context/TECH_STACK.md` and `context/CODING_STANDARDS.md` — selected stack and quality rules
 6. `context/UI_UX_GUIDELINES.md` — interface interactions
 7. `context/BEHAVIOR_SYSTEM.md` — authoritative behavior priorities
-8. `context/CHARACTERS_AND_AUDIO_REQUIREMENTS.md` — identity, presence, and speaker assignment
+8. `context/CHARACTERS_AND_AUDIO_REQUIREMENTS_REVISED.md` — identity, presence, and speaker assignment
 9. `context/DECISIONS.md` and `context/BUG_TRACKER.md` — decisions and known issues
 
 If a referenced file is missing or contradictory, describe the problem. Never invent its contents. Prefer the approved ADR for resolved design decisions; ask for approval before changing approved scope.
@@ -77,3 +77,18 @@ Preserve the approved MVP direction and unresolved defects.
 ## Current default
 
 **Phase 00: planning/documentation. No application code or dependency installation unless the user explicitly starts a development phase.**
+
+## Permanent user-facing guidance requirement
+
+Every future user-facing feature, and every modified user-facing section, button, tool or interactive control, must include:
+
+1. A clear Persian label.
+2. A meaningful tooltip or accessible explanation of the actual effect and scope.
+3. Contextual section help using the centralized help registry.
+4. Keyboard and touch accessibility where applicable.
+5. Accurate, beginner-friendly usage guidance that distinguishes implemented from planned behavior.
+6. Appropriate loading, error and empty states.
+
+A feature is not UI/UX-complete until its contextual guidance is present, accurate and verified. Do not add duplicated help systems or describe planned functionality as available.
+
+The global Help action opens an expandable Persian guide built from the same registry as section help; update both views through that registry when capabilities change.

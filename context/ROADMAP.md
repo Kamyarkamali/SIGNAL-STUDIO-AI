@@ -1,9 +1,9 @@
 # Signal Studio AI — Development Roadmap
 
 **Document:** `context/ROADMAP.md`  
-**Status:** Phase 04-B MVP/prototype handoff remains accepted with functional and production verification open. Phase 04-C3 is accepted for MVP/prototype development after the user confirmed 8/8 manual browser tests PASS (2026-11-02); production verification remains open. Phase 04-C2 has three unresolved user-reported visual failures. Phase 05 development handoff is accepted but implementation has not started.
+**Status:** Phase 04-B MVP/prototype handoff remains accepted with functional and production verification open. Phase 04-C3 is accepted for MVP/prototype development after the user confirmed 8/8 manual browser tests PASS (2026-11-02); production verification remains open. Phase 04-C2 has three unresolved user-reported visual failures. Phase 05-A scene/time foundation and authoring UX are implemented with automated verification; full acceptance remains open after user testing reported 12 PASS and exact scene-boundary selection NOT VERIFIED. Phase 05-B is implemented; browser verification is pending.
 **Target:** Single-user Windows local application, Persian RTL editor  
-**Current stage:** The user approved Kamyar, ChatGPT, Claude, and Hamid for MVP/prototype use, authorized Phase 04-C1/C2 and C3 MVP development, and confirmed C3's 8/8 manual browser tests PASS (2026-11-02). C3 is accepted for MVP/prototype development only; production verification remains open. C1/C2 acceptance is separate. The user accepted the handoff to Phase 05 — Scenes, Storyboard and Scene-Time Model — for development; Phase 05 is authorized but not started. C2's three visual failures remain open. Phase 04-B functional/browser/GPU checks remain verification debt; no individual outcomes are inferred. Phase 04-A and Phase 03-E retain their separately recorded acceptance. The Studio 01 realism/lighting upgrade awaits browser visual review.
+**Current stage:** The user approved Kamyar, ChatGPT, Claude, and Hamid for MVP/prototype use, authorized Phase 04-C1/C2 and C3 MVP development, and confirmed C3's 8/8 manual browser tests PASS (2026-11-02). C3 is accepted for MVP/prototype development only; production verification remains open. C1/C2 acceptance is separate. Phase 05-A is implemented with automated verification; real-browser interaction and visual acceptance remain pending. Phase 05-B scene-local configuration and production-camera tools are implemented; browser verification is pending. C2's visual failures and BUG-0029/0030 remain open. Phase 04-B functional/browser/GPU checks remain verification debt; no individual outcomes are inferred. Phase 04-A and Phase 03-E retain their separately recorded acceptance. The Studio 01 realism/lighting upgrade awaits browser visual review.
 
 **Current scoped refinement:** The laptop viewer has distinct device-framed, screen-focus and content-only modes; this refinement fixes device frame sizing and adds reference-safe imported image deletion. Existing Studio 01 geometry, lighting controls, display playback and project data remain compatible. Automated checks pass; browser visual and deletion-flow acceptance remains pending. No project schema change was made.
 
@@ -36,6 +36,8 @@
     ↓
 05-B Scene Prop Editing + Studio Refinement
     ↓
+    05-C Scene-Local Character Action Events
+    ↓
 06 Audio Assets + Manual Speaker Timeline
     ↓
 06-B Educational Display Media
@@ -57,7 +59,7 @@
 14 Advanced Creation / Optional Extensions
 ```
 
-The architecture anticipates later features, but implementation must not build unneeded layers prematurely. Phase 05-B depends on saved scenes; 06-B depends on local asset storage and scene props; display-state events in 07 depend on 06-B; camera direction in 09 depends on deterministic timeline evaluation; export in 11 depends on both media and camera evaluation. Each new subphase needs explicit authorization. The order of Phases 10–12 may be adjusted only through a documented decision after prerequisite tests pass.
+The architecture anticipates later features, but implementation must not build unneeded layers prematurely. Phase 05-B depends on saved scenes; Phase 05-C is an explicitly authorized limited refinement for scene-local character actions and does not complete the broader Phase 07 cross-modal behavior resolver. Phase 06-B depends on local asset storage and scene props; display-state events in 07 depend on 06-B; camera direction in 09 depends on deterministic timeline evaluation; export in 11 depends on both media and camera evaluation. Each new subphase needs explicit authorization. The order of Phases 10–12 may be adjusted only through a documented decision after prerequisite tests pass.
 
 ## 3. Phase 00 — Documentation and Design Contracts
 
@@ -165,6 +167,22 @@ The Studio 01 room shell now includes a right-side wall and ceiling while retain
 
 **Handoff (2026-11-02):** The user accepted Phase 04-C3 for MVP/prototype use and authorized Phase 05 development. Phase 05 is accepted as the next development handoff but has not started; this does not constitute production acceptance of C3.
 
+### Phase 05-A — Multi-scene foundation and scene time (implemented; browser acceptance pending)
+
+**Implementation:** Replaced the empty scene schema with project schema v6 and backward-compatible in-memory migration from v1-v5. Scenes use stable UUIDs, ordered records, integer frame durations, per-scene serialized production-camera configuration and empty extensible future-track headers. Added create, rename, duplicate, confirmed delete, reorder, duration, active-scene resolution, global/local frame conversion, project FPS selection (24/25/30/50/60), play/pause/stop/seek and previous/next scene controls. The compact Persian storyboard and LTR timeline save through the existing autosave/revision/backup path. Stop returns to project frame zero; internal boundaries are half-open and select the next scene, while project end resolves to the final scene's end. Play time derives from a monotonic start timestamp, not accumulated frame deltas.
+
+**Camera boundary:** Each scene has an independent serializable production-camera config with position, rotation option, look-at target, FOV, zoom, shot preset, 16:9/9:16 framing and stable optional target reference. The config remains separate from editor camera navigation. Phase 05-A adds no camera UI, camera cuts/keyframes/evaluation, transitions, or automated movement.
+
+**Current limits:** Phase 05-A originally displayed project-level character and Studio 01 arrangements. Phase 05-B now resolves scene-local character presence/transforms, supported prop overrides, lighting, environment reference and production camera over shared project assets. Track headers do not contain timed events or editors. No audio, dialogue, animation/gaze event scheduling, subtitles, educational sequencing or export was implemented.
+
+**Acceptance status:** Automated tests cover scene CRUD, IDs, order/offsets, duration/frame-rate conversion, boundary rules, seeking, playback state, schema migration, camera persistence, project duplication and UI wiring. Real-browser create/edit/playback/refresh checks remain pending; do not mark visual/browser acceptance as complete.
+
+### Phase 05-A refinement — Scene authoring and storyboard UX (implemented; acceptance open)
+
+Scene records now include backward-compatible description and optional scene type metadata alongside title, duration, order and director notes. The storyboard shows scene context and offers a selected-scene properties panel. Native drag-and-drop has a visible handle/drop target; keyboard-operable move buttons remain as a fallback. The timeline visualizes proportional scene spans, boundaries and playhead and supports seeking from the ruler without replacing the integer-frame engine.
+
+The user's manual report is **12 PASS / 1 NOT VERIFIED**; the exact scene-boundary selection remains NOT VERIFIED. The user also reported that scenes were not yet meaningfully authorable and that scene management was confusing/lacked drag-and-drop; these are tracked as open BUG-0031/0032 until browser retest. Do not mark Phase 05-A fully accepted until boundary verification and authoring/reorder usability are confirmed. Metadata is organizational and does not generate animation/camera behavior.
+
 ### Phase 04-C1 — Reusable animation foundation and manual preview (implemented; browser acceptance pending)
 
 **Implemented scope:** Pure explicit-time pose evaluation; capability-gated neutral, gentle head turn, nod, small arm gesture and return-to-idle preview; transient per-instance playback; shoulder-centered procedural arm pivots; compact Persian preview controls; demand invalidation only during active preview. Saved identity, instance, transform, placement and appearance data remain unchanged. The current model registry advertises only working procedural head/arm channels. Imported GLB skeleton/clip inspection is metadata only and no imported clip action is exposed without a runtime adapter.
@@ -183,15 +201,34 @@ Adds an explicit-time capability-gated gaze evaluator and per-instance transient
 
 **MVP acceptance (2026-11-02):** The user confirmed all 8/8 manual browser tests PASS and accepted Phase 04-C3 for MVP/prototype use. Test names and per-test evidence were not supplied. This does not constitute production-quality acceptance; remaining checks are tracked in `PROGRESS_CHECKLIST.md`. C2's user-reported 9 PASS / 3 FAIL results and three expressive-visual failures remain open and are not resolved by C3 acceptance. Automatic speaker-following, audio-driven gaze, timeline events, camera automation and export are out of scope.
 
-### Phase 05-B — Scene Prop Editing and Studio Refinement (planned, not started)
+### Phase 05-B — Independent scene configuration, production camera and contextual help (implemented; browser verification pending)
 
-**Goal:** Extend the 03-C project-level arrangement to independent scene arrangements after the scene system exists, while preserving reusable prop definitions and the accepted Studio 01 architecture.
+**Goal:** Extend the existing Phase 05-A scenes without replacing its integer-frame time model, storyboard, persistence or R3F viewport.
 
-**Scope:** Add scene-local overrides and migration from the 03-C project-level arrangement; keep all existing prop operations independent per scene. Preserve the Studio 01 visual work from Phase 03-D while adapting arrangements to scenes; any later visual adjustments require separate evidence and must not redesign the renderer or schema unnecessarily.
+**Implementation:** Project schema v7 adds scene-local character presence, visibility, placement/transforms, prop visibility/transforms/add/remove/decorations, Studio 01 lighting overrides and environment references. Character identities, appearances, reusable prop definitions, uploaded media and project defaults remain shared; renderer data is resolved from the active scene. Schema v6 migration seeds each existing scene from saved project character states and leaves the project file to the existing safe save path. Scene duplication copies override data by value and preserves stable shared asset references.
 
-**Acceptance:** A user edits the studio props in Scene 2, saves and reopens, and Scene 1 and reusable definitions remain unchanged. Duplicate instances move independently. Selection and transforms work from viewport and Persian controls, with no phantom assets. Before/after browser views verify the host-facing laptop and useful camera sightlines; performance is measured on target integrated graphics without an unjustified regression.
+Each scene stores an independent serializable production camera, including position, Euler rotation/look-at mode and target, FOV, zoom, framing metadata and stable target references. The editor orbit camera is separate. Camera save-current-view, available Studio 01 shot presets, preview and return-to-editor controls are implemented. Missing targets fall back to the stored fixed point. Camera framing metadata does not crop or resize the current viewport, and animated cuts/keyframes/speaker-following are not implemented.
 
-**Out of scope:** New fictional environments, arbitrary mesh modeling, media playback and cinematic camera editing.
+The Scenes navigation now uses the existing project scene state and operations for create/select/rename/duplicate/delete/reorder. It stays synchronized with storyboard, timeline and viewport selection. Centralized Persian section help and descriptive tooltips cover modified scene/camera controls. Only registered environments are exposed; the current registry contains Studio 01 only. No unsupported environment choices are fabricated.
+
+**Automated evidence:** Schema/configuration, v6 migration, scene override independence, camera preset/target behavior, duplication/persistence and panel-route/synchronization tests are included. Browser verification has not been performed; do not mark UI, camera geometry, visual fit or scene-boundary behavior accepted. Preserve the user report of Phase 05-A 12 PASS / 1 NOT VERIFIED exactly. BUG-0024, BUG-0029 and BUG-0030 remain OPEN.
+
+**Out of scope:** Audio/dialogue sequencing, animation/gaze tracks, camera keyframes and automated direction, export, other unregistered environments.
+
+**Editor navigation refinement (implemented; browser verification pending):** Added transient smoothed orbit/pan/zoom, explicit pointer-locked free-fly, and bounds-based selection focus to improve direct camera positioning. These editor controls do not alter the Phase 05-B per-scene production-camera contract; production camera capture remains an explicit user action. This refinement adds no camera keyframes, cuts, collision solver or automatic tracking and does not begin Phase 09.
+### Phase 05-C — Deterministic scene-local character actions and animation editing (implemented; verification pending)
+
+**Authorized scope:** A limited, user-authorized refinement after Phase 05-B for scheduling capability-backed character actions within individual scenes. It reuses scene integer frames, the active-scene resolver, project persistence, the existing animation/gaze evaluators, workspace navigation, inspector, timeline and centralized help registry. The broad Phase 07 behavior resolver remains a later milestone.
+
+**Implementation:** Project schema v8 stores events with stable event IDs, owning scene IDs, target character-instance IDs, action types, integer local start/duration frames, enabled state, bounded priority/intensity/speed, and optional stable gaze-target IDs. Duplicated scenes get independent event IDs and new scene references. Duration and FPS edits keep events in scene bounds. Existing capability-aware animation and gaze evaluators produce frame-derived poses; overlapping events resolve by channel and priority. Scene switching does not share event state.
+
+Main navigation now exposes «حرکت‌ها». The editor selects a scene character and supported action, adds events at the current playhead, shows event blocks in the existing LTR scene timeline, and routes selected-event settings to the existing inspector. A central Persian help topic documents authoring, timing, overlap and current limits. No separate scene/event store or mutable Three.js persistence was introduced.
+
+**Automated coverage:** Schema validation/migration, stable scene/event IDs, duplicate independence, exact start/end behavior, arbitrary-time deterministic evaluation, priority/channel coexistence, capability filtering, duration/FPS adjustment, main navigation/editor/help wiring, and event persistence through project save/reopen and duplication. Browser interaction and actual visual poses remain UNVERIFIED until manual review.
+
+**Professional editing UX refinement (implemented; visual acceptance pending):** The shared dock now switches between scene overview and per-character/category animation tracks, retains the single viewport and global transport, and offers scene-local timeline zoom. Event list order persists through the existing array order and keyboard up/down controls; dragging event handles changes only the frame-aligned start time, preserving duration. Priority is separate and visible in the selected event inspector. No new schema, timing semantics, evaluator rules, or dependency was introduced.
+
+**Out of scope:** Audio/dialogue events, lip sync, a full behavior arbitration engine, camera events/keyframes, subtitle/educational tracks, export, new rigs, and BUG-0024/BUG-0029/BUG-0030 fixes.
 
 ## 9. Phase 06 — Audio Asset Management and Manual Speaker Assignment
 
@@ -346,7 +383,4 @@ A feature can be marked `[x]` only if its code exists, related behavior has been
 
 ## 20. Current Roadmap Status
 
-**Phase 00:** Documentation being drafted and reviewed.  
-**Phases 01–14:** Not started; listed as future work, not delivered functionality.
-
-**This is a planning document. Do not initialize or modify application code solely because this roadmap exists.**
+This status block supersedes the original planning-only baseline above. Phase 04-C3 has MVP/prototype acceptance from the user's 8/8 manual browser report; production verification remains separate. Phase 05-A is implemented but retains the user's 12 PASS / 1 NOT VERIFIED report, with exact scene-boundary selection unverified. Phase 05-B and its camera-navigation refinement are implemented with browser verification pending. Phase 05-C is implemented with automated verification; browser, persistence interaction and visual acceptance remain pending. BUG-0024, BUG-0029 and BUG-0030 remain OPEN. Check `PROGRESS_CHECKLIST.md` and `BUG_TRACKER.md` for item-level evidence. Roadmap entries do not themselves authorize work; explicit user approval is still required.

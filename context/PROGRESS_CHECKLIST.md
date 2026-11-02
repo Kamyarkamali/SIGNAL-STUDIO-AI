@@ -1,7 +1,7 @@
 # Signal Studio AI — Progress Checklist
 
 **Document:** `context/PROGRESS_CHECKLIST.md`  
-**Status:** Initial baseline — planning only  
+**Status:** Phase 05-A scene/time and authoring refinement implemented; automated verification passes, while full acceptance remains open. User reported 12 PASS / 1 NOT VERIFIED (exact scene boundary); Phase 05-B implemented; browser verification pending.
 **Roadmap:** `context/ROADMAP.md`  
 **Last reviewed:** 2026-11-02
 **Project mode:** Single-user, local Windows application
@@ -646,7 +646,32 @@ Copy for each development phase (append below or link to a dated handoff):
 ### Phase 05 development handoff
 
 - **Handoff:** User accepted Phase 04-C3 for MVP/prototype use and explicitly handed off Phase 05 — Scenes, Storyboard and Scene-Time Model — for development on 2026-11-02.
-- **Status:** Authorized next milestone; not started. Phase 04-C3 production-quality acceptance remains open, and Phase 04-C2's three reported visual defects remain unresolved.
+- **Status:** Phase 05-A implemented; Phase 05-B implemented; browser verification pending. Phase 04-C3 production-quality acceptance remains open, and Phase 04-C2's three reported visual defects remain unresolved.
+
+### Phase 05-A — Multi-scene foundation and scene-time model
+
+- [x] Added project schema v6 with ordered stable scene IDs, validated scene records, positive integer-frame duration, per-scene serializable production-camera settings and empty future-track headers.
+- [x] Migrated v1-v5 documents in memory without changing their files on read; existing backed-up save path writes v6 when a project is next edited. Project duplication retains scenes and independent project data.
+- [x] Added scene create, rename, duplicate with new IDs, confirm-before-delete UI, reorder, duration changes and valid adjacent-scene selection after deletion.
+- [x] Added central integer-frame time utilities for derived offsets, global/local conversions, clamping, timecode, arbitrary seeking and deterministic half-open boundaries.
+- [x] Added functional play, pause, stop-to-frame-zero, scrub, previous/next scene and configurable project FPS (24/25/30/50/60). FPS changes preserve scene durations in seconds to the nearest frame; playback uses a monotonic timestamp anchor, not accumulated deltas.
+- [x] Added compact Persian scene cards with order, name, duration and start time; timeline and viewport marker share the active scene resolved from global time. Production camera state is serialized per scene and remains separate from editor camera navigation.
+- [x] Added regression coverage for CRUD/IDs/order, duration validation, offsets, FPS conversion, exact boundaries, seeks, playback state, migration, persistence, project duplication, camera config and selection/UI wiring.
+- [x] Automated checks: `npm run typecheck`, `npm run lint`, `npm test` (129/129), `npm run build`, and `git diff --check` passed for the refinement.
+- [ ] Browser-check create/rename/duplicate/delete confirmation/reorder/duration, save-refresh-reopen, playback pause/stop/scrub/boundaries, scene selection marker, viewport remaining visible, responsive layout and editor camera preservation.
+- [ ] Verify multiple-character target-device responsiveness and imported-media/character/environment regressions in the real browser.
+- **At the Phase 05-A handoff:** Character placements and the Studio 01 arrangement were still shared at project level; scene-local edits and production-camera controls had not started. Phase 05-B now adds scene-local configuration and manual production-camera controls. Timed events, keyframes and automatic camera behavior remain unimplemented. BUG-0024, BUG-0029 and BUG-0030 remain OPEN.
+
+### Phase 05-A refinement — Scene authoring UX and storyboard reorder
+
+- [x] Added serializable scene description and optional scene type; title, duration, order and director notes remain scene-specific. Metadata is not interpreted as automatic acting/camera behavior. Schema v6 defaults description for existing scene records; no schema-version bump is needed.
+- [x] Added a selected-scene properties panel for title, description, type, duration and director notes; cards summarize order, type, start, duration and description.
+- [x] Added native drag-and-drop using a visible handle and drop target, while retaining keyboard-accessible move buttons. Drag handle does not select the scene.
+- [x] Added a proportional LTR scene ruler with boundaries and playhead, click-to-seek, selected-scene emphasis, and shared storyboard/timeline selection.
+- [x] Added tests for metadata parsing/backward defaults/persistence/duplication, exact start and final scene frames, project end, invalid durations, reorder/duration offset recalculation, and authoring/reorder wiring. Refinement suite: 129/129 tests pass; typecheck, lint, build and diff check pass.
+- **User manual report (preserved):** 12 PASS / 1 NOT VERIFIED; exact scene-boundary selection is NOT VERIFIED. Two added reports remain open: scenes need more meaningful authoring and scene management UX is confusing/lacks drag-and-drop (BUG-0031/0032).
+- [ ] Browser retest scene metadata editing/save/reopen, native dragging/drop feedback, keyboard reordering, selection synchronization, timeline ruler clicks, exact scene boundaries, viewport visibility and responsive layout.
+- **Acceptance:** Phase 05-A is not fully accepted. Automated tests do not resolve the user's unverified boundary check or UX reports. BUG-0024, BUG-0029 and BUG-0030 remain OPEN.
 
 ### Laptop close-up, fullscreen viewer and clean prop editing
 
@@ -685,3 +710,101 @@ Copy for each development phase (append below or link to a dated handoff):
 - [x] Automated verification: `npm run typecheck`, `npm run lint`, `npm test` (114/114), `npm run build`, and `git diff --check` pass.
 - [ ] Browser-check the device view at desktop and narrow/short sizes, actual laptop recognition/orientation, image/video fit, fullscreen/Escape/close behavior, image deletion confirmation, dependency errors, assignment removal, library refresh and persistence.
 - **Status:** Implemented; browser visual and interactive verification pending. Do not mark BUG-0027/0028 fixed until manual review. C2 facial/reaction defects remain open.
+
+### Professional workspace UX redesign — implemented, browser verification pending
+
+- [x] Added a compact project/save header, collapsible workspace navigation, larger flexible viewport region, inspector/timeline resize handles, collapse controls and restore-layout action. Layout state remains transient and the R3F viewport stays mounted.
+- [x] Added centralized Persian help content and a reusable keyboard-dismissible drawer for implemented and clearly labeled planned sections; included help triggers in navigation, project header, character tools, environment tools and scene/timeline authoring.
+- [x] Added semantic visual tokens and responsive desktop, tablet and mobile layout rules, including reduced-motion support and a mobile inspector drawer.
+- [x] Added focused coverage for help registry completeness, accessible drawer wiring, panel size clamping and workspace layout. `npm run typecheck`, `npm run lint`, `npm test` (132/132), `npm run build`, and `git diff --check` pass.
+- [ ] Browser-check 1920×1080, 1366×768, 1024×768, 768×1024 and 390×844; verify resizing, reset, help focus/Escape, overflow, timeline use, viewport stability and existing workflows.
+- **Status:** Implemented; visual and interactive acceptance pending. Existing project data, APIs and business logic were not redesigned. BUG-0024, BUG-0029 and BUG-0030 remain OPEN; Phase 05-A remains not fully accepted.
+
+### Phase 05-B — Scene-local configuration, production camera and Scenes panel integration
+
+- [x] Added schema v7 serializable scene overrides for character presence/visibility/transforms, prop visibility/transforms/additions/removals/decorations, Studio 01 lighting and registered environment references. Shared identities, appearance, media and reusable project assets remain shared.
+- [x] Migrated v6 scenes by copying current project character states into scene-local configuration; verified scene duplication and existing project persistence path.
+- [x] Added scene-local production-camera controls and presets, stable target references with fallback, save-current-editor-view, temporary production-camera preview and return to editor camera.
+- [x] Routed Scenes navigation to the existing project scene sequence with create/select/rename/duplicate/delete/reorder, reusing the same operations and state as storyboard/timeline. Selection continues to resolve from scene time into viewport and timeline.
+- [x] Replaced the outdated Scenes coming-soon copy and added Persian section help and effect-describing tooltips for the new scene manager and camera controls.
+- [ ] Browser-check the Scenes navigation, create/edit/delete/reorder, selected-scene properties, synchronization, save/reopen, duplicated overrides, camera preview/restore and responsive layout. Phase 05-A exact-boundary selection remains NOT VERIFIED; original manual result remains 12 PASS / 1 NOT VERIFIED.
+- **Status:** Implemented; typecheck, lint, build, `git diff --check`, and 138/138 automated tests pass. Browser/visual acceptance remains pending. BUG-0024, BUG-0029 and BUG-0030 remain OPEN. Only Studio 01 is currently registered; no other environment is presented as functional.
+
+### Premium workspace guidance and camera-save refinement
+
+- [x] Reused the central Persian topic registry for an expandable, searchable global Help drawer; section help still opens a focused topic. Corrected stale scene-sharing guidance.
+- [x] Grouped the viewport camera modes, display tools, fullscreen and secondary actions into compact controls with effect-describing Persian labels and tooltips; kept the Canvas mounted.
+- [x] Corrected editor-view capture to clear stale zoom/target references, reject temporary inspection views, restore editor FOV on reset, and show actual save success/failure after the project write resolves.
+- [x] Automated verification: typecheck, lint, 140/140 tests, production build and `git diff --check` pass.
+- [ ] Browser-check viewport toolbar fit, menu, help focus/Escape/search, scene camera switch/save/reload, camera return, and all requested viewport sizes. No visual acceptance is inferred from automated tests.
+- **Preserved:** BUG-0024, BUG-0029 and BUG-0030 remain OPEN. Phase 05-A exact scene-boundary selection remains NOT VERIFIED.
+
+### Contextual inspector simplification
+
+- [x] Scene selection from the timeline/storyboard switches to the selected scene's existing configuration controls; character, laptop and prop selection continue using their existing property editors.
+- [x] Removed the generic Properties view from Projects and planned-only workspaces; project CRUD remains available from Projects. Added a contextual inspector title/help trigger and retained collapse, scrolling and responsive layout.
+- [x] Regression coverage verifies selection routing, single-view Projects management, contextual help and existing workspace components.
+- [ ] Browser-check each selection route, section switching with unsaved edits, project create/open/delete access, panel sizing, keyboard/touch help and mobile layout.
+- **Status:** Implemented; automated checks pass, visual acceptance remains pending. No business or persistence logic was replaced.
+
+### Phase 05-B scene arrangement validation regression
+
+- **Status:** FIXED_UNVERIFIED. Scene resolution now skips invalid legacy overrides of fixed room structure and reports a Persian warning; supported editable prop transforms and visibility remain scene-local. Strict arrangement validation remains unchanged.
+- **Automated coverage:** Added checks for immutable room structure, guarded edit APIs, scene isolation, duplication, v6 migration compatibility, and save/reopen persistence.
+- **Remaining:** Browser reproduction and visual confirmation are pending; confirm scene switching and warning feedback manually before closing the verification record.
+
+### Phase 05-C — Scene-local deterministic character action events
+
+- [x] Added schema v8 scene-local events with stable event/scene/character references, integer-local start/duration frames, enabled state, bounded priority/intensity/speed, optional gaze target, and v7 backward migration.
+- [x] Reused existing capability-gated character pose/gaze evaluators for current-frame playback and arbitrary-time seeking; per-channel priority and separate gaze/gesture/facial channels coexist without mutating saved transforms.
+- [x] Added the main «حرکت‌ها» navigation destination, action authoring, selected-event properties inspector, timeline event blocks, and centralized Persian usage/help guidance.
+- [x] Scene duplication assigns fresh event IDs and the new owning scene ID; duration/frame-rate changes retain bounded frame intervals.
+- [x] Automated verification: typecheck, lint, production build, 152/152 tests and `git diff --check` pass. Focused save/reopen and project-duplication assertions include scene-local events.
+- [ ] Browser-check navigation, event creation/edit/delete, timeline selection/scrubbing, character/prop gaze, scene switching, save/reopen, disabled events and visual results. Do not infer PASS from automated tests.
+- **Status:** Implemented; automated verification passes. Browser interaction and viewport appearance remain UNVERIFIED. BUG-0024, BUG-0029 and BUG-0030 remain OPEN. Audio/dialogue/lip sync, full behavior resolution, camera events and export remain future work.
+
+### Animation workspace layout repair
+
+- [x] Audited installed dependencies: no shadcn/ui, Radix, Base UI or resizable/scroll-area package is present. Retained the existing project design system and native accessible controls rather than adding a competing UI dependency.
+- [x] Constrained animation inspector inputs/selects against intrinsic-width overflow, added explicit `min-width: 0` to the workspace grid, capped the event list's independent scroll area, and moved advanced event parameters behind a keyboard-operable disclosure.
+- [x] Added regression assertions for main navigation, timeline/inspector/help wiring and animation panel sizing/disclosure structure.
+- [ ] Browser-check 1920×1080, 1366×768, 1024×768 and 390×844 for animation panel overlap, readable controls, viewport sizing, scrolling and touch behavior.
+- **Status:** Layout implementation is complete; visual acceptance remains UNVERIFIED.
+
+### Phase 05-C event timing input repair
+
+- [x] Selected-event inspector uses local editable text drafts; the previous fix did not reach the separate creation panel. A manual browser failure confirmed its start/duration inputs were still `readOnly`.
+- [x] Removed creation-panel `readOnly` fields; new-event timing now uses local raw drafts, blur/Enter validation, Escape revert, Persian errors, and entered frame values when adding the scene event.
+- [x] Start seconds use nearest-frame conversion for configured FPS; displayed seconds round-trip supported integer frames. Duration remains a positive whole number of frames, and scene-boundary violations show Persian inline errors without clamping.
+- [x] Tests cover draft parsing, decimal seconds, FPS round trips, invalid/non-finite/negative/zero/boundary values, selected-event isolation, creation field wiring, frame conversion and serialized event data. The existing Node test setup has no component DOM runner, so it cannot simulate real key presses in React.
+- [x] Typecheck, lint, production build, 157/157 tests and `git diff --check` pass after the creation-panel repair.
+- [ ] Browser-check both creation fields: focus, Ctrl+A replacement, Backspace/Delete, empty and `2.` intermediate typing, paste, Enter/Tab/Escape, parent rerender stability, event creation, timeline synchronization and save/reopen. Browser automation exposed no browser during this repair.
+- **Status:** Creation-panel fix implemented; browser acceptance remains UNVERIFIED after the previous manual FAIL.
+
+### Phase 05-C playback and professional event timing recovery
+
+- [x] Traced persisted scene events through global/local integer-frame resolution, capability checks, event evaluator, per-instance preview props, demand-render invalidation, named renderer pivots and saved root transforms.
+- [x] Replaced the 100 ms playback timer with monotonic requestAnimationFrame sampling; integer frames remain the only timeline truth and repeated frames do not trigger React state updates.
+- [x] Made an active scheduled pose take precedence over temporary preview state for that character; active gaze events similarly take precedence over temporary gaze previews.
+- [x] Added an adapter test that evaluates a supported action, applies its pose to real Three.js named pivots, checks the intended instance, and verifies baseline restoration after a backward seek.
+- [x] Added shared start/end inputs with timecode and seconds modes. HH:MM:SS:FF checks frame count against FPS; seconds round to the nearest frame; duration is derived; end is exclusive and remains within the scene.
+- [x] Updated the centralized Persian timeline help and recorded BUG-0038 (playback visibility) and BUG-0039 (time range UX) as open pending visual checks. BUG-0024, BUG-0029 and BUG-0030 remain open.
+- [x] Automated verification: typecheck, lint, production build, 160/160 tests and `git diff --check` pass.
+- **Interaction test limitation:** The repository's test runner is Node-only with no DOM/component test environment; keyboard typing is wired to preserve raw input drafts and still requires browser verification.
+- [ ] Browser-verify action playback and gaze at start/midpoint/end, pause pose, backward seek, camera visibility, scene switching, timecode/seconds typing, timeline synchronization and save/reload. No browser surface was available during implementation.
+- **Status:** Runtime and timing changes implemented; visual playback and browser input acceptance remain UNVERIFIED.
+
+### Phase 05-C professional animation editing refinement
+
+- [x] Split the dock into scene overview and focused animation-track views, with an in-workspace active-scene selector, shared project transport and the same mounted viewport.
+- [x] Added character groups and only the event categories present in the selected scene; independent categories occupy separate rows and retain category colors. Added local timeline zoom and frame-aligned event drag with safe scene-bound clamping.
+- [x] Persisted event-list reordering through the existing action array, with drag handle plus keyboard-operable up/down controls. This affects presentation order only; timing and priority remain independent. Exposed per-channel conflict priority separately in the selected-event inspector.
+- [x] Added focused tests for event ordering independence, stable IDs, frame movement/clamping, and workspace/inspector wiring. No schema or evaluator change was made. Typecheck, lint, build, 162/162 tests and `git diff --check` pass.
+- [ ] Browser-check drag feedback and frame snapping, overlapping concurrent actions, event list reordering, scene switching within animation mode, timecode editing, save/reload, and the 1920×1080, 1366×768, 1024×768, 768×1024 and 390×844 layouts.
+- **Status:** Implemented; visual and pointer/keyboard interaction remain UNVERIFIED. Existing BUG-0024, BUG-0029, BUG-0030, BUG-0036, BUG-0037, BUG-0038 and BUG-0039 remain open pending their stated acceptance evidence.
+
+### Editor camera navigation and scene framing
+
+- **Status:** IMPLEMENTED_UNVERIFIED. Orbit range and damping were refined; selected-object focus uses rendered bounds and model forward direction; pointer-locked free-fly supports WASD, Q/E, Shift speed and Escape. Navigation remains transient and production-camera capture remains explicit.
+- **Automated coverage:** Tests cover focus framing, forward-facing placement, free-fly movement/speed/time bounds, pointer-lock/input guards, listener cleanup wiring and production-camera separation.
+- **Remaining:** Browser-check orbit/pan/zoom, ChatGPT face framing, laptop/prop focus, free-fly lock/escape, scene switching, touch use, and save/reload of explicitly captured production views. No browser surface was available during implementation.

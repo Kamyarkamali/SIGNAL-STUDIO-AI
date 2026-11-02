@@ -77,6 +77,8 @@ A higher-priority behavior overrides a lower-priority behavior only when both co
 
 Independent compatible behaviors must be allowed to run simultaneously.
 
+For the current Phase 05-C event editor, keep three concerns independent: the saved `actionEvents` array order controls only editor-list presentation; `startFrame` and `durationFrames` control execution time; and event `priority` resolves only conflicting values on the same evaluated channel. Reordering cannot rewrite timestamps, and priority cannot suppress an independent gaze, head, expression or gesture channel. Timeline moves snap to integer frames and preserve duration.
+
 For example, a character should be able to:
 
 - Speak.

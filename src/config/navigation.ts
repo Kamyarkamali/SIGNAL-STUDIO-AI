@@ -2,6 +2,7 @@ export type SectionId =
   | "projects"
   | "scenes"
   | "characters"
+  | "animations"
   | "environments"
   | "audio"
   | "dialogue"
@@ -40,6 +41,13 @@ export const navigationItems: readonly NavigationItem[] = [
     shortLabel: "شخصیت",
     symbol: "◉",
     phase: "فاز ۰۴",
+  },
+  {
+    id: "animations",
+    label: "حرکت‌ها",
+    shortLabel: "حرکت‌ها",
+    symbol: "✦",
+    phase: "فاز ۰۵-C",
   },
   {
     id: "environments",

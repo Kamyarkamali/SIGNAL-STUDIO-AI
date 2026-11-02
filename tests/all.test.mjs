@@ -1,7 +1,12 @@
 import "./navigation.test.mjs";
 import "./projects.test.mjs";
+import "./scenes.test.mjs";
+import "./scene-action-events.test.mjs";
+import "./scene-panel-integration.test.mjs";
+import "./scene-configuration.test.mjs";
 import "./request-origin.test.mjs";
 import "./viewport.test.mjs";
+import "./editor-camera-navigation.test.mjs";
 import "./object-edit.test.mjs";
 import "./studio-decoration.test.mjs";
 import "./environment.test.mjs";
@@ -14,4 +19,5 @@ import "./character-gaze.test.mjs";
 import "./character-glb.test.mjs";
 import "./character-import.test.mjs";
 import "./workspace-layout.test.mjs";
+import "./context-help.test.mjs";
 import "./viewport-fullscreen.test.mjs";

@@ -349,3 +349,54 @@ Use IDs `ADR-001`, `ADR-002`, etc. Each entry states **Decision**, **Reason**, *
 - **Decision:** Drive ChatGPT expression presets through its existing face display and add Claude expression support only through actual eye, eyebrow and mouth geometry. Keep Kamyar, Hamid and imported GLB facial previews disabled until their renderers have verified adapters. Use action-specific timing for surprise/excitement without changing other action speeds or the accepted gaze evaluator.
 - **Reason:** A generic `facial-expression` capability must correspond to visible, controllable renderer components; model labels or mathematical pose differences alone are insufficient evidence.
 - **Trade-offs:** Visual quality and readability at podcast distance require a real browser review. No project schema, identity, customization, saved transform or C3 gaze contract changes.
+
+### ADR-047 — Store scene time as integer frames and production cameras per scene
+
+- **Status:** Implemented 2026-11-04; browser acceptance pending.
+- **Decision:** Schema v6 stores scenes as stable-ID records plus explicit order. Scene duration is a positive integer frame count at project frame rates 24, 25, 30, 50 or 60. Scene offsets are derived by prefix sum; seconds convert to frames by nearest-frame rounding. Internal boundaries are half-open, so an exact boundary selects the following scene; project end resolves to the last scene's end. Playback derives frames from a monotonic start timestamp and never saves accumulated render deltas.
+- **Camera contract:** Each scene stores serializable production-camera position, look-at target, FOV, near/far planes, rotation/orientation mode, zoom, shot/framing preset and optional stable target reference. This state is independent of the editor camera. Look-at and rotation are explicit alternative orientation modes.
+- **Compatibility:** v1-v5 migrate in memory with no scenes and a 30 fps default. Duplicate operations generate new scene and track-header IDs while preserving referenced assets. Track headers are extension points only; no timed events or camera controls are implemented.
+- **Reason and trade-offs:** Integer frames avoid cumulative drift and make arbitrary-time evaluation deterministic. Current character placements/environment remain project-level and shared; scene-local editing and camera evaluation are deferred to later phases.
+
+### ADR-048 — Keep workspace layout transient and contextual help centralized
+
+- **Status:** Implemented 2026-11-04; visual/browser verification pending.
+- **Decision:** Keep navigation collapse, inspector width/open state, timeline height/collapse and help drawer selection in editor UI state, not project documents. Use one responsive workspace shell around the existing R3F viewport and existing editors; viewport layout changes must not remount the canvas. Inspector and timeline use bounded native pointer/keyboard separators. Store Persian contextual help in a typed central registry and open it in a native dialog drawer with browser-managed focus and Escape behavior. Planned sections remain labeled planned.
+- **Reason:** Workspace preferences should not alter production content or duplicate project data. A shared help registry keeps section guidance consistent and explicitly separates working tools from roadmap items.
+- **Trade-offs:** Layout preferences currently reset on full reload; this avoids adding a new persistence contract. Pointer resizing, focus restoration, responsive fit and actual visual hierarchy require browser verification.
+
+### ADR-049 — Keep scene management in the existing project state and layer scene overrides
+
+- **Status:** Implemented; browser verification pending.
+- **Decision:** Route Scenes navigation to a compact manager that passes the existing `useProjects` scene order/records and existing CRUD/select/reorder operations. Keep storyboard, timeline, inspector and viewport synchronized through the global integer-frame scene resolver. Store only scene-local overrides over shared project assets; do not introduce another scene store or duplicate reusable assets.
+- **Camera:** Store production camera per scene and preview it temporarily in the already-mounted R3F Canvas. Snapshot and restore the editor orbit-camera pose and controls. A missing stable target falls back to its saved world point; future cinematic events/collision automation remain out of scope.
+- **Help:** Continue using the centralized Persian registry and require meaningful contextual guidance on every modified user-facing control.
+- **Reason/trade-off:** This resolves the obsolete Scenes placeholder while preserving project persistence and existing time behavior. Override diffs are specific to currently registered Studio 01; additional environments need a compatible arrangement adapter before they are exposed.
+
+### ADR-050 — Keep professional editor navigation transient and independent from production cameras
+
+- **Status:** Implemented; browser verification pending.
+- **Decision:** Retain OrbitControls as the editor orbit/pan/zoom controller, add explicitly engaged pointer-locked free-fly input, and focus selections using rendered bounds with model forward metadata where available. Smooth focus transitions run only while active in the demand-rendered viewport.
+- **Camera separation:** Navigation changes editor camera pose and orbit target only. The scene production-camera record changes exclusively through the existing explicit capture/save action.
+- **Reason and trade-offs:** Users need precise framing without coupling inspection movement to saved output. Pointer Lock suits desktop free-fly but requires keyboard/mouse support; touch users retain orbit and focus. No schema migration or Three.js object persistence is needed.
+- **Limits:** Camera collision avoidance, cinematic movement/keyframes, automatic tracking and browser/device visual acceptance remain out of scope or pending.
+
+### ADR-051 — Add a bounded scene-local character action event slice in Phase 05-C
+
+- **Status:** Implemented; automated persistence/reopen and project-duplication tests pass; browser interaction and visual verification remain pending.
+- **Decision:** By explicit user authorization, add a focused event schema and editor between Phase 05-B and the broader Phase 07 resolver. Keep character action events in each scene's `actionEvents` field, separate from reusable track headers. Evaluate from scene-local integer frames using existing capability-aware animation/gaze math; use stable scene, actor and gaze-target IDs; resolve pose conflicts by per-channel priority. Add the feature to main navigation, the existing timeline and the existing inspector/help system without a new store.
+- **Compatibility:** Bump the project schema to v8. Older v1-v7 projects migrate with empty scene event arrays and keep existing IDs/data. Scene duplication creates independent event IDs and owning scene references. The existing project save/revision/backup path remains authoritative.
+- **Scope boundary:** Only already-supported head, arm, facial-preview and gaze channels can be authored. Phase 07 remains responsible for the broader cross-modal deterministic behavior resolver and display/audio events. No lip sync, new rigs, camera keyframes, subtitles, educational tracks or export are implemented. BUG-0024, BUG-0029 and BUG-0030 remain OPEN.
+- **Reason/trade-off:** This creates a useful vertical slice for scene actions while preserving the original phase numbering and later media/camera dependencies. It advances a limited character-action feature earlier than the original roadmap plan; full behavior arbitration is intentionally deferred and browser-visible quality requires manual review.
+
+### ADR-052 — Refine animation workspace with existing and native UI primitives
+
+- **Status:** Implemented; visual/browser verification pending.
+- **Decision:** Do not initialize shadcn/ui or add another component dependency during the focused animation workspace repair. The installed stack has no shadcn/Radix primitives, while the current application already provides its own design tokens, responsive navigation, tabs, help drawer, resize handles and independent scroll panes. Fix measured intrinsic-width overflow and use native `details/summary` disclosure for secondary controls.
+- **Reason/trade-off:** This preserves the approved design system and avoids parallel component/state styling. Native controls provide keyboard behavior without package installation; exact spacing, clipping and responsive fit still need browser review.
+
+### ADR-053 — Commit event timing drafts to integer frames on blur or Enter
+
+- **Status:** Implemented; browser input verification pending.
+- **Decision:** Keep event timing text in transient component state while users type. Accept seconds for event start and convert with the existing nearest-frame rule (`Math.round(seconds * fps)`); accept only positive integer frame counts for duration. Validate scene bounds at commit, preserve rejected input with a Persian error, and use Escape to revert the draft.
+- **Reason/trade-off:** Controlled numeric updates were normalizing intermediate input and silently clamping timing. A text draft allows clearing/replacement while leaving schema, timeline, and persistence contracts unchanged. It requires manual confirmation of browser focus/caret and touch keyboard behavior.

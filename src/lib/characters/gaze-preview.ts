@@ -11,6 +11,8 @@ export type GazePreview = {
   startedAtMs: number;
   durationSeconds: number;
   transitionSeconds: number;
+  /** Scene-local source time for deterministic timeline evaluation; absent for live previews. */
+  evaluationTimeSeconds?: number;
 };
 export type GazeCapability = { head: boolean; eyes: boolean; torso: boolean; maxYaw: number; maxPitch: number; maxRoll: number; maxEyeOffset: number };
 export type GazePose = { headRotation: [number, number, number]; eyeOffset: [number, number]; torsoYaw: number; reachable: boolean };

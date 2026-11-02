@@ -99,6 +99,7 @@ test("attention previews target the selected object, ease back to neutral, and i
 
 test("runtime resolves stable character and prop IDs, laptop display surface, and keeps gaze outside project JSON", async () => {
   const source = await readFile(new URL("../src/components/characters/character-layer.tsx", import.meta.url), "utf8");
+  const adapter = await readFile(new URL("../src/lib/characters/character-pose-adapter.ts", import.meta.url), "utf8");
   assert.match(source, /character-instance:\$\{preview\.targetId\}/);
   assert.match(source, /getObjectByName\("head-pivot"\)/);
   assert.match(source, /getObjectByName\("display-surface"\)/);
@@ -110,5 +111,5 @@ test("runtime resolves stable character and prop IDs, laptop display surface, an
   assert.match(shell, /characterGazes=\{characterGazes\}/);
   assert.doesNotMatch(shell, /gazePreview\s*:/, "temporary preview data is not declared in project data");
   assert.match(source, /gaze=\{gazes\[id\]\}/, "gaze records are independently addressed by stable instance ID");
-  assert.match(source, /apply\("head-pivot", headPose\)/, "the saved instance root is not used as the animated pivot");
+  assert.match(adapter, /apply\("head-pivot", headRotation\)/, "the saved instance root is not used as the animated pivot");
 });

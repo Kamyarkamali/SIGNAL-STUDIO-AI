@@ -8,6 +8,8 @@ import type { SaveStatus } from "@/components/projects/use-projects";
 import type { TransformMode } from "@/components/layout/properties-panel";
 import { StudioDecorationEditor } from "@/components/viewport/studio-decoration-editor";
 import type { ProjectDocument } from "@/lib/projects/project-schema";
+import { ContextHelpTrigger } from "@/components/help/context-help";
+import type { ContextHelpId } from "@/lib/help/context-help-content";
 
 type Props = {
   arrangement: EnvironmentArrangement | null;
@@ -25,6 +27,7 @@ type Props = {
   onSave: () => void;
   project: ProjectDocument | null;
   onUpload: (file: File) => Promise<string | null>;
+  onHelp: (topic: ContextHelpId) => void;
 };
 
 const button = "rounded-lg border border-[#536276] px-2.5 py-1.5 text-xs text-foreground hover:bg-[#2c4051] focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50";
@@ -32,7 +35,7 @@ const initialIds = new Set(STUDIO_01.defaultProps.map((item) => item.id));
 const definitions = new Map(STUDIO_01.propDefinitions.map((item) => [item.id, item]));
 const statusText: Record<SaveStatus, string> = { saved: "ذخیره شد", saving: "در حال ذخیره", dirty: "تغییرات ذخیره‌نشده", error: "خطا در ذخیره" };
 
-export function EnvironmentEditor({ arrangement, selectedId, onSelect, onEdit, saveStatus, onSave, editing, onEnterEdit, onFinishEdit, mode, onModeChange, project, onUpload, showRoomWalls, onToggleRoomWalls }: Props) {
+export function EnvironmentEditor({ arrangement, selectedId, onSelect, onEdit, saveStatus, onSave, editing, onEnterEdit, onFinishEdit, mode, onModeChange, project, onUpload, showRoomWalls, onToggleRoomWalls, onHelp }: Props) {
   const [libraryChoice, setLibraryChoice] = useState("");
   const editable = STUDIO_01.propDefinitions.filter((item) => item.editable !== false);
   const missing = STUDIO_01.defaultProps.filter((item) => item.id !== "studio-01:room" && item.id !== "studio-01:acoustic-wall" &&
@@ -42,7 +45,8 @@ export function EnvironmentEditor({ arrangement, selectedId, onSelect, onEdit, s
   };
   return <section className="section-background rounded-xl border border-line p-4" aria-labelledby="section-title">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <div><span className="text-xs text-accent">فاز ۰۳-C · چیدمان پروژه</span><h1 id="section-title" className="text-xl font-bold">وسایل صحنه</h1></div>
+      <div><span className="text-xs text-accent">فاز ۰۳-C · چیدمان پروژه</span><div className="flex items-center gap-1"><h1 id="section-title" className="text-xl font-bold">وسایل صحنه</h1><ContextHelpTrigger topic="props" onOpen={onHelp} /></div></div>
+      <div className="flex items-center gap-1"><ContextHelpTrigger topic="environments" onOpen={onHelp} /><ContextHelpTrigger topic="laptopMedia" onOpen={onHelp} /></div>
       <span role="status" aria-live="polite" className="text-xs text-[#b6c8d6]">{arrangement ? statusText[saveStatus] : "برای ویرایش، پروژه‌ای باز کنید"}</span>
     </div>
     {!arrangement ? <p className="mt-3 text-sm text-muted">از بخش پروژه‌ها، پروژه‌ای بسازید یا باز کنید. نمای استودیو تا آن زمان فقط برای مشاهده است.</p> : <>

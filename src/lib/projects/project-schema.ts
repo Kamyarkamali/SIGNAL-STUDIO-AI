@@ -2,8 +2,9 @@ import { z } from "zod";
 import { arrangementSchema, defaultArrangement } from "../environments/arrangement.ts";
 import { characterProjectDataSchema } from "../characters/character-schema.ts";
 import { characterModelDefinitionSchema } from "../characters/character-registry.ts";
+import { projectFrameRateSchema, sceneOrderSchema, scenesSchema } from "../scenes/scene-schema.ts";
 
-export const PROJECT_SCHEMA_VERSION = 5;
+export const PROJECT_SCHEMA_VERSION = 8;
 export const PROJECT_MAX_BYTES = 1024 * 1024;
 export const REQUEST_MAX_BYTES = 256 * 1024;
 
@@ -52,16 +53,16 @@ export type AssetRecord = z.infer<typeof assetRecordSchema>;
 
 const emptyCollection = z.record(z.string(), z.never());
 const baseProjectSchema = z.object({
-  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7), z.literal(8)]),
   id: projectIdSchema,
   title: projectNameSchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   revision: z.number().int().nonnegative(),
-  fps: z.literal(30),
+  fps: projectFrameRateSchema,
   resolution: z.object({ width: z.literal(1280), height: z.literal(720) }).strict(),
-  sceneOrder: z.array(z.never()),
-  scenes: emptyCollection,
+  sceneOrder: sceneOrderSchema,
+  scenes: scenesSchema,
   characters: emptyCollection,
   speakers: emptyCollection,
   audioClips: emptyCollection,
@@ -70,6 +71,9 @@ const baseProjectSchema = z.object({
   assetManifest: z.record(z.uuid(), assetRecordSchema),
   exportSettings: z.object({ fps: z.literal(30), width: z.literal(1280), height: z.literal(720) }).strict(),
 }).strict().superRefine((project, context) => {
+  if (project.schemaVersion < 6 && (project.fps !== 30 || project.sceneOrder.length || Object.keys(project.scenes).length)) {
+    context.addIssue({ code: "custom", message: "Scene and frame-rate metadata require project schema v6 or later." });
+  }
   for (const [id, asset] of Object.entries(project.assetManifest)) {
     if (id !== asset.id) context.addIssue({ code: "custom", message: "شناسهٔ دارایی ناسازگار است." });
   }
@@ -97,13 +101,25 @@ export const version3ProjectSchema = baseProjectSchema.safeExtend({
   displayAssignments: displayAssignmentsSchema,
 });
 
-function projectWithCharacterSchema(version: 4 | 5) {
+function projectWithCharacterSchema(version: 4 | 5 | 6 | 7 | 8) {
   return baseProjectSchema.safeExtend({
     schemaVersion: z.literal(version),
     environmentArrangement: arrangementSchema,
     displayAssignments: displayAssignmentsSchema,
     ...characterProjectDataSchema.shape,
   }).superRefine((project, context) => {
+  if (version >= 6) {
+    const ids = new Set<string>();
+    for (const sceneId of project.sceneOrder) {
+      if (ids.has(sceneId)) context.addIssue({ code: "custom", message: "Scene order contains duplicate IDs.", path: ["sceneOrder"] });
+      ids.add(sceneId);
+      if (!project.scenes[sceneId]) context.addIssue({ code: "custom", message: "Scene order references a missing scene.", path: ["sceneOrder"] });
+    }
+    for (const [sceneId, scene] of Object.entries(project.scenes)) {
+      if (scene.id !== sceneId) context.addIssue({ code: "custom", message: "Scene key must match its stable ID.", path: ["scenes", sceneId, "id"] });
+      if (!ids.has(sceneId)) context.addIssue({ code: "custom", message: "Every scene must appear in scene order.", path: ["scenes", sceneId] });
+    }
+  }
   for (const [propId, assignment] of Object.entries(project.displayAssignments)) {
     const prop = project.environmentArrangement.props.find((item) => item.id === propId);
     if (prop && prop.definitionId !== "prop:laptop") context.addIssue({ code: "custom", message: "رسانه فقط به لپ‌تاپ متصل می‌شود." });
@@ -144,10 +160,21 @@ function projectWithCharacterSchema(version: 4 | 5) {
   if (!characterData.success) for (const issue of characterData.error.issues) {
     context.addIssue({ code: "custom", message: issue.message, path: issue.path });
   }
+  if (version >= 7) for (const [sceneId, scene] of Object.entries(project.scenes)) {
+    for (const instanceId of Object.keys(scene.characters)) if (!project.characterInstances[instanceId]) {
+      context.addIssue({ code: "custom", message: "Scene presence must reference an existing project character instance.", path: ["scenes", sceneId, "characters", instanceId] });
+    }
+    for (const [propId, override] of Object.entries(scene.propOverrides)) if (override.added && override.added.id !== propId) {
+      context.addIssue({ code: "custom", message: "Scene prop IDs must match their override keys.", path: ["scenes", sceneId, "propOverrides", propId] });
+    }
+  }
   });
 }
 
 export const version4ProjectSchema = projectWithCharacterSchema(4);
+export const version5ProjectSchema = projectWithCharacterSchema(5);
+export const version6ProjectSchema = projectWithCharacterSchema(6);
+export const version7ProjectSchema = projectWithCharacterSchema(7);
 export const projectSchema = projectWithCharacterSchema(PROJECT_SCHEMA_VERSION);
 
 export type ProjectDocument = z.infer<typeof projectSchema>;
@@ -155,6 +182,7 @@ export type ProjectSummary = Pick<ProjectDocument, "id" | "title" | "createdAt" 
 
 export const createInputSchema = z.object({ title: projectNameSchema }).strict();
 export const saveInputSchema = z.object({ title: projectNameSchema, expectedRevision: z.number().int().nonnegative(), environmentArrangement: arrangementSchema.optional(), displayAssignments: displayAssignmentsSchema.optional(),
+  fps: projectFrameRateSchema.optional(), sceneOrder: sceneOrderSchema.optional(), scenes: scenesSchema.optional(),
   characterIdentities: characterProjectDataSchema.shape.characterIdentities.optional(), characterInstances: characterProjectDataSchema.shape.characterInstances.optional(), characterStates: characterProjectDataSchema.shape.characterStates.optional() }).strict();
 export const deleteInputSchema = z.object({ expectedRevision: z.number().int().nonnegative() }).strict();
 
@@ -171,7 +199,24 @@ export function newProject(id: string, title: string, now = new Date()): Project
 export function migrateProject(value: unknown): ProjectDocument | null {
   const current = projectSchema.safeParse(value);
   if (current.success) return current.data;
+  const version7 = version7ProjectSchema.safeParse(value);
+  if (version7.success) return projectSchema.parse({ ...version7.data, schemaVersion: PROJECT_SCHEMA_VERSION });
+  const version6 = version6ProjectSchema.safeParse(value);
+  if (version6.success) {
+    const scenes = Object.fromEntries(Object.entries(version6.data.scenes).map(([id, scene]) => {
+      const characters = Object.fromEntries(Object.values(version6.data.characterInstances).flatMap((instance) => {
+        const state = version6.data.characterStates[instance.id];
+        if (!state) return [];
+        return [[instance.id, { visible: state.visible, transform: structuredClone(state.transform), ...(state.placementAnchorId ? { placementAnchorId: state.placementAnchorId } : {}) }]];
+      }));
+      return [id, { ...scene, characters: Object.keys(scene.characters).length ? scene.characters : characters }];
+    }));
+    return projectSchema.parse({ ...version6.data, schemaVersion: PROJECT_SCHEMA_VERSION, scenes });
+  }
   const version4 = version4ProjectSchema.safeParse(value);
+  const version5 = version5ProjectSchema.safeParse(value);
+  if (version5.success) return projectSchema.parse({ ...version5.data, schemaVersion: PROJECT_SCHEMA_VERSION,
+    fps: 30, sceneOrder: [], scenes: {} });
   if (version4.success) {
     const characterIdentities = Object.fromEntries(Object.entries(version4.data.characterIdentities).map(([id, identity]) => {
       const canReplacePlaceholder = identity.modelId === "character-model:development-human" && Object.keys(identity.customization).length === 0;

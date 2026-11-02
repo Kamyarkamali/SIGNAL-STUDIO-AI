@@ -136,11 +136,13 @@ test("human adapters use their actual named eyes, brows, mouth, and independent 
 
 test("runtime wires renderer facial values into demand rendering without replacing gaze composition", async () => {
   const layer = await readFile(new URL("../src/components/characters/character-layer.tsx", import.meta.url), "utf8");
+  const adapter = await readFile(new URL("../src/lib/characters/character-pose-adapter.ts", import.meta.url), "utf8");
   const renderers = await readFile(new URL("../src/components/characters/character-renderers.tsx", import.meta.url), "utf8");
   assert.match(layer, /applyFacialExpressionPose\(group\.current/);
   assert.match(layer, /evaluateFacialExpressionWeight\(preview\.actionId, elapsed/);
   assert.match(layer, /invalidate\(\)/);
-  assert.match(layer, /composeGazeHeadRotation\(pose\.headRotation, gazePose/);
+  assert.match(layer, /applyCharacterActionPose\(group\.current, pose, gazePose/);
+  assert.match(adapter, /composeGazeHeadRotation\(pose\.headRotation, gazePose/);
   assert.match(renderers, /<ExpressionMouth expression=\{face\}/);
   assert.match(renderers, /name="mouth-smile"/);
   assert.match(renderers, /name="mouth-frown"/);
@@ -229,9 +231,10 @@ test("preview playback remains transient and does not alter saved identity, inst
   assert.equal("playback" in data, false);
   assert.deepEqual(evaluateCharacterPreviewPose({ actionId: playback.actionId, sourceTimeSeconds: 0.5, durationSeconds: playback.durationSeconds, capabilities: allChannels }).headRotation[1] <= 0.24, true);
   const source = await readFile(new URL("../src/components/characters/character-layer.tsx", import.meta.url), "utf8");
+  const adapter = await readFile(new URL("../src/lib/characters/character-pose-adapter.ts", import.meta.url), "utf8");
   assert.match(source, /cancelAnimationFrame\(frame\)/, "preview scheduling is cleaned up on stop/unmount");
-  assert.match(source, /getObjectByName\(name\)/, "pose resolves named local pivots rather than changing the saved instance transform");
-  assert.match(source, /apply\("head-pivot"/, "head motion targets the model-local head pivot");
+  assert.match(adapter, /getObjectByName\(name\)/, "pose resolves named local pivots rather than changing the saved instance transform");
+  assert.match(adapter, /apply\("head-pivot"/, "head motion targets the model-local head pivot");
   const editor = await readFile(new URL("../src/components/characters/character-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /aria-label="سرعت حرکت"/);
   assert.match(editor, /aria-label="شدت حرکت"/);

@@ -125,7 +125,7 @@ export class ProjectService {
     let value: unknown;
     try { value = JSON.parse(content); }
     catch { throw new ProjectError("CORRUPT", "فایل پروژه آسیب دیده است.", 422); }
-    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5) {
+    if (typeof value === "object" && value !== null && "schemaVersion" in value && value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5 && value.schemaVersion !== 6 && value.schemaVersion !== 7 && value.schemaVersion !== 8) {
       throw new ProjectError("UNSUPPORTED_VERSION", "نسخهٔ این پروژه پشتیبانی نمی‌شود؛ فایل اصلی تغییر نکرده است.", 422);
     }
     const parsed = migrateProject(value);
@@ -184,7 +184,8 @@ export class ProjectService {
 
   async save(id: string, name: string, expectedRevision: number, environmentArrangement?: EnvironmentArrangement,
     displayAssignments?: z.infer<typeof displayAssignmentsSchema>, characterIdentities?: CharacterProjectData["characterIdentities"],
-    characterInstances?: CharacterProjectData["characterInstances"], characterStates?: CharacterProjectData["characterStates"]): Promise<ProjectDocument> {
+    characterInstances?: CharacterProjectData["characterInstances"], characterStates?: CharacterProjectData["characterStates"],
+    fps?: ProjectDocument["fps"], sceneOrder?: ProjectDocument["sceneOrder"], scenes?: ProjectDocument["scenes"]): Promise<ProjectDocument> {
     id = projectId(id);
     const title = projectName(name);
     if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new ProjectError("INVALID_REVISION", "شمارهٔ بازبینی نامعتبر است.");
@@ -196,14 +197,19 @@ export class ProjectService {
       const identities = characterIdentities ?? current.characterIdentities;
       const instances = characterInstances ?? current.characterInstances;
       const states = characterStates ?? current.characterStates;
+      const projectFps = fps ?? current.fps;
+      const order = sceneOrder ?? current.sceneOrder;
+      const sceneRecords = scenes ?? current.scenes;
       const raw = JSON.parse(await readFile(this.projectFile(id), "utf8")) as { schemaVersion?: number };
       if (current.title === title && JSON.stringify(current.environmentArrangement) === JSON.stringify(arrangement) &&
         JSON.stringify(current.displayAssignments) === JSON.stringify(displays) &&
         JSON.stringify(current.characterIdentities) === JSON.stringify(identities) &&
         JSON.stringify(current.characterInstances) === JSON.stringify(instances) &&
-        JSON.stringify(current.characterStates) === JSON.stringify(states) && raw.schemaVersion === 5) return current;
+        JSON.stringify(current.characterStates) === JSON.stringify(states) && current.fps === projectFps &&
+        JSON.stringify(current.sceneOrder) === JSON.stringify(order) && JSON.stringify(current.scenes) === JSON.stringify(sceneRecords) &&
+        raw.schemaVersion === 8) return current;
       const updated = projectSchema.parse({ ...current, title, environmentArrangement: arrangement, displayAssignments: displays,
-        characterIdentities: identities, characterInstances: instances, characterStates: states,
+        characterIdentities: identities, characterInstances: instances, characterStates: states, fps: projectFps, sceneOrder: order, scenes: sceneRecords,
         revision: current.revision + 1, updatedAt: new Date().toISOString() });
       const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
       await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);

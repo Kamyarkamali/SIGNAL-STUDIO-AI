@@ -11,9 +11,10 @@ import { evaluateCharacterPreviewPose, evaluateFacialExpressionWeight, getPrevie
 import { resolveChatGptExpression, type ChatGptExpression } from "@/lib/characters/chatgpt-expression-presets";
 import { applyFacialExpressionPose, evaluatePreviewBlinkWeight, type FacialNode } from "@/lib/characters/facial-expression-preview";
 import { CharacterModelRenderer } from "./character-renderers";
-import { composeGazeHeadRotation, defaultGazeCapability, gazePoseAt, neutralGazePose, supportedGazeCapability, type GazePreview } from "@/lib/characters/gaze-preview";
+import { applyCharacterActionPose } from "@/lib/characters/character-pose-adapter";
+import { gazePoseAt, neutralGazePose, supportedGazeCapability, type GazePreview } from "@/lib/characters/gaze-preview";
 
-export type CharacterPreviewPlayback = { actionId: CharacterPreviewActionId; startedAtMs: number; durationSeconds: number; fromPose?: CharacterPreviewPlaybackPose; settings?: Partial<PreviewSettings> };
+export type CharacterPreviewPlayback = { actionId: CharacterPreviewActionId; startedAtMs: number; durationSeconds: number; fromPose?: CharacterPreviewPlaybackPose; settings?: Partial<PreviewSettings>; timelinePose?: { pose: CharacterPreviewPlaybackPose; expression?: ChatGptExpression; expressionWeight: number } };
 
 function visibleInScene(object: Object3D | null | undefined): object is Object3D {
   if (!object) return false;
@@ -75,22 +76,22 @@ function CharacterInstanceView({ id, data, selected, mode, onSelect, onCommit, p
     if (!group.current || !model) return;
     const capabilities = model.glb ? [] : model.capabilities.animationCapabilities.filter((capability): capability is "head-rotation" | "arm-gesture" | "facial-expression" => capability === "head-rotation" || capability === "arm-gesture" || capability === "facial-expression");
     const elapsed = preview ? (performance.now() - preview.startedAtMs) / 1000 : 0;
-    const pose = preview ? evaluateCharacterPreviewPose({
+    const pose = preview?.timelinePose?.pose ?? (preview ? evaluateCharacterPreviewPose({
       actionId: preview.actionId,
       sourceTimeSeconds: elapsed,
       durationSeconds: preview.durationSeconds,
       capabilities,
       fromPose: preview.fromPose,
       settings: preview.settings,
-    }) : evaluateCharacterPreviewPose({ actionId: "neutral", sourceTimeSeconds: 0, durationSeconds: 1, capabilities });
-    const expressionName = preview ? getPreviewExpression(preview.actionId, capabilities) : undefined;
+    }) : evaluateCharacterPreviewPose({ actionId: "neutral", sourceTimeSeconds: 0, durationSeconds: 1, capabilities }));
+    const expressionName = preview?.timelinePose?.expression ?? (preview ? getPreviewExpression(preview.actionId, capabilities) : undefined);
     if (model.capabilities.animationCapabilities.includes("facial-expression") && !model.glb &&
       ["chatgpt-robot", "claude-terracotta-mascot", "kamyar-stylized", "hamid-stylized"].includes(model.rendererKey)) {
       const modelKey = model.rendererKey as "chatgpt-robot" | "claude-terracotta-mascot" | "kamyar-stylized" | "hamid-stylized";
       const defaultFace: ChatGptExpression = modelKey === "chatgpt-robot"
         ? resolveChatGptExpression(typeof identity?.customization.faceStyle === "string" ? identity.customization.faceStyle : undefined)
         : "neutral";
-      const facialWeight = preview && expressionName
+      const facialWeight = preview?.timelinePose ? preview.timelinePose.expressionWeight : preview && expressionName
         ? evaluateFacialExpressionWeight(preview.actionId, elapsed, preview.durationSeconds, preview.settings)
         : 1;
       const phase = [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 2350 / 1000;
@@ -104,25 +105,11 @@ function CharacterInstanceView({ id, data, selected, mode, onSelect, onCommit, p
       const origin = (head ?? group.current).getWorldPosition(new Vector3());
       const rotation = group.current.getWorldQuaternion(new Quaternion());
       const target = resolveGazeTarget(gaze, group.current, scene, camera);
-      gazePose = gazePoseAt(gaze, performance.now() / 1000, gazeCapability, target?.toArray(), origin.toArray(), [group.current.rotation.x, group.current.rotation.y, group.current.rotation.z], rotation.toArray(), fromGazePose.current);
+      gazePose = gazePoseAt(gaze, gaze.evaluationTimeSeconds ?? performance.now() / 1000, gazeCapability, target?.toArray(), origin.toArray(), [group.current.rotation.x, group.current.rotation.y, group.current.rotation.z], rotation.toArray(), gaze.evaluationTimeSeconds !== undefined ? neutralGazePose : fromGazePose.current);
     }
     currentGazePose.current = gazePose;
-    const apply = (name: string, offset: [number, number, number]) => {
-      const target = group.current.getObjectByName(name);
-      if (!target) return;
-      let base = baseRotations.current.get(target);
-      if (!base) {
-        base = [target.rotation.x, target.rotation.y, target.rotation.z];
-        baseRotations.current.set(target, base);
-      }
-      target.rotation.set(base[0] + offset[0], base[1] + offset[1], base[2] + offset[2]);
-    };
     const limits = model ? supportedGazeCapability(model) : null;
-    const headPose = composeGazeHeadRotation(pose.headRotation, gazePose, limits ?? { ...defaultGazeCapability, maxPitch: 0.5, maxYaw: 0.85, maxRoll: 0.25 });
-    apply("head-pivot", headPose);
-    apply("left-arm-pivot", pose.leftArmRotation);
-    apply("right-arm-pivot", pose.rightArmRotation);
-    if (limits?.torso) apply("torso-pivot", [0, gazePose.torsoYaw, 0]);
+    applyCharacterActionPose(group.current, pose, gazePose, limits, baseRotations.current);
     for (const name of ["left-iris-gaze", "right-iris-gaze"]) {
       const iris = group.current.getObjectByName(name);
       if (!iris) continue;
@@ -133,6 +120,7 @@ function CharacterInstanceView({ id, data, selected, mode, onSelect, onCommit, p
   });
   useEffect(() => {
     invalidate();
+    if (preview?.timelinePose) return;
     const gazeDuration = gaze ? gaze.mode === "attention" ? gaze.durationSeconds : gaze.transitionSeconds : 0;
     const animationDuration = preview?.durationSeconds ?? 0;
     if (!gazeDuration && !animationDuration) return;

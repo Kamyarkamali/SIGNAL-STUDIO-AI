@@ -10,6 +10,8 @@ import type { CharacterAnchor } from "@/lib/environments/environment-registry";
 import { getPreviewActionAvailability, previewSettingLimits, type CharacterPreviewActionId, type PreviewEasing, type PreviewSettings } from "@/lib/characters/animation-preview";
 import { CharacterModelImportDialog } from "./character-model-import-dialog";
 import { supportedGazeCapability, type GazePreview } from "@/lib/characters/gaze-preview";
+import { ContextHelpTrigger } from "@/components/help/context-help";
+import type { ContextHelpId } from "@/lib/help/context-help-content";
 
 const button = "rounded-lg border border-[#536276] px-2.5 py-1.5 text-xs hover:bg-[#2c4051] focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -201,7 +203,7 @@ export function CharacterEditor({ data, active, selectedId, saveStatus, error, a
   </section>;
 }
 
-export function CharacterProperties({ data, selectedId, mode, onModeChange, onEdit, onReset, onAppearanceChange, onResetAppearance, onSavePreset,
+export function CharacterProperties({ data, selectedId, mode, onModeChange, onEdit, onReset, onAppearanceChange, onResetAppearance, onSavePreset, onHelp,
   previewAction, previewPlaying, previewSettings, onPreviewActionChange, onPreviewSettingsChange, onPlayPreview, onStopPreview, onResetPreview,
   gazePreview, gazeTargets, onGazeChange, onGazeReset }: {
   data: CharacterProjectData; selectedId: string | null; mode: "translate" | "rotate" | "scale";
@@ -216,6 +218,7 @@ export function CharacterProperties({ data, selectedId, mode, onModeChange, onEd
   onStopPreview: (instanceId: string) => void; onResetPreview: (instanceId: string) => void;
   gazePreview?: GazePreview; gazeTargets: readonly { id: string; label: string; kind: "character" | "prop" }[];
   onGazeChange: (instanceId: string, patch: Partial<GazePreview>) => void; onGazeReset: (instanceId: string) => void;
+  onHelp: (topic: ContextHelpId) => void;
 }) {
   const instance = selectedId ? data.characterInstances[selectedId] : undefined;
   const identity = instance ? data.characterIdentities[instance.characterId] : undefined;
@@ -230,7 +233,7 @@ export function CharacterProperties({ data, selectedId, mode, onModeChange, onEd
   const fields = mode === "translate" ? "position" : mode === "rotate" ? "rotation" : "scale";
   const modes = [{ id: "translate" as const, label: "جابه‌جایی" }, { id: "rotate" as const, label: "چرخش" }, { id: "scale" as const, label: "اندازه" }];
   return <aside className="flex min-h-full flex-col overflow-hidden rounded-xl border border-line bg-surface max-[650px]:min-h-[170px]" aria-labelledby="character-properties-title">
-    <div className="flex h-[43px] items-center gap-2.5 border-b border-line px-4 text-[13px] font-bold"><span className="h-[15px] w-[3px] rounded-[3px] bg-accent" /><span id="character-properties-title">ویژگی‌های شخصیت</span></div>
+    <div className="flex h-[43px] items-center gap-2.5 border-b border-line px-4 text-[13px] font-bold"><span className="h-[15px] w-[3px] rounded-[3px] bg-accent" /><span id="character-properties-title" className="flex-1">ویژگی‌های شخصیت</span><ContextHelpTrigger topic="characters" onOpen={onHelp} /></div>
     {!identity || !state || !selectedId ? <div className="flex flex-1 flex-col items-center justify-center p-5 text-center"><h2 className="text-sm font-bold">شخصیتی انتخاب نشده</h2><p className="mt-2 text-xs leading-7 text-muted">از فهرست یا خود پیکره در نمای سه‌بعدی انتخاب کنید.</p></div> : <div className="p-4">
       <h2 className="text-sm font-bold">{identity.name}</h2><p className="mt-1 break-all text-[10px] text-muted" dir="ltr">{selectedId}</p>
       <p className="mt-2 rounded-md border border-[#806c3f] bg-[#39331e] p-2 text-xs leading-5">مدل‌ها ریزتری و بدون ریگ هستند؛ قابلیت‌های رقص یا حرکت صورت فعال نیست.</p>
@@ -252,7 +255,8 @@ export function CharacterProperties({ data, selectedId, mode, onModeChange, onEd
       <button type="button" className={`${button} mt-3`} title="موقعیت و جهت شروع این نمونه را بازیابی می‌کند" onClick={() => onReset(selectedId)}>بازنشانی جایگاه</button>
       </details>
       <details className="mt-4 border-t border-line pt-3">
-        <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">پیش‌نمای حرکت</summary>
+      <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">پیش‌نمای حرکت</summary>
+      <div className="mt-1 flex gap-1"><ContextHelpTrigger topic="animation" onOpen={onHelp} /><ContextHelpTrigger topic="expressions" onOpen={onHelp} /><ContextHelpTrigger topic="gaze" onOpen={onHelp} /></div>
         <p className="mt-1 text-xs leading-5 text-muted">پیش‌نمایش موقت است و در پروژه ذخیره نمی‌شود.</p>
         <label className="mt-2 flex items-center justify-between gap-3 text-xs">
           <span>حرکت</span>
@@ -283,7 +287,7 @@ export function CharacterProperties({ data, selectedId, mode, onModeChange, onEd
         {previewActions.some((action) => !action.supported) && <p className="mt-2 text-[11px] leading-5 text-muted" aria-label="وضعیت پشتیبانی حرکت‌ها">گزینه‌های غیرفعال به پیوند یا قابلیت پشتیبانی‌نشده در این مدل نیاز دارند.</p>}
       </details>
       {model && <details className="mt-4 border-t border-line pt-3">
-        <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">نگاه و توجه</summary>
+        <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">نگاه و توجه</summary><span className="mt-1 inline-flex"><ContextHelpTrigger topic="gaze" onOpen={onHelp} /></span>
         {!gazeCapability ? <p className="mt-2 text-xs leading-5 text-muted">این مدل پیوند واقعی و پشتیبانی‌شده‌ای برای کنترل نگاه ندارد.</p> : <>
           <p className="mt-1 text-xs leading-5 text-muted">پیش‌نمایش موقت است و موقعیت ذخیره‌شدهٔ شخصیت را تغییر نمی‌دهد.{gazeCapability.eyes ? " چشم و سر پشتیبانی می‌شوند." : " فقط چرخش محدود سر پشتیبانی می‌شود."}</p>
           <label className="mt-3 flex items-center justify-between gap-3 text-xs"><span>حالت نگاه</span><select aria-label="حالت نگاه" value={gazeMode} onChange={(event) => {
@@ -318,7 +322,7 @@ export function CharacterProperties({ data, selectedId, mode, onModeChange, onEd
         </>}
       </details>}
       {model && <details open className="mt-4 border-t border-line pt-3">
-        <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">ظاهر شخصیت</summary>
+        <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">ظاهر شخصیت</summary><span className="mt-1 inline-flex"><ContextHelpTrigger topic="appearance" onOpen={onHelp} /></span>
         <p className="mt-1 text-xs leading-5 text-muted">این تنظیم‌ها به هویت انتخاب‌شده تعلق دارند؛ نمونه‌های همان هویت ظاهر مشترک دارند.</p>
         <div className="mt-3 grid gap-2">{model.customizationFields.map((field) => {
           const normalizedCustomization = normalizeCharacterCustomization(model.id, identity.customization as Record<string, string>);

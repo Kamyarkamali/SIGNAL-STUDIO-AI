@@ -32,11 +32,28 @@ test("editor layout retains the viewport, timeline and existing feature panels",
   const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   assert.match(shell, /<StudioViewport[\s\S]*?<\/section>[\s\S]*?<aside\s+id="workspace-inspector"/);
   assert.match(shell, /sectionEditor[\s\S]*?propertiesEditor/);
-  assert.match(shell, /<TimelinePlaceholder \/>/);
+  assert.match(shell, /<SceneAuthoring[\s\S]*?onSeek=\{seekTimeline\}/);
+  assert.match(shell, /data-scene-id=\{activeSceneId/);
   assert.match(shell, /<CharacterEditor/);
   assert.match(shell, /<EnvironmentEditor/);
   assert.match(shell, /<ProjectManager/);
-  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) clamp\(270px/);
+  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) 7px var\(--inspector-width/);
   assert.match(styles, /\.workspace-pane\[hidden\] \{ display: none; \}/);
-  assert.match(styles, /@media \(max-width: 650px\)/);
+  assert.match(styles, /@media \(max-width: 767px\)/);
+  assert.match(shell, /WorkspaceResizeHandle axis="x"/);
+  assert.match(shell, /timelineHeight/);
+  assert.match(shell, /بازنشانی چیدمان/);
+});
+
+test("inspector follows scene and object selection while Projects remains a single management view", () => {
+  const shell = readFileSync(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8");
+  const properties = readFileSync(new URL("../src/components/layout/properties-panel.tsx", import.meta.url), "utf8");
+  assert.match(shell, /setActiveSection\("scenes"\); dispatchPanel\(\{ type: "selection" \}\)/);
+  assert.match(shell, /setActiveSection\("characters"\);[\s\S]*?dispatchPanel\(\{ type: "selection" \}\)/);
+  assert.match(shell, /setActiveSection\("environments"\);[\s\S]*?dispatchPanel\(\{ type: "selection" \}\)/);
+  assert.match(shell, /activeSection === "projects" \? \([\s\S]*?<ProjectManager projects=\{projects\} \/>/);
+  assert.match(shell, /hidden=\{!\(activeSection === "characters" \|\| activeSection === "scenes" \|\| activeSection === "environments" \|\| activeSection === "animations"\) \|\| inspectorView !== "properties"\}/);
+  assert.match(shell, /topic=\{inspectorHelpTopic\}/);
+  assert.match(properties, /selected\.definitionId === "prop:laptop" && project && <details/);
+  assert.match(properties, /برای ویرایش وسایل، پروژه‌ای باز کنید و به بخش محیط‌ها بروید/);
 });

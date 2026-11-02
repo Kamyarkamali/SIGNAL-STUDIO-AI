@@ -80,6 +80,31 @@ The default desktop layout must not be a long vertically stacked form. On narrow
 - In fullscreen, fit the 16:9 production frame within the available display area without stretching. Let the mounted WebGL canvas resize with its container; do not recreate the scene to enter or exit fullscreen.
 - Verify desktop, tablet and mobile behavior in a browser before acceptance. Respect reduced motion for button transitions.
 
+## Animation workspace layout refinement
+
+- Keep scene selection/management, animation event authoring, and the LTR timeline visually distinct while routing all three through the same active scene and project state.
+- Animation editor and event inspector controls must use `min-width: 0`, stretch to the panel width, and scroll inside their own pane; long Persian option labels must not set the inspector's intrinsic width.
+- Keep event lists and secondary animation parameters behind native keyboard-operable disclosures. Their collapsed summaries need a visible disclosure affordance and Persian effect guidance.
+- The animation section remains inside the existing responsive workspace and must not mount a second WebGL canvas. Preserve the 16:9 viewport, resizable/collapsible inspector and timeline, and mobile drawer behavior.
+- Reuse the installed project-styled navigation, tabs, native `details` disclosure, browser title/accessible help, independent overflow regions, and resize handles. Add a component package only when it solves a demonstrated gap without duplicating these controls.
+- Browser layout acceptance is required at 1920×1080, 1366×768, 1024×768 and 390×844. Automated layout checks do not establish absence of visual overlap.
+
+### Timeline event timing inputs
+
+- Keep timing text drafts local while a user types; do not update an event for empty or intermediate strings.
+- Offer start and exclusive end in HH:MM:SS:FF timecode and seconds modes; show duration as a derived seconds/frame value. Keep project time as integer frames and convert seconds using `Math.round(seconds * projectFps)`.
+- Use plain LTR text inputs; do not normalize partial timecode or decimal text on each keypress. Preserve selection, caret and focus through parent updates. Commit on blur/Enter, show Persian inline errors, and let Escape restore the last committed value.
+- Validate minutes and seconds below 60, frame numbers below FPS, positive duration and scene bounds. The event's end frame is exclusive, so the interval is `[startFrame, startFrame + durationFrames)`.
+- Keep keyboard, paste, arrow and Tab behavior native. Labels/tooltips must explain FPS and the difference between seconds and frame counts.
+
+### Focused animation authoring workspace
+
+- The timeline dock switches between **scene overview** and **animation tracks** so storyboard cards and event tracks never compete for the same visible area. Animation mode keeps the existing global transport, a scene selector, and the same persistent viewport; it does not create a second canvas or store.
+- Group only scheduled events that exist for each character, then show their actual event categories (gaze, head, face, hands) on separate rows. Parallel blocks on independent rows communicate compatible concurrency; overlapping blocks in one row identify same-channel conflict candidates.
+- Timeline drag handles move an event in integer-frame increments and clamp it to the scene while preserving duration. The separate event-list drag handle and arrow buttons change saved editor list order only. Neither operation changes priority. Inspector priority explains that larger values resolve only overlapping events on the same channel; independent channels compose.
+- Keep the selected event inspector focused on the current event. Scene selector and timecode controls must preserve the active project and stable IDs. Provide meaningful Persian help and effect-specific tooltips for scene switching, event selection, time movement, list reordering, zoom and priority.
+- Browser-check drag behavior, touch and keyboard fallback, overlap readability, save/reopen, and 1366×768 or narrower layouts before visual acceptance.
+
 ## 4. Onboarding and Contextual Help
 
 Offer a short guided workflow:
@@ -284,6 +309,25 @@ Do not duplicate their full contents here. This document does **not** authorize 
 - Provide neutral return and clearly explain that unreachable targets are clamped safely. Missing or hidden targets should show a concise Persian fallback state.
 - Keep camera target independent from editor and production camera controls. Manual browser review remains required for target behavior, motion quality, reset, multiple characters and panel fit; C2 expression failures remain separately open.
 
+## Scene storyboard and authoring (Phase 05-A)
+
+- Show each scene's order, title, optional type, duration, start time and short description in a compact storyboard card. Selection is explicit and shared with the global timeline.
+- Keep selected-scene title, description, type, duration and director notes together in a focused properties panel next to the storyboard. These fields are organizational metadata and must not imply automatic animation or camera direction.
+- Use a visible drag handle, clear drop highlight and native drag-and-drop. Retain labeled, keyboard-operable move buttons as an accessible fallback; dragging must not select a scene.
+- Keep the global time display and progression LTR inside the RTL workspace. Show scene boundaries and playhead; seeking and selected-card state use the same integer-frame scene-time source.
+- Keep the 3D viewport available, constrain card/property scrolling to their own areas, and retain responsive compact layout. Verify drag, keyboard reordering, field editing and boundary behavior in a real browser before acceptance.
+
+## Production workspace shell and contextual help
+
+- Use a compact project/save header and a collapsible Persian navigation rail. Keep existing supported editors reachable; label future-only audio, dialogue, behavior, camera, settings and export sections as planned.
+- Give the viewport the flexible main region. Preserve its mounted R3F canvas, aspect behavior, fullscreen control, camera reset, editor-helper visibility and object editing. Use the existing inspector and timeline as adjustable panels; provide a restore-layout action.
+- Keep inspector/timeline resizing keyboard operable with bounded sizes. Store these as transient editor preferences, never in project data. Panel collapse and section changes must not reset the selected project or scene.
+- Use semantic design tokens for dark surfaces, borders, text, accent/status colors, spacing, radius and elevation. Reuse these tokens in shared controls; keep motion subtle and disable it under `prefers-reduced-motion`.
+- Provide a small clickable question-mark help control for each major section and relevant character/scene subtool. Help must work with pointer, touch and keyboard, include desktop titles, close with Escape, restore focus, and explain purpose, use, steps, controls, example and limits in Persian.
+- Clearly mark planned sections and explain that scene notes are not interpreted as animation/camera commands. Never describe planned audio, camera, behavior or export as available.
+- At 1024px and wider, retain the desktop workspace; at 768–1023px use compact horizontal navigation and a collapsible inspector; below 768px prioritize the preview and use secondary panels as drawers/stacked content. Keep time progression LTR and application layout RTL.
+- Browser acceptance is required at 1920×1080, 1366×768, 1024×768, 768×1024 and 390×844. Check overflow, panel resize/reset, help focus/Escape, viewport/fullscreen, timeline and existing editor workflows before marking the redesign visually accepted.
+
 ### Editor helpers and laptop presentation
 
 - Provide a compact, explicit viewport toggle for editor helper visibility. It hides prop/character transform gizmos and selection bounds without clearing the selected item or changing scene data.
@@ -291,3 +335,22 @@ Do not duplicate their full contents here. This document does **not** authorize 
 - Prefer a device-framed laptop presentation that retains the laptop body, bezel and attached screen media. Keep the content-only fullscreen viewer as a separate, clearly labeled secondary option.
 - Presentation exit, including Escape, restores the prior editor inspection target and camera. Keep media assignments and production camera state untouched.
 - **Status:** Implemented; visual and responsive browser verification pending.
+
+### Phase 05-B scene manager and camera controls
+
+The Scenes navigation opens a compact scene manager backed by the same project scene state/actions as the storyboard and timeline. Scene selection is derived from the global frame, so choosing a card updates the storyboard, timeline and viewport together. Create, rename, duplicate, delete-with-confirmation, drag reorder and keyboard move actions must explain their effect in Persian. The selected scene's detailed configuration remains available in the inspector properties tab.
+
+Scene configuration controls must explicitly say that edits affect only the selected scene; character removal from a scene retains its project identity, while appearance and media remain shared. Camera help distinguishes the editor orbit camera from the production camera and explains that production preview is temporary and restores the editor view. Disabled environment selection must explain that only the registered Studio 01 environment is currently available.
+
+### Permanent user-facing guidance requirement
+
+Every new or modified user-facing section, button, tool or interactive control requires a clear Persian label, a meaningful tooltip or accessible explanation, contextual section help, keyboard/touch access where applicable, accurate usage guidance, and appropriate loading/error/empty states. UI/UX work is not complete until this guidance is present and verified for accuracy.
+
+The header Help action opens the searchable, expandable guide for the whole application; section help opens the same registry's focused topic. The viewport toolbar groups editor/production view, helper visibility, camera reset, fullscreen and secondary camera/presentation actions in a compact row. Camera save feedback must distinguish pending persistence, success and failure; a temporary laptop inspection view must not be saved as a production camera.
+
+### Contextual inspector
+
+Keep the Projects workspace focused on project CRUD; do not show a generic Properties tab there. In character, scene and environment workspaces, label the two panel views by their actual purpose (workspace tools and selected item properties). Selecting a timeline/storyboard scene opens that scene's configuration; selecting a character or prop opens its existing model-specific controls. A laptop selection shows the existing display/media controls. Keep the panel heading and contextual help tied to the active workspace and selection, not stale selections from another section. Unsupported camera selection controls must not be invented; production camera settings live in the selected scene configuration. Preserve independent scrolling, collapse behavior and selection state when switching sections.
+### Editor camera navigation
+
+Viewport camera navigation offers a smoothed Orbit mode, an explicit pointer-locked Free Fly mode, and a Focus on Selection command. The compact navigation menu uses the centralized Persian `cameraNavigation` help topic and describes the WASD/QE/Shift/Escape shortcuts. Focus remains available to mouse and touch users without requiring keyboard navigation. Keyboard movement is active only while the viewport owns pointer lock; text inputs are excluded, Escape releases the lock, and the canvas prevents browser scrolling only during active movement. Display the active mode and keep the speed range keyboard operable. Editor navigation is transient; the current scene's production camera changes only through the explicit save-view action.

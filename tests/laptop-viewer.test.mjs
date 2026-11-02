@@ -53,10 +53,11 @@ test("inspection camera restores position, orientation, up vector, target, and F
     readFile(new URL("../src/app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../src/components/viewport/environments/studio-details.tsx", import.meta.url), "utf8"),
   ]);
-  assert.match(canvas, /position: Vector3; quaternion: typeof camera\.quaternion; up: Vector3; target: Vector3/);
-  assert.match(canvas, /camera\.position\.copy\(saved\.current\.position\); camera\.quaternion\.copy\(saved\.current\.quaternion\)/);
-  assert.match(canvas, /camera\.up\.copy\(saved\.current\.up\)/);
-  assert.doesNotMatch(canvas, /camera\.fov\s*=/, "close-up leaves the editor FOV unchanged");
+  const inspection = canvas.slice(canvas.indexOf("function InspectionCamera"), canvas.indexOf("function ContextLossMonitor"));
+  assert.match(inspection, /position: Vector3; quaternion: typeof camera\.quaternion; up: Vector3; target: Vector3/);
+  assert.match(inspection, /camera\.position\.copy\(saved\.current\.position\); camera\.quaternion\.copy\(saved\.current\.quaternion\)/);
+  assert.match(inspection, /camera\.up\.copy\(saved\.current\.up\)/);
+  assert.doesNotMatch(inspection, /camera\.fov\s*=/, "laptop inspection preserves the editor FOV; production-camera preview is a separate controller");
   assert.match(viewer, /toggleElementFullscreen\(dialog, document\)/);
   assert.doesNotMatch(viewer, /camera\./, "the media dialog does not mutate editor or production camera state");
   assert.match(viewer, /fullscreenchange/);

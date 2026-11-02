@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_PRODUCTION_CAMERA, EDITOR_CAMERA, productionCameraSchema } from "../src/components/viewport/camera-config.ts";
 import { hasWebGL, watchContextLoss } from "../src/components/viewport/webgl-support.ts";
+import { readFile } from "node:fs/promises";
 
 test("camera defaults are safe and production data stays serializable", () => {
   assert.equal(productionCameraSchema.safeParse(DEFAULT_PRODUCTION_CAMERA).success, true);
@@ -37,4 +38,19 @@ test("context-loss listener signals failure and is removed on cleanup", () => {
   cleanup();
   canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
   assert.equal(failures, 1);
+});
+
+test("viewport keeps camera modes and secondary actions accessible without remounting the canvas", async () => {
+  const viewport = await readFile(new URL("../src/components/viewport/studio-viewport.tsx", import.meta.url), "utf8");
+  const shell = await readFile(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8");
+  const scenePanel = await readFile(new URL("../src/components/scenes/scene-configuration-panel.tsx", import.meta.url), "utf8");
+  assert.match(viewport, /aria-label="حالت نمایش دوربین"/);
+  assert.match(viewport, /onProductionCameraPreviewChange\(true\)/);
+  assert.match(viewport, /onProductionCameraPreviewChange\(false\)/);
+  assert.match(viewport, /<details className="viewport-tool-more"/);
+  assert.match(viewport, /onSaveProductionCamera/);
+  assert.match(viewport, /<SceneCanvas/);
+  assert.match(shell, /await projects\.saveNow\(\)/);
+  assert.match(shell, /if \(productionCameraPreview \|\| inspectPropId\)/);
+  assert.match(scenePanel, /disabled=\{!previewing && inspectionActive\}/);
 });

@@ -15,9 +15,9 @@ export async function GET(request: NextRequest, context: Context) {
 export async function PATCH(request: NextRequest, context: Context) {
   try {
     assertLocalRequest(request, true);
-    const { title, expectedRevision, environmentArrangement, displayAssignments, characterIdentities, characterInstances, characterStates } = await readJson(request, saveInputSchema);
+    const { title, expectedRevision, environmentArrangement, displayAssignments, characterIdentities, characterInstances, characterStates, fps, sceneOrder, scenes } = await readJson(request, saveInputSchema);
     return NextResponse.json(await projectService.save((await context.params).id, title, expectedRevision, environmentArrangement, displayAssignments,
-      characterIdentities, characterInstances, characterStates));
+      characterIdentities, characterInstances, characterStates, fps, sceneOrder, scenes));
   } catch (error) { return apiError(error); }
 }
 

@@ -2,7 +2,7 @@
 
 **Document:** `context/DATA_MODELS.md`  
 **Project:** Signal Studio AI  
-**Status:** Project schema v5 implemented: v2 adds project-level environment arrangement, v3 adds laptop display assignments, v4 adds project-level character identity/instance/state collections, and v5 validates model-specific character appearance customization. Scene/timeline contracts remain proposed.
+**Status:** Project schema v8 implemented. Versions v2-v5 add arrangement, display, character identity/instance/state and appearance validation; v6 adds ordered scenes and integer-frame time; v7 adds scene-local arrangements; v8 adds scene-local character action events. Audio/dialogue, camera, subtitle and educational events remain future work.
 **Target:** Single-user, local Windows application  
 **Language:** English for technical documentation; Persian (`fa-IR`) for all visible application UI
 
@@ -12,11 +12,13 @@ Studio 01 prop instances may carry optional `decoration` data. The practical-lig
 
 > This document defines the canonical data concepts and invariants. Implemented project contracts, Zod schemas, migrations, tests, and storage behavior are identified in phase-specific notes; future contracts remain proposals until implemented and accepted.
 
-**Phase 03-C implementation note (2026-11-02):** Project schema v2 adds one `environmentArrangement` at project scope for the built-in Studio 01. It holds `environmentId` and validated prop instances with stable IDs, definition IDs, position/rotation/positive scale and visibility. The current application has no scene entities, so this field does not represent scene independence. v1 projects are migrated in memory when read; the original JSON remains intact until the next successful write, which first makes a backup. Scene-local overrides remain planned for Phase 05-B.
+**Phase 05-A implementation note (2026-11-04):** Schema v6 stores ordered stable scene IDs and scene records with validated names, positive integer `durationFrames`, an optional environment reference, direction notes, per-scene serializable production-camera config, and empty extensible track headers. Project FPS supports 24/25/30/50/60; duration input converts seconds to nearest frame and a frame-rate change converts scene durations to preserve their seconds as closely as integer frames permit. Scene start offsets are derived prefix sums and are never stored. v1-v5 projects migrate in memory with empty scenes and 30 FPS; the original file is only rewritten by the existing backed-up project save path. Scene CRUD, sequence, FPS, and camera data are saved through the existing project revision/backup mechanism and naturally survive project duplication. Editor selection/playback state and mutable Three.js objects are not persisted.
+
+**Phase 03-C implementation note (2026-11-02):** Project schema v2 adds one `environmentArrangement` at project scope for the built-in Studio 01. It holds `environmentId` and validated prop instances with stable IDs, definition IDs, position/rotation/positive scale and visibility. At this milestone, it did not represent scene independence. Scene-local prop arrangements remain planned for Phase 05-B.
 
 **Phase 03-E implementation note (2026-11-02):** Project schema v3 adds `displayAssignments`, keyed by laptop prop-instance ID. Each serializable assignment holds a presentation state (`image`, `video`, or `off`), optional independently retained image/video asset IDs, fit mode (`contain`/`cover`), and brightness. Assets are stored in per-project `display-images`/`display-videos` folders and indexed in the existing asset manifest. v1 and v2 projects migrate in memory to v3; the original JSON is backed up before first write. The assignment references the laptop instance, not its reusable prop definition or mesh. Scene-specific and timeline-driven state remain unimplemented.
 
-**Phase 04-A implementation note (2026-11-02):** Schema v4 stores `characterIdentities`, `characterInstances`, and `characterStates` as separate keyed serializable collections. Identity records reference a stable model ID and hold a custom name/customization data; instances hold their own IDs and identity reference; state records are keyed by instance ID and hold visibility, position/rotation/positive scale, initial placement, and optional anchor reference. The model registry and renderer capabilities are code-defined and are not copied into each project. Unavailable model IDs are retained so projects can load and display a missing-model fallback. v1-v3 migrate in memory to v4 and are backed up on first successful write. State is project-level because scenes are not implemented; Phase 05 must add scene-local presence/overrides and a safe migration policy. Forward direction is local +Z, yaw is rotation around +Y, and no gaze behavior is implemented. Identities are reusable within a project; no cross-project global identity catalog is introduced.
+**Phase 04-A implementation note (2026-11-02):** Schema v4 stores `characterIdentities`, `characterInstances`, and `characterStates` as separate keyed serializable collections. Identity records reference a stable model ID and hold a custom name/customization data; instances hold their own IDs and identity reference; state records are keyed by instance ID and hold visibility, position/rotation/positive scale, initial placement, and optional anchor reference. The model registry and renderer capabilities are code-defined and are not copied into each project. Unavailable model IDs are retained so projects can load and display a missing-model fallback. v1-v3 migrate in memory to v4 and are backed up on first successful write. Character state remains project-level in v6; a later scene-editing phase must add scene-local presence/overrides with a safe migration policy. Forward direction is local +Z and yaw is rotation around +Y. Identities are reusable within a project; no cross-project global identity catalog is introduced.
 
 **Kamyar grooming customization note (Phase 04-B3):** Hair and beard presets, colors, glasses and beard visibility remain model-supported string values on each reusable character identity; no schema bump is needed. Legacy grooming preset IDs are normalized to the expanded style set (`side-part` hair and `short-boxed-beard` facial hair are the reference-inspired defaults). Invalid hair/beard values safely resolve to those defaults. Preset mesh capabilities do not imply facial animation or rig support.
 
@@ -279,44 +281,45 @@ interface EnvironmentOverrides {
 ```ts
 interface SceneDefinition {
   id: SceneId;
-  name: string;
+  name: string; // scene title
+  description: string; // organizational summary; does not trigger animation or camera behavior
+  sceneType?: "dialogue" | "educational" | "reaction" | "establishing";
   durationFrames: FrameDuration;
-  environmentId: EnvironmentId;
-  environmentOverrides?: EnvironmentOverrides;
-  characterInstances: SceneCharacterInstance[];
-  cameraIds: CameraId[];
-  defaultCameraId?: CameraId;
-  directionNotes: string; // notes only; not executable instructions
-  outgoingTransition: SceneTransition;
+  environmentId?: EnvironmentId;
+  productionCamera: SceneProductionCamera;
+  tracks: SceneTrackHeader[]; // serializable headers only in Phase 05-A
+  directionNotes: string; // authored guidance only; not interpreted as behavior
 }
 
-type SceneTransition =
-  | { kind: "cut" }
-  | { kind: "fade"; durationFrames: FrameDuration };
-
-interface CameraPose {
-  transform: Transform;
-  fovDegrees: number;
-  focusTarget?:
-    | { kind: "world-point"; point: Vec3 }
-    | { kind: "character-instance"; instanceId: CharacterInstanceId };
+interface SceneProductionCamera {
+  position: [number, number, number];
+  rotation: [number, number, number]; // radians; used only when orientationMode is rotation
+  orientationMode: "look-at" | "rotation";
+  target: [number, number, number];
+  fov: number;
+  zoom: number;
+  shotType: "wide" | "medium" | "close-up" | "pov";
+  framing: "landscape-16:9" | "portrait-9:16";
+  targetRef?: { kind: "character-instance" | "prop-instance" | "laptop" | "whiteboard"; id: string };
 }
-interface CameraDefinition {
-  id: CameraId;
-  sceneId: SceneId;
+interface SceneTrackHeader {
+  id: TrackId;
+  kind: "character-presence" | "animation" | "facial-expression" | "gaze" | "audio" | "dialogue"
+    | "production-camera" | "educational-content" | "subtitles" | "prop-interaction";
   name: string;
-  pose: CameraPose;
+  enabled: boolean;
 }
 ```
 
 **Scene rules**
 
 - A scene may use the same environment and character definitions as other scenes, but its mutable instances are independent.
-- Duplicating a scene assigns new scene/instance/event IDs and remaps **scene-local references** to those IDs; shared definitions/assets retain stable IDs.
+- Duplicating a scene assigns a new scene ID and new track-header IDs; it copies camera configuration by value and retains references to reusable assets/character/prop targets. Future scene-local entities/events must be remapped when they are introduced.
 - Reordering scenes changes derived offsets and episode timing, without changing local event timings or raw source audio files.
-- Initial transition policy: `cut` is instantaneous; a `fade` is a frame-evaluated **visual overlay** during the tail of the outgoing scene, with duration no greater than that scene's duration. It does not overlap scene durations or alter audio timing. Cross-scene dissolves are a future policy requiring explicit schema changes.
-- Camera definitions are stored in a scene-scoped collection or normalized project registry, but not both as mutable sources of truth.
-- Scene previews constrain playhead and audio routing to the selected scene range; full episode playback traverses all scenes.
+- Phase 05-A uses ordered, non-overlapping scene durations and half-open boundaries `[startFrame, endFrame)`. At an exact internal boundary the following scene is active; project end resolves to the final scene's terminal local frame. Offsets are derived prefix sums.
+- Each scene owns its serializable production-camera config. Camera pose is independent of editor orbit-camera state; in `look-at` mode orientation derives from position/target, while the saved rotation is available for a future explicit rotation mode. No camera control or camera event evaluator is implemented in Phase 05-A.
+- Phase 05-A track entries are extensible serializable headers only; they contain no timed events and have no track editors. Audio, animation, facial, gaze, dialogue, educational, subtitle, production-camera, and prop-interaction events remain future work.
+- Scene playback constrains the playhead to the chosen scene range; full project playback traverses scenes by derived offsets. Current character and environment arrangements remain project-level until later scene-local editing work.
 
 ## 9. Audio Assets, Clips and Speaker Regions
 
@@ -610,3 +613,27 @@ Behavior events must support gaze-specific parameters such as:
 The data model must support deterministic gaze evaluation for single-character, mutual, and group interactions.
 
 **Status:** Planning only. No application code has been implemented through this document. **Do not start Phase 01 without explicit approval.**
+
+### Phase 05-B schema v7 scene-local configuration
+
+Schema v7 extends each `SceneDefinition` with `characters: Record<CharacterInstanceId, SceneCharacterConfig>`, `propOverrides: Record<PropInstanceId, ScenePropOverride>`, and an optional Studio 01 `lightingOverride`. A character override stores scene presence by map membership plus visibility, local transform and optional supported placement anchor. A prop override can store visibility, transform, removal, a scene-added instance and decoration data. Existing character identities/appearance, project defaults, media files and reusable definitions remain shared. No Three.js runtime object is serialized.
+
+`SceneDefinition.productionCamera` persists position, rotation radians, orientation mode, look-at point, FOV, zoom, future framing metadata and optional stable target reference. `look-at` derives orientation from position/target; `rotation` applies Euler rotation. A missing target reference safely falls back to the saved fixed target. Current preview uses the editor viewport aspect and does not crop to portrait/landscape metadata.
+
+Editor orbit/free-fly/focus navigation is transient viewport state and is not serialized in the project model. It affects only the editor camera; only the existing explicit capture action writes a pose to the selected scene's `productionCamera`.
+
+Project schema v6 migrates to v7 in memory. Existing scenes with no scene-local character members are seeded from current project character states; existing scene IDs and shared asset references remain stable. Saving still goes through the current backed-up project persistence flow. Scene duplication copies override values independently while retaining references to shared project assets.
+
+Only registered environments can be selected. At implementation time Studio 01 is the sole registered environment, so the UI explains that selection is currently fixed instead of presenting fake choices.
+
+### Phase 05-C schema v8 scene-local character action events
+
+Each scene stores an `actionEvents` array. An event has stable `id`, owning `sceneId`, stable `characterInstanceId`, supported `action`, integer `startFrame` and positive `durationFrames` in scene-local project frames, `enabled`, bounded `priority`, `intensity` and `speed`, and optional `targetKind`/`targetId` for gaze. Schema validation requires the event's scene ID to match its containing scene and its interval to end within that scene. Gaze target references can become unavailable; the evaluator resolves these safely without persisting Three.js objects.
+
+The array order is also used as the persisted **editor list order**. It has no timing or evaluation meaning: the order operation moves an existing record while retaining its ID, frames, priority and parameters. Timeline dragging updates only the integer `startFrame`, preserving duration and clamping the event inside the scene. No schema version or event fields were added for these UI operations.
+
+The editor may present event timing as HH:MM:SS:FF or seconds and as start plus exclusive end; these are UI representations only. Timecode FF is constrained to `[0, projectFps)`, seconds convert by nearest-frame rounding, and the saved contract remains `startFrame` plus `durationFrames`. No project schema migration is required.
+
+Events are independent of reusable character identity and saved world transforms. Scene duplication copies values with new event IDs and the duplicate scene ID; referenced character/prop IDs stay shared project assets/instances. Scene duration and FPS conversion keep event intervals bounded while preserving timing as integer frames permit. v7 projects migrate in memory to v8 with empty `actionEvents`; existing scene/project IDs remain unchanged, and the normal backed-up save path writes the new version on edit.
+
+`evaluateSceneCharacterActions(scene, localFrame, fps, capabilities, gazeCapabilities)` is pure with respect to scene time. It uses existing model capability adapters/evaluators, half-open event intervals, per-channel highest-priority resolution and deterministic tie ordering. Gaze is composed separately from head/arm/facial pose channels. Events are not stored in the extensible track-header array and do not implement audio, dialogue, lip sync, camera, subtitle, educational or export tracks.

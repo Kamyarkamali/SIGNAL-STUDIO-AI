@@ -1,6 +1,7 @@
 import { helpItem, navigationItems, type SectionId } from "@/config/navigation";
 
 const titles: Record<SectionId, string> = {
+  animations: "حرکت‌ها",
   projects: "پروژه‌ها",
   scenes: "سکانس‌ها",
   characters: "شخصیت‌ها",
@@ -27,6 +28,15 @@ function EmptyMark({ children }: { children: React.ReactNode }) {
 
 function SectionBody({ section }: { section: SectionId }) {
   switch (section) {
+    case "animations":
+      return (
+        <>
+          <EmptyMark>✦</EmptyMark>
+          <h2>حرکت‌های زمان‌بندی‌شدهٔ سکانس</h2>
+          <p>حرکت‌های پشتیبانی‌شده را از بخش «حرکت‌ها» به فریم دلخواه اضافه کنید؛ playhead نتیجه را در نمای سه‌بعدی ارزیابی می‌کند.</p>
+          <div className="content-footnote">این رویدادها به سکانس انتخاب‌شده تعلق دارند. صوت، لب‌خوانی و حرکت‌های پشتیبانی‌نشده در دسترس نیستند.</div>
+        </>
+      );
     case "projects":
       return (
         <>
@@ -45,22 +55,11 @@ function SectionBody({ section }: { section: SectionId }) {
       return (
         <>
           <EmptyMark>▤</EmptyMark>
-          <h2>داستان از سکانس‌ها ساخته می‌شود</h2>
-          <p>امکان ساخت و مرتب‌سازی سکانس‌ها در فاز ۰۵ اضافه می‌شود.</p>
-          <div className="mini-steps">
-            <span>
-              ۰۱ <b>ساخت سکانس</b>
-            </span>
-            <span>
-              ۰۲ <b>چیدمان صحنه</b>
-            </span>
-            <span>
-              ۰۳ <b>تنظیم زمان</b>
-            </span>
-          </div>
+          <h2>مدیریت سکانس‌های پروژه</h2>
+          <p>سکانس‌های پروژه از پنل مدیریت سکانس‌ها و استوری‌بورد پایین صفحه ساخته، انتخاب و مرتب می‌شوند.</p>
+          <div className="content-footnote">برای ویرایش چیدمان و دوربین سکانس انتخاب‌شده، زبانهٔ ویژگی‌ها را باز کنید.</div>
         </>
-      );
-    case "characters":
+      );    case "characters":
       return (
         <>
           <EmptyMark>◉</EmptyMark>
@@ -211,7 +210,7 @@ export function SectionContent({ section }: { section: SectionId }) {
           </h1>
         </div>
         <span className="inline-flex items-center whitespace-nowrap rounded-full border border-[#536276] bg-[#273447] px-[9px] py-0.5 text-xs text-[#bac8d7]">
-          {section === "help" ? "در دسترس" : "هنوز فعال نیست"}
+          {section === "help" || section === "scenes" ? "در دسترس" : "هنوز فعال نیست"}
         </span>
       </div>
       <div className="relative mt-[17px] max-w-[760px] pr-[55px] max-[650px]:pr-12 [&_h2]:mb-1 [&_h2]:text-sm [&_h2]:font-bold [&_p]:text-[13px] [&_p]:leading-[1.9] [&_p]:text-[#aab9c9] [&_.content-footnote]:mt-2 [&_.content-footnote]:text-xs [&_.content-footnote]:text-[#a9b9c8] [&_.mini-steps]:mt-[9px] [&_.mini-steps]:flex [&_.mini-steps]:flex-wrap [&_.mini-steps]:gap-2.5 [&_.mini-steps_span]:text-xs [&_.mini-steps_span]:text-accent [&_.mini-steps_b]:mr-[5px] [&_.mini-steps_b]:font-medium [&_.mini-steps_b]:text-[#aab9c9] [&_.help-list]:mt-[7px] [&_.help-list]:list-decimal [&_.help-list]:pr-[17px] [&_.help-list]:text-xs [&_.help-list]:text-[#aab9c9]">
