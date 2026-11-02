@@ -151,6 +151,7 @@ interface AssetRecord {
 - Store large assets as files, not embedded base64 strings in project JSON.
 - Validate normalized paths, file signatures and file sizes; do not allow path traversal or arbitrary absolute path loading through local APIs.
 - Asset deletion checks references and requires explicit user confirmation or a non-destructive reassignment workflow.
+- Imported display-image deletion rechecks every project-data reference under the project lock. Laptop assignment removal only clears that assignment (and switches image state to off if needed); permanent deletion removes the manifest record and bytes only after laptop, sign, frame and future scene references are absent. No project schema version change is needed.
 - Missing files produce a recoverable missing-asset state; never silently replace the user's audio with bundled demo audio.
 - Thumbnail/proxy assets must not replace original media during final export.
 
@@ -270,6 +271,7 @@ interface EnvironmentOverrides {
 - In schema v2/v3, `environmentArrangement` is a project-level bridge until scenes exist. Its props refer to the built-in environment definition; protected room and acoustic-wall instances must retain their default transforms and visibility. Selection is editor-only state, never serialized. Later scene-specific migration must preserve this arrangement without silently copying mutable state between scenes.
 - In schema v3, `displayAssignments` are independent serializable media references keyed by prop-instance ID. State `off` changes only visibility state and must retain media IDs, fit and brightness. Media bytes remain in project-managed files; textures, video elements and playback handles never enter project JSON. The editor inspection camera and playback toggle are transient UI state.
 - Laptop close-up camera poses and fullscreen display-viewer open/fullscreen state are transient editor state; they add no project fields and cannot alter the saved display assignment.
+- Viewer presentation mode (device, screen-focus or content-only) and fullscreen state are transient UI state. Permanent image removal is a separate confirmed asset operation and is rejected while any project-data reference remains.
 - Scene prop IDs are independent of reusable definitions and of one another; add/remove/hide/restore/duplicate/transform operations must preserve scene isolation. Imported media assets are separate from both prop definitions and scene instances. A display's `off` state retains its asset references and timing. Validate that a selected state has the matching available asset and that source ranges are valid; never infer state from an absent file.
 
 ## 8. Scenes and Camera Configuration

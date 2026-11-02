@@ -1,7 +1,7 @@
 # Signal Studio AI — Bug Tracker
 
 **Path:** `context/BUG_TRACKER.md`  
-**Status:** Phase 03-A through 03-E accepted; Phase 04-A accepted; Phase 04-B MVP/prototype handoff accepted; Phase 04-C1/C2/C3 implemented with browser verification pending; C2 has three user-reported visual failures recorded as BUG-0024; Phase 04-B functional/production checks remain verification debt; Studio 01 visual review pending; overall Phase 03 remains open pending unrelated checks
+**Status:** Phase 03-A through 03-E accepted; Phase 04-A accepted; Phase 04-B MVP/prototype handoff accepted; Phase 04-C3 MVP accepted after user-confirmed 8/8 manual tests; Phase 04-C2 visual failures remain open in BUG-0024, with arm/hand and thinking behavior tracked in BUG-0029/0030; BUG-0027/0028 implemented with browser verification pending; Phase 04-B and C3 production-quality checks remain separate; Phase 05 handoff accepted for development but not started
 **Product:** Local-only Windows 3D animation editor
 
 ## Purpose
@@ -310,10 +310,10 @@ These are **test scenarios**, not active bugs in the new project:
 
 - **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Character animation preview
 - **Reported gap:** C1 offered only three simple head/arm actions, with limited timing control and no expressive variety.
-- **Implementation:** Added capability-gated emotional/gesture previews, bounded speed/intensity/transition/return/easing configuration, transient ChatGPT face-display presets, and deterministic per-channel priority composition. No saved schema changes; non-ChatGPT characters do not claim facial animation, and GLB clips remain unsupported at runtime.
-- **Regression coverage:** `tests/character-animation.test.mjs` covers preset distinction, capability availability, timing bounds/determinism, blending priorities, return/reset semantics and persistence separation; existing character/project tests remain active.
-- **Verification:** Typecheck, lint, 99/99 tests, production build and diff check pass. Browser verification was unavailable. Confirm natural movement, expression visibility, control responsiveness, instance independence, stop/reset, panel fit and rendering behavior before acceptance.
-- **Remaining limitation:** One coordinated preset plays at a time in the UI; there is no automated behavior scheduler, facial rig for human/Claude models, GLB animation runtime, audio, gaze or timeline system.
+- **Implementation:** Initial C2 implementation added ChatGPT/Claude expression preview and faster surprise/excitement timing, but manual viewport review rejected it. Recovery details and confirmed root cause are recorded under BUG-0024 below.
+- **Regression coverage:** Recovery tests cover named renderer nodes, mouth visibility, capability metadata, deterministic timing/blinking, reset, independent instances, gaze coexistence, and active-preview invalidation.
+- **Verification:** Initial 99/99 and later 118-test automated run are historical. Current recovery: 121/121 tests, typecheck, lint, build and diff check pass. Browser verification unavailable; three visual failures remain OPEN.
+- **Remaining limitation:** Kamyar/Hamid support is limited to existing procedural eye, brow and mouth components; no jaw/cheek topology rig or GLB expression adapter exists. One coordinated preview preset plays at a time; automatic behavior scheduling, audio and timeline animation remain out of scope.
 
 ### Laptop close-up and prop selection visual refinement
 
@@ -326,17 +326,35 @@ These are **test scenarios**, not active bugs in the new project:
 ### BUG-0024 — C2 emotional expressions and energetic timing failed manual review
 
 - **Status:** OPEN · **Severity:** P2 · **Area:** Phase 04-C2 character preview
-- **Evidence:** User reported 9 PASS / 3 FAIL manual checks. Nine pass cases were not itemized. Confirmed failures: happy/sad/angry/surprised expressions are not clearly distinguishable; supported eyes/mouths/eyebrows do not visibly change as expected; energetic reactions are insufficiently faster and more expressive than calm reactions. The historical C2 automated result of 99/99 remains unchanged.
-- **Disposition:** Keep C2 unaccepted. The user explicitly instructed that these facial animation defects not be silently repaired during C3. C3's ChatGPT eye-direction offset is a separate gaze channel and does not close the expression failures.
-- **Verification required:** Manual browser review of the three failures after a separately authorized C2 fix. No outcome is inferred for the nine passing checks.
+- **Evidence:** User reported 9 PASS / 3 FAIL manual checks: happy/sad/angry/surprised expressions unclear; supported eyes/mouths/eyebrows not visibly changing; energetic reactions too weak/slow. User subsequently rejected the latest facial-animation result because expressions still did not visibly change in the actual viewport, despite the prior 118 automated tests passing. Preserve both reports as failures; neither is superseded by this recovery. The 99/99 and 118-test counts are historical results from their respective runs.
+- **Root cause investigation:** The preview clock and demand-render invalidation were active, and gaze/head channels were separate. The actual gap was the missing full adapter from evaluated expression state to renderer face objects: mouth presentation was partly selected through static React props while eye/brow transforms were separate, and Kamyar/Hamid had no facial-expression capability/application path.
+- **Recovery implementation:** Added a model-aware adapter applying evaluated pose values to actual named face nodes, visible named mouth meshes, expression-specific eye/brow/mouth transforms, deterministic playback blink and explicit neutral preview/reset. Added limited expression support to existing Kamyar/Hamid geometry without claiming full facial rigging. C3 gaze implementation was not modified.
+- **Verification:** Recovery automated suite passes 121/121, typecheck, lint, production build and diff check pass. This does not overturn the reported visual failure. Browser viewport was unavailable; visual appearance, transitions and normal-distance legibility are UNVERIFIED. Keep C2 rejected and BUG-0024 OPEN until user confirms the acceptance gate.
+- **Verification required:** Manual browser review of front/three-quarter views at normal podcast distance, gaze plus expression, interruption/reset and saved transforms. No outcome is inferred for the nine passing checks or any retest.
+- **Additional user-reported open scope (2026-11-04):** The user also reports incorrect laughing/smiling mouth shapes, insufficient rendered eyebrow motion, uncoordinated facial expressions across eyes/brows/mouth/head, and low-energy excited reactions. These are tracked here rather than duplicated as separate tickets. Acceptance additionally requires distinguishable smile versus laugh, inward/down anger brows, inner-up sadness brows, raised surprise brows, subtle asymmetric thinking brows, coordinated eyes/mouth/head, smooth transitions and bounded reactions. No browser confirmation has been provided.
 
-### BUG-0025 — Phase 04-C3 gaze behavior awaits browser verification
+### BUG-0029 — Arm and hand gestures are too limited and disconnected
 
-- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Character gaze and attention
+- **Status:** OPEN · **Severity:** P2 · **Area:** Character acting / gesture preview
+- **Reported behavior:** Current arm and hand gestures are too limited. Expected supported acting includes natural shoulder/elbow/wrist/hand coordination with head, face and torso, and no rigid/disconnected movement, unsafe joint rotations, or intersections with face/body/table/props.
+- **Capability boundary:** Do not claim hand gestures where a model lacks controllable arm, elbow, wrist or hand joints. Current lightweight procedural human models have limited controls; actual rig capability must be inspected before exposing actions.
+- **Verification required:** Manual front/three-quarter and seated interaction review, including prop/table clearance, natural transitions and independent multi-character behavior. This issue remains open.
+
+### BUG-0030 — Thinking preview lacks supported physical acting
+
+- **Status:** OPEN · **Severity:** P2 · **Area:** Character acting / thinking behavior
+- **Reported behavior:** Thinking does not communicate a believable physical state. Where a character rig supports it, the target behavior includes a hand moving toward the chin, slight head tilt, thoughtful eye direction, subtle asymmetric eyebrow pose, natural pauses and smooth return to neutral.
+- **Capability boundary:** Hand-to-chin requires sufficient arm, elbow, wrist and hand control. Do not imply the gesture works for unsupported models; a head-only pose is not equivalent.
+- **Verification required:** Browser verification of model-specific capability, full gesture path, face/prop clearance, pauses, interruption and neutral recovery. This issue remains open.
+
+### BUG-0025 — Phase 04-C3 gaze behavior production verification remains open
+
+- **Status:** MVP_ACCEPTED; production verification open · **Severity:** P2 · **Area:** Character gaze and attention
 - **Implementation:** Added timestamp-driven, bounded gaze evaluation; per-instance temporary editor state; character-head, prop-bound, laptop-display, active-camera, world-point, local-direction and manual attention targets; ChatGPT iris offsets; safe fallback for unavailable targets. Gaze does not alter project transforms, camera state, project schema, or C2 expression channels.
 - **Regression coverage:** `tests/character-gaze.test.mjs` covers declared capabilities, parent transforms, quaternion/world-to-local targeting, limits and unreachable rear targets, arbitrary-time determinism, attention return, missing targets, independent eye support and transient persistence. Existing character, project, studio and C2 tests remain active.
 - **Automated verification (2026-11-02):** Typecheck, lint, 108/108 tests, production build and `git diff --check` pass. No browser/app surface was available.
-- **Verification required:** Browser review of target framing, transitions, reset, simultaneous characters, hidden/deleted targets, selected prop/laptop display, camera independence, UI clarity and GPU responsiveness. C2's separate BUG-0024 remains open.
+- **MVP verification (2026-11-02):** User confirmed all eight Phase 04-C3 manual browser tests PASS and accepted C3 for MVP/prototype development. Test names and individual outcomes were not supplied; no per-case results are inferred.
+- **Production verification required:** Preserve the separately tracked visual, interaction, target-device/performance and evidence requirements. C2's separate BUG-0024 remains open and is not resolved by this acceptance.
 
 ### BUG-0026 — Laptop presentation needs clean editor-helper visibility and device framing
 
@@ -345,3 +363,22 @@ These are **test scenarios**, not active bugs in the new project:
 - **Implementation:** Added manual helper visibility and temporary automatic hiding during viewport fullscreen and both laptop viewer modes without clearing selection or changing transforms. Added device-framed fullscreen presentation using the real 3D laptop and display surface; camera inspection state is restored on exit. Widened the inspection camera framing and aligned camera up to the transformed screen. Retained the content-only viewer as a separate secondary option.
 - **Regression coverage:** `tests/laptop-viewer.test.mjs` verifies helper gates, device presentation wiring, previous inspection restoration, camera alignment, and real laptop display rendering. Existing object edit and media tests remain in the suite.
 - **Verification:** Typecheck, lint, 109/109 tests, production build and `git diff --check` pass. No browser/app surface was available. Browser review is still required for actual framing, occlusion, responsive behavior, fullscreen/Escape, helper restore, media readability, and preserved camera/selection state.
+
+**Viewer refinement (2026-11-03):** Replaced the generic content modal layout with device-framed, screen-focus and explicitly separate content-only modes. Added a Persian mode switcher, explicit fullscreen controls, preserved mode across fullscreen changes, and Escape-to-exit-fullscreen without dismissing the viewer. Browser appearance and interaction verification remains pending; see Laptop educational viewer modes in `PROGRESS_CHECKLIST.md`.
+
+### BUG-0027 — Device View bezel collapsed into a thin strip
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P1 · **Area:** Laptop viewer presentation
+- **User evidence:** Real browser screenshot showed Device View as an extremely thin horizontal laptop-like shape.
+- **Root cause:** The HTML bezel relied on `width:auto` despite having no intrinsic media size (media was absolutely positioned/filled), so its centered flex layout could collapse. Its earlier base was also only 24–48 px tall and did not read as a keyboard/body.
+- **Implementation:** Give the bezel a responsive definite width and a frame aspect ratio based on `laptopVisualSpec`; size the media aperture to match the actual frame/screen dimensions. Add a connected hinge, visibly proportioned body, keyboard and trackpad. Preserve active project assignment, contain/cover and brightness.
+- **Regression coverage:** `tests/laptop-viewer.test.mjs` checks camera direction, screen/frame proportions, screen centering, hinge/body alignment, screen tilt and definite CSS sizing.
+- **Verification:** Automated checks pass (114/114 suite, typecheck, lint, build, diff check). Manual browser/visual verification of shape, angles, responsive sizing and content orientation remains pending; this issue is not marked fixed.
+
+### BUG-0028 — Imported display images could not be deleted safely from the library
+
+- **Status:** IMPLEMENTED_UNVERIFIED · **Severity:** P2 · **Area:** Project media lifecycle
+- **Reported gap:** Users had no media-library delete action, and assignment removal could be confused with deleting the underlying project file.
+- **Implementation:** Added a confirmed imported-image delete flow with busy/error feedback and refreshed active project/list state. The locked project-service check blocks deletion while the image is referenced by a laptop assignment, studio sign/frame, or any other serialized project data; the conflict explains that references must first be removed. Laptop image assignment removal is separately available and preserves video assignment.
+- **Regression coverage:** `tests/display.test.mjs` verifies unreferenced file/manifest deletion, unrelated video preservation, reference blocking and intact persistence, future-reference scan and assignment-only removal.
+- **Verification:** Automated checks pass (114/114 suite, typecheck, lint, build, diff check). Browser review of dialog usability, dependency workflow and persistence remains pending; this issue is not marked fixed.

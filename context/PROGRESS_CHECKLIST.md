@@ -611,13 +611,25 @@ Copy for each development phase (append below or link to a dated handoff):
 
 ### Phase 04-C2 — Expressive character preview (implemented; browser acceptance pending)
 
-- [x] Added capability-gated emotional and gesture presets, including varied nods, head shake, wave, explanation, listening/thinking and emotional reactions. ChatGPT's existing face display supports transient expressions; other models remain limited to their actual head/arm pivots.
+- [x] Added capability-gated emotional and gesture presets, including neutral, happy, sad, angry, surprised, excited, worried, confused, thinking, listening and laughing. A named-node adapter applies face poses to ChatGPT, Claude, Kamyar and Hamid's supported procedural components; imported GLBs remain unsupported.
 - [x] Added bounded transient speed, intensity, transition duration, return duration and easing settings. Animation evaluation remains deterministic at explicit timestamps and preview data remains outside project persistence.
 - [x] Added channel-level pose blending with deterministic priority resolution and regression tests for presets, capability checks, bounds, deterministic results and blending priorities.
-- [x] `npm run typecheck`, `npm run lint`, `npm test` (99/99), `npm run build`, and `git diff --check` pass.
+- [x] Recovery regression coverage exercises actual named face-node transforms, mouth-shape visibility, blinking, reset, independent instances, gaze coexistence and demand-render invalidation; `npm run typecheck`, `npm run lint`, `npm test` (121/121), `npm run build`, and `git diff --check` pass (2026-11-04).
 - [ ] Manually verify motion variety/timing, expression changes, stop/reset/interruption, independent instances, safe limits, panel usability and demand rendering in a browser.
-- **Status:** Implemented; Phase 04-C2 remains pending user/browser acceptance. No automatic speaker behavior, gaze tracking, lip sync, timeline sequencing, camera automation or video export has been implemented.
+- **Status:** Implemented; Phase 04-C2 remains pending user/browser acceptance. C3 manual gaze remains separately MVP-accepted; automatic speaker behavior, lip sync, timeline sequencing, camera automation and video export are not implemented by C2.
 - **Preserved user manual report (2026-11-02):** 9 PASS / 3 FAIL. The nine passing checks were not itemized. Confirmed failures: (1) happy, sad, angry and surprised expressions are not clearly distinguishable; (2) supported eyes, mouths and eyebrows do not visibly change as expected; (3) energetic reactions are insufficiently faster and more expressive than calm reactions. These failures remain open and C2 is not accepted. C3 gaze work does not resolve or close them.
+- **Recovery implementation (2026-11-04):** Traced the preview-to-render pipeline. Playback timestamps and demand invalidation were active; the missing link was a renderer adapter applying evaluated expression values to actual named face nodes, while mouth variants were split between static props and partial imperative changes. Added named mouth shapes and model-specific transforms, human limited-channel support, neutral expression preview, and deterministic playback blinking. Numeric/mock renderer integration tests pass. No actual browser viewport was available; visual result remains unverified and rejected pending retest.
+- [ ] Manually verify front and three-quarter views at normal podcast distance, including expressions, facial visibility, reaction timing, gaze coexistence, stop/reset and transform preservation.
+- **Additional open user report (2026-11-04):** Arm/hand gestures are limited; thinking lacks believable physical behavior; laughing/smiling mouth shapes, eyebrows and cross-face coordination are insufficient; excited reactions lack energy. These reports extend BUG-0024 and are tracked as BUG-0029/0030 where they describe new arm/hand and thinking behaviors. They are not passes and do not change the original 9 PASS / 3 FAIL report.
+- [ ] Visually confirm happy, sad, angry, surprised, excited, worried, confused, thinking, listening, neutral and laughing are distinct on each model that claims support.
+- [ ] Confirm visible eye aperture/direction, eyebrow position/orientation and mouth shape from front and three-quarter views at normal podcast distance; verify smooth transitions and restored neutral.
+- [ ] Confirm smiling differs from laughing through mouth opening and coordinated eye narrowing; only claim cheek/jaw motion on models with actual controls.
+- [ ] Confirm anger brows move inward/down, sadness inner brows lift, surprise brows rise, thinking can use a subtle asymmetric brow pose, and happiness coordinates relaxed brows with the smile.
+- [ ] Confirm natural, connected arm/hand movement with supported shoulder/elbow/wrist/hand controls, and no penetration through face, body, desk or props. Do not mark unsupported models as capable.
+- [ ] Confirm thinking includes hand-to-chin only on rigs with sufficient joint controls; otherwise report that limitation honestly. Verify head tilt, gaze, pauses, face coordination and smooth recovery where supported.
+- [ ] Confirm excited reactions have faster onset and stronger but bounded coordinated motion than calm/thoughtful actions, with smooth deceleration and recovery.
+- [ ] Confirm stop/reset, interruption, accepted C3 gaze coexistence, unchanged saved character transforms, independent simultaneous characters and acceptable target-device performance in a real browser.
+- **Acceptance status:** All added visual and interaction checks remain unchecked until manual browser verification. C3's user-confirmed 8/8 MVP result remains preserved and separate; it does not accept C2 or these acting defects.
 
 ### Phase 04-C3 — Gaze and attention previews (implemented; browser acceptance pending)
 
@@ -628,8 +640,13 @@ Copy for each development phase (append below or link to a dated handoff):
 - [x] Added transient per-instance gaze state and compact Persian controls for target/direction, attention previews, transition duration and neutral return. Preview state is not project data and does not modify saved transforms.
 - [x] Added regression coverage for capability gates, local/world transforms, parent transforms, timestamp determinism, target bounds, unreachable rear targets, missing targets, independent poses and transient persistence separation.
 - [x] Final automated verification: `npm run typecheck`, `npm run lint`, `npm test` (108/108), `npm run build`, and `git diff --check` pass (2026-11-02).
-- [ ] Manually verify front/side/rear gaze, character/prop/laptop/camera targets, eye direction on ChatGPT, limits, transition/reset, simultaneous characters, missing/hidden target fallback, editor-camera independence and demand rendering.
-- **Status:** Implemented; browser acceptance pending. No browser/app surface was available in this session. C3 is not accepted until browser review. C2's three confirmed visual failures above remain open.
+- [x] User-confirmed **8/8 Phase 04-C3 manual browser tests PASS** (2026-11-02). The individual test names/results were not supplied; no per-case evidence is inferred.
+- **Status:** Accepted for MVP/prototype development on 2026-11-02. Production-quality visual, performance and evidence requirements remain separate. C2's three confirmed visual failures above remain open.
+
+### Phase 05 development handoff
+
+- **Handoff:** User accepted Phase 04-C3 for MVP/prototype use and explicitly handed off Phase 05 — Scenes, Storyboard and Scene-Time Model — for development on 2026-11-02.
+- **Status:** Authorized next milestone; not started. Phase 04-C3 production-quality acceptance remains open, and Phase 04-C2's three reported visual defects remain unresolved.
 
 ### Laptop close-up, fullscreen viewer and clean prop editing
 
@@ -650,3 +667,21 @@ Copy for each development phase (append below or link to a dated handoff):
 - [x] Added focused regression coverage for temporary helper visibility, presentation state restoration, screen orientation, and retained laptop rendering. `npm run typecheck`, `npm run lint`, `npm test` (109/109), `npm run build`, and `git diff --check` pass.
 - [ ] Browser-check the close-up framing and device presentation at desktop and narrow sizes; confirm no character/prop occlusion, clean helper hiding/restoration, media readability, Escape behavior, and saved media/transform stability.
 - **Status:** Implemented; visual/browser acceptance pending. No project schema or saved media data changed.
+
+### Laptop educational viewer modes
+
+- [x] Replaced the generic image modal presentation with explicit device-framed, screen-focus and separately labeled content-only modes. Device/screen modes use a laptop bezel and native display aspect ratio; uploaded media retains contain/cover and brightness behavior.
+- [x] Added a Persian mode switcher and explicit fullscreen/exit controls. The selected mode remains active across fullscreen changes; Escape exits fullscreen while leaving the viewer open, and a second Escape or the close button dismisses it. Unsupported/denied fullscreen shows an in-dialog message.
+- [x] Added focused reducer and source regression checks for mode selection, fullscreen mode retention, bezel/device framing, source sizing, helper hiding, display assignment compatibility and camera non-mutation.
+- [ ] Browser-check device appearance, screen readability, media aspect/fit, fullscreen on varying dimensions, Escape state behavior, responsive controls and editor state restoration.
+- **Status:** Implemented; browser and visual verification pending. Studio 01 geometry and adjustable lighting implementation are retained without project data changes.
+
+### Laptop viewer device framing and safe image deletion
+
+- [x] Fixed the device frame's collapsed auto-width by assigning a definite responsive width and deriving bezel/screen proportions from Studio 01's laptop visual spec. Added aligned bezel, screen aperture, hinge, keyboard, trackpad and lower body; content remains the assigned image/video with its existing fit and brightness.
+- [x] Added imported-image library deletion with compact confirmation, loading/error feedback and project refresh. Explicitly separated laptop image unassignment from permanent asset deletion.
+- [x] Project service checks serialized references under lock (laptop assignments, wall sign/frames and future project/scene references); blocks in-use deletion with an actionable conflict. Successful deletion backs up and updates the project manifest and removes only the requested image bytes.
+- [x] Added tests for safe unreferenced deletion, retention of unrelated video assets, dependency blocking/persistence, future reference scans, laptop image-unassignment semantics, device proportions/alignment and camera-facing direction.
+- [x] Automated verification: `npm run typecheck`, `npm run lint`, `npm test` (114/114), `npm run build`, and `git diff --check` pass.
+- [ ] Browser-check the device view at desktop and narrow/short sizes, actual laptop recognition/orientation, image/video fit, fullscreen/Escape/close behavior, image deletion confirmation, dependency errors, assignment removal, library refresh and persistence.
+- **Status:** Implemented; browser visual and interactive verification pending. Do not mark BUG-0027/0028 fixed until manual review. C2 facial/reaction defects remain open.

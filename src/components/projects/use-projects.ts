@@ -174,6 +174,28 @@ export function useProjects() {
     finally { setBusy(false); }
   };
 
+  const deleteDisplayImage = async (assetId: string): Promise<ProjectDocument> => {
+    const project = activeRef.current;
+    if (!project) throw new Error("ابتدا یک پروژه را باز کنید.");
+    setBusy(true); setError("");
+    try {
+      if (hasChanges()) await saveNow();
+      const current = activeRef.current;
+      if (!current || current.id !== project.id) throw new Error("پروژهٔ فعال تغییر کرده است؛ دوباره تلاش کنید.");
+      const response = await fetch(`${projectUrl(current.id)}/display-assets/${encodeURIComponent(assetId)}`, { method: "DELETE" });
+      const body: unknown = await response.json();
+      if (!response.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "حذف تصویر انجام نشد.");
+      const updated = body as ProjectDocument;
+      select(updated);
+      await refresh();
+      return updated;
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "حذف تصویر انجام نشد.";
+      setError(message);
+      throw new Error(message);
+    } finally { setBusy(false); }
+  };
+
   const adoptImportedProject = async (project: ProjectDocument) => { select(project); await refresh(); };
   const removeImportedCharacterModel = async (assetId: string): Promise<boolean> => {
     const project = activeRef.current;
@@ -240,5 +262,5 @@ export function useProjects() {
   });
 
   return { list, loading, busy, error, setError, active, arrangement, editArrangement, displayAssignments, editDisplay, characterData, editCharacters,
-    editCharactersAndSave, uploadDisplay, adoptImportedProject, removeImportedCharacterModel, draftName, saveStatus, refresh, editName, saveNow, create, open, rename, duplicate, remove, close };
+    editCharactersAndSave, uploadDisplay, deleteDisplayImage, adoptImportedProject, removeImportedCharacterModel, draftName, saveStatus, refresh, editName, saveNow, create, open, rename, duplicate, remove, close };
 }

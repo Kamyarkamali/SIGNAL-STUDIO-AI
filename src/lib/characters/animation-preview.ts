@@ -19,11 +19,11 @@ export type PreviewPose = {
   rightArmRotation: [number, number, number];
 };
 export type CharacterPreviewPlaybackPose = PreviewPose;
-const supportedFacialExpressions: readonly ChatGptExpression[] = ["happy", "sad", "angry", "surprised", "worried", "confused", "thinking", "listening", "excited"];
+const supportedFacialExpressions: readonly ChatGptExpression[] = ["neutral", "happy", "sad", "angry", "surprised", "worried", "confused", "thinking", "listening", "excited", "laughing"];
 
 type ActionDefinition = { label: string; duration: number; channels: readonly CharacterAnimationCapability[]; expression?: ChatGptExpression };
 const actionDefinitions: Record<CharacterPreviewActionId, ActionDefinition> = {
-  neutral: { label: "حالت خنثی", duration: 0, channels: [] },
+  neutral: { label: "حالت خنثی", duration: 1.2, channels: ["facial-expression"], expression: "neutral" },
   "head-turn": { label: "چرخش آرام سر", duration: 2.4, channels: ["head-rotation"] },
   "head-nod": { label: "تکان آرام سر", duration: 2.2, channels: ["head-rotation"] },
   "arm-gesture": { label: "حرکت کوچک دست", duration: 2, channels: ["arm-gesture"] },
@@ -43,7 +43,7 @@ const actionDefinitions: Record<CharacterPreviewActionId, ActionDefinition> = {
   listening: { label: "در حال گوش‌دادن", duration: 2.4, channels: ["head-rotation", "facial-expression"], expression: "listening" },
   agreeing: { label: "موافقت", duration: 1.45, channels: ["head-rotation"] },
   disagreeing: { label: "مخالفت", duration: 1.45, channels: ["head-rotation"] },
-  laughing: { label: "خندیدن", duration: 1.8, channels: ["head-rotation", "arm-gesture", "facial-expression"], expression: "happy" },
+  laughing: { label: "خندیدن", duration: 1.8, channels: ["head-rotation", "arm-gesture", "facial-expression"], expression: "laughing" },
   celebrating: { label: "جشن‌گرفتن", duration: 1.3, channels: ["arm-gesture", "facial-expression"], expression: "excited" },
   "return-idle": { label: "بازگشت به حالت خنثی", duration: 0.5, channels: [] },
 };
@@ -61,7 +61,7 @@ export function getPreviewExpression(actionId: CharacterPreviewActionId, capabil
   return expression && capabilities.includes("facial-expression") && supportedFacialExpressions.includes(expression) ? expression : undefined;
 }
 export function isPreviewActionSupported(actionId: CharacterPreviewActionId, capabilities: readonly CharacterAnimationCapability[]): boolean {
-  if (actionId === "neutral" || actionId === "return-idle") return true;
+  if (actionId === "return-idle") return true;
   return actionDefinitions[actionId].channels.some((channel) => capabilities.includes(channel));
 }
 export function getPreviewActionAvailability(capabilities: readonly CharacterAnimationCapability[]) {
@@ -70,6 +70,14 @@ export function getPreviewActionAvailability(capabilities: readonly CharacterAni
 export function getPreviewDuration(actionId: CharacterPreviewActionId, settings: Partial<PreviewSettings> = {}): number {
   const normalized = clampPreviewSettings(settings);
   return actionId === "return-idle" ? normalized.returnSeconds : (actionDefinitions[actionId].duration || 1) / normalized.speed;
+}
+/** Deterministic attack/release envelope for actual renderer facial controls. */
+export function evaluateFacialExpressionWeight(actionId: CharacterPreviewActionId, sourceTimeSeconds: number, durationSeconds: number, settings: Partial<PreviewSettings> = {}): number {
+  const normalized = clampPreviewSettings(settings);
+  if (!actionDefinitions[actionId].expression || !Number.isFinite(sourceTimeSeconds) || !Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0;
+  const progress = Math.max(0, Math.min(1, sourceTimeSeconds / durationSeconds));
+  const edgeSeconds = actionId === "surprised" ? 0.11 : actionId === "excited" || actionId === "celebrating" ? 0.18 : normalized.transitionSeconds;
+  return pulse(progress, Math.min(0.48, edgeSeconds / durationSeconds), normalized.easing) * Math.min(1, normalized.intensity);
 }
 const zeroPose = (): PreviewPose => ({ headRotation: [0, 0, 0], leftArmRotation: [0, 0, 0], rightArmRotation: [0, 0, 0] });
 function ease(value: number, easing: PreviewEasing): number {
@@ -92,7 +100,6 @@ export function evaluateCharacterPreviewPose(input: {
   const { actionId, sourceTimeSeconds, capabilities } = input;
   const settings = clampPreviewSettings(input.settings);
   if (!Number.isFinite(sourceTimeSeconds)) return zeroPose();
-  if (actionId === "neutral") return zeroPose();
   const baseDuration = actionDefinitions[actionId].duration || input.durationSeconds || 1;
   const duration = input.durationSeconds && input.durationSeconds > 0 ? input.durationSeconds : baseDuration / settings.speed;
   if (!Number.isFinite(duration) || duration <= 0) return zeroPose();
@@ -105,7 +112,12 @@ export function evaluateCharacterPreviewPose(input: {
   }
   if (!isPreviewActionSupported(actionId, capabilities) || progress === 0 || progress === 1) return zeroPose();
   const t = progress;
-  const envelope = pulse(t, Math.min(0.48, settings.transitionSeconds / duration), settings.easing) * settings.intensity;
+  // Surprise has a short, sharp attack; excitement builds quickly, then eases
+  // out. Calm reactions retain the user's configured transition envelope.
+  const reactionEdge = actionId === "surprised" ? 0.11 / duration
+    : actionId === "excited" || actionId === "celebrating" ? 0.18 / duration
+      : settings.transitionSeconds / duration;
+  const envelope = pulse(t, Math.min(0.48, reactionEdge), settings.easing) * settings.intensity;
   const pose = zeroPose();
   if (capabilities.includes("head-rotation")) {
     if (actionId === "head-turn") pose.headRotation[1] = 0.3 * envelope * Math.sin(Math.PI * t);
@@ -116,15 +128,16 @@ export function evaluateCharacterPreviewPose(input: {
     else if (actionId === "worried") { pose.headRotation[2] = 0.08 * envelope; pose.headRotation[0] = 0.06 * envelope; }
     else if (actionId === "thinking") pose.headRotation[1] = 0.08 * envelope * Math.sin(2 * Math.PI * t);
     else if (actionId === "sad") pose.headRotation[0] = 0.09 * envelope;
-    else if (actionId === "surprised" || actionId === "excited") pose.headRotation[0] = -0.12 * envelope * Math.sin(Math.PI * t);
+    else if (actionId === "surprised") pose.headRotation[0] = -0.24 * envelope * (1 - t);
+    else if (actionId === "excited") pose.headRotation[0] = -0.2 * envelope * Math.sin(2 * Math.PI * t);
     else if (actionId === "laughing") pose.headRotation[0] = 0.14 * envelope * Math.sin(6 * Math.PI * t);
   }
   if (capabilities.includes("arm-gesture")) {
     if (actionId === "arm-gesture" || actionId === "explain") { pose.leftArmRotation[2] = -0.22 * envelope; pose.rightArmRotation[2] = 0.22 * envelope; }
     else if (actionId === "hand-wave") pose.rightArmRotation[2] = 0.3 * envelope * Math.sin(5 * Math.PI * t);
     else if (actionId === "excited" || actionId === "surprised" || actionId === "celebrating" || actionId === "happy") {
-      const lift = actionId === "happy" ? 0.2 : actionId === "surprised" ? 0.3 : 0.36;
-      const rhythm = actionId === "excited" || actionId === "celebrating" ? 0.82 + 0.18 * Math.sin(4 * Math.PI * t) : 1;
+      const lift = actionId === "happy" ? 0.2 : actionId === "surprised" ? 0.36 : 0.34;
+      const rhythm = actionId === "excited" || actionId === "celebrating" ? 0.9 + 0.1 * Math.sin(2 * Math.PI * t) : 1;
       pose.leftArmRotation[2] = -lift * envelope * rhythm; pose.rightArmRotation[2] = lift * envelope * rhythm;
     }
     else if (actionId === "angry") { pose.leftArmRotation[2] = -0.14 * envelope; pose.rightArmRotation[2] = 0.14 * envelope; }

@@ -10,6 +10,7 @@ export const chatGptExpressionNames = [
   "listening",
   "speaking",
   "excited",
+  "laughing",
 ] as const;
 
 export type ChatGptExpression = (typeof chatGptExpressionNames)[number];
@@ -19,6 +20,7 @@ export type ChatGptMouthShape =
   | "frown"
   | "open"
   | "small-open"
+  | "laughing-open"
   | "tilted-line";
 
 type ChatGptExpressionPreset = {
@@ -46,43 +48,43 @@ export const chatGptExpressionPresets: Readonly<
     mouthRotation: 0,
   },
   happy: {
-    eyeScaleY: 1.05,
+    eyeScaleY: 0.92,
     eyeYOffset: [0, 0],
     pupilOffsetX: [0, 0],
     browAngle: [0, 0],
-    browLift: 0.018,
+    browLift: 0.035,
     mouth: "smile",
-    mouthScale: [1.28, 0.84],
-    mouthRotation: Math.PI,
-  },
-  sad: {
-    eyeScaleY: 0.88,
-    eyeYOffset: [-0.01, -0.01],
-    pupilOffsetX: [0, 0],
-    browAngle: [0.28, -0.28],
-    browLift: 0.018,
-    mouth: "frown",
-    mouthScale: [1.04, 0.8],
+    mouthScale: [1.45, 1.05],
     mouthRotation: 0,
   },
+  sad: {
+    eyeScaleY: 1.12,
+    eyeYOffset: [-0.01, -0.01],
+    pupilOffsetX: [0, 0],
+    browAngle: [0.58, -0.58],
+    browLift: 0.045,
+    mouth: "frown",
+    mouthScale: [1.18, 0.68],
+    mouthRotation: Math.PI,
+  },
   angry: {
-    eyeScaleY: 0.62,
+    eyeScaleY: 0.48,
     eyeYOffset: [-0.005, -0.005],
     pupilOffsetX: [0, 0],
-    browAngle: [-0.34, 0.34],
-    browLift: -0.005,
-    mouth: "line",
-    mouthScale: [0.95, 0.65],
+    browAngle: [-0.62, 0.62],
+    browLift: -0.018,
+    mouth: "small-open",
+    mouthScale: [0.9, 1.15],
     mouthRotation: 0,
   },
   surprised: {
-    eyeScaleY: 1.34,
+    eyeScaleY: 1.65,
     eyeYOffset: [0.01, 0.01],
     pupilOffsetX: [0, 0],
     browAngle: [0, 0],
-    browLift: 0.075,
+    browLift: 0.12,
     mouth: "open",
-    mouthScale: [0.78, 1.18],
+    mouthScale: [1.02, 1.45],
     mouthRotation: 0,
   },
   worried: {
@@ -136,13 +138,23 @@ export const chatGptExpressionPresets: Readonly<
     mouthRotation: 0,
   },
   excited: {
-    eyeScaleY: 1.28,
+    eyeScaleY: 1.52,
     eyeYOffset: [0.005, 0.005],
     pupilOffsetX: [0, 0],
     browAngle: [0, 0],
-    browLift: 0.065,
+    browLift: 0.105,
     mouth: "open",
-    mouthScale: [1.08, 1.22],
+    mouthScale: [1.6, 1.5],
+    mouthRotation: 0,
+  },
+  laughing: {
+    eyeScaleY: 0.7,
+    eyeYOffset: [-0.005, -0.005],
+    pupilOffsetX: [0, 0],
+    browAngle: [0.05, -0.05],
+    browLift: 0.018,
+    mouth: "laughing-open",
+    mouthScale: [1.55, 1.55],
     mouthRotation: 0,
   },
 };

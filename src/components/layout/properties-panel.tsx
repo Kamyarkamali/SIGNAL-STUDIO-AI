@@ -44,7 +44,7 @@ function TransformFields({ id, arrangement, onEdit, mode }: { id: string; arrang
 }
 
 export function PropertiesPanel({ section, projectTitle, arrangement, selectedId, onEdit, mode, onModeChange, editing, onEnterEdit, onFinishEdit,
-  project, displayAssignments, onDisplayChange, onUploadDisplay, inspecting, onInspect, mediaPlaying, onTogglePlayback, onLaptopViewerOpenChange }: {
+  project, displayAssignments, onDisplayChange, onUploadDisplay, onDeleteDisplayImage, inspecting, onInspect, mediaPlaying, onTogglePlayback, onLaptopViewerOpenChange }: {
   section: SectionId; projectTitle?: string; arrangement: EnvironmentArrangement | null; selectedId: string | null;
   onEdit: (change: (current: EnvironmentArrangement) => EnvironmentArrangement) => void;
   mode: TransformMode; onModeChange: (mode: TransformMode) => void;
@@ -52,6 +52,7 @@ export function PropertiesPanel({ section, projectTitle, arrangement, selectedId
   project: ProjectDocument | null; displayAssignments: ProjectDocument["displayAssignments"];
   onDisplayChange: (propId: string, assignment: ProjectDocument["displayAssignments"][string]) => void;
   onUploadDisplay: (file: File) => Promise<string | null>; inspecting: boolean; onInspect: () => void;
+  onDeleteDisplayImage: (assetId: string) => Promise<ProjectDocument>;
   mediaPlaying: boolean; onTogglePlayback: () => void;
   onLaptopViewerOpenChange?: (open: boolean) => void;
 }) {
@@ -76,7 +77,7 @@ export function PropertiesPanel({ section, projectTitle, arrangement, selectedId
         <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">رسانهٔ نمایشگر</summary>
         <DisplayEditor project={project}
         assignment={displayAssignments[selected.id]} onChange={(assignment) => onDisplayChange(selected.id, assignment)}
-        onUpload={onUploadDisplay} inspecting={inspecting} onInspect={onInspect} playing={mediaPlaying} onTogglePlayback={onTogglePlayback} onViewerOpenChange={onLaptopViewerOpenChange} />
+        onUpload={onUploadDisplay} onDeleteImage={onDeleteDisplayImage} inspecting={inspecting} onInspect={onInspect} playing={mediaPlaying} onTogglePlayback={onTogglePlayback} onViewerOpenChange={onLaptopViewerOpenChange} />
       </details>}
       <p className="mt-3 text-xs leading-6 text-muted">برای تغییر در نما از ابزار انتخاب‌شده استفاده کنید. تغییر عددی پس از خروج از کادر ثبت می‌شود.</p>
     </div> : <div className="flex flex-1 flex-col items-center justify-center p-5 text-center"><h2 className="text-sm font-bold">{section === "projects" && projectTitle ? projectTitle : "چیزی انتخاب نشده است"}</h2><p className="mt-2 text-xs leading-7 text-muted">{section === "environments" ? "وسیله‌ای را در نمای سه‌بعدی یا فهرست وسایل انتخاب کنید." : "برای ویرایش وسایل، پروژه‌ای باز کنید و به بخش محیط‌ها بروید."}</p></div>}

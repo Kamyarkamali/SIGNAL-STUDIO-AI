@@ -7,7 +7,9 @@ import { Box3, Quaternion, Vector3, type Group, type Object3D } from "three";
 import { characterModelRegistry } from "@/lib/characters/character-registry";
 import type { CharacterProjectData, CharacterState } from "@/lib/characters/character-schema";
 import { clampCharacterScale } from "@/lib/characters/character-operations";
-import { evaluateCharacterPreviewPose, getPreviewExpression, type CharacterPreviewActionId, type CharacterPreviewPlaybackPose, type PreviewSettings } from "@/lib/characters/animation-preview";
+import { evaluateCharacterPreviewPose, evaluateFacialExpressionWeight, getPreviewExpression, type CharacterPreviewActionId, type CharacterPreviewPlaybackPose, type PreviewSettings } from "@/lib/characters/animation-preview";
+import { resolveChatGptExpression, type ChatGptExpression } from "@/lib/characters/chatgpt-expression-presets";
+import { applyFacialExpressionPose, evaluatePreviewBlinkWeight, type FacialNode } from "@/lib/characters/facial-expression-preview";
 import { CharacterModelRenderer } from "./character-renderers";
 import { composeGazeHeadRotation, defaultGazeCapability, gazePoseAt, neutralGazePose, supportedGazeCapability, type GazePreview } from "@/lib/characters/gaze-preview";
 
@@ -81,6 +83,20 @@ function CharacterInstanceView({ id, data, selected, mode, onSelect, onCommit, p
       fromPose: preview.fromPose,
       settings: preview.settings,
     }) : evaluateCharacterPreviewPose({ actionId: "neutral", sourceTimeSeconds: 0, durationSeconds: 1, capabilities });
+    const expressionName = preview ? getPreviewExpression(preview.actionId, capabilities) : undefined;
+    if (model.capabilities.animationCapabilities.includes("facial-expression") && !model.glb &&
+      ["chatgpt-robot", "claude-terracotta-mascot", "kamyar-stylized", "hamid-stylized"].includes(model.rendererKey)) {
+      const modelKey = model.rendererKey as "chatgpt-robot" | "claude-terracotta-mascot" | "kamyar-stylized" | "hamid-stylized";
+      const defaultFace: ChatGptExpression = modelKey === "chatgpt-robot"
+        ? resolveChatGptExpression(typeof identity?.customization.faceStyle === "string" ? identity.customization.faceStyle : undefined)
+        : "neutral";
+      const facialWeight = preview && expressionName
+        ? evaluateFacialExpressionWeight(preview.actionId, elapsed, preview.durationSeconds, preview.settings)
+        : 1;
+      const phase = [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 2350 / 1000;
+      const blink = preview ? evaluatePreviewBlinkWeight(elapsed, phase) : 0;
+      applyFacialExpressionPose(group.current as unknown as FacialNode, modelKey, expressionName ?? defaultFace, facialWeight, blink);
+    }
     const gazeCapability = model ? supportedGazeCapability(model) : null;
     let gazePose = neutralGazePose;
     if (gaze && gazeCapability) {

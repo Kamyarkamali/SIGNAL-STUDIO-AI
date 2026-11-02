@@ -29,3 +29,11 @@ export async function GET(request: NextRequest, context: Context) {
     } });
   } catch (error) { return apiError(error); }
 }
+
+export async function DELETE(request: NextRequest, context: Context) {
+  try {
+    assertLocalRequest(request, true);
+    const { id, assetId } = await context.params;
+    return Response.json(await projectService.removeDisplayImage(id, assetId));
+  } catch (error) { return apiError(error); }
+}

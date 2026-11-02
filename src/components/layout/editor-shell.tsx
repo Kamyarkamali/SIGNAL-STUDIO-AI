@@ -292,10 +292,6 @@ export function EditorShell() {
             )
           : [];
       const settings = clampPreviewSettings(requestedSettings);
-      if (actionId === "neutral") {
-        stopCharacterPreview(instanceId);
-        return;
-      }
       if (!state?.visible) return;
       if (actionId === "return-idle") {
         const current = characterPreviews[instanceId];
@@ -615,6 +611,7 @@ export function EditorShell() {
         displayAssignments={projects.displayAssignments}
         onDisplayChange={projects.editDisplay}
         onUploadDisplay={projects.uploadDisplay}
+        onDeleteDisplayImage={projects.deleteDisplayImage}
         inspecting={inspectPropId === selectedId}
         onInspect={() =>
           setInspectPropId(inspectPropId === selectedId ? null : selectedId)

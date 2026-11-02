@@ -7,16 +7,18 @@ import {
   clampPreviewSettings,
   defaultPreviewSettings,
   evaluateCharacterPreviewPose,
+  evaluateFacialExpressionWeight,
   getPreviewDuration,
   getPreviewExpression,
   getPreviewActionAvailability,
   isPreviewActionSupported,
   previewActionIds,
 } from "../src/lib/characters/animation-preview.ts";
+import { applyFacialExpressionPose, evaluatePreviewBlinkWeight } from "../src/lib/characters/facial-expression-preview.ts";
 import { characterProjectDataSchema } from "../src/lib/characters/character-schema.ts";
 import { emptyCharacterData, createCharacterIdentity, addCharacterInstance } from "../src/lib/characters/character-operations.ts";
 
-const allChannels = ["head-rotation", "arm-gesture"];
+const allChannels = ["head-rotation", "arm-gesture", "facial-expression"];
 
 test("preview actions are capability-backed for procedural and imported model definitions", () => {
   const kamyar = characterModelRegistry.get("character-model:kamyar");
@@ -52,6 +54,99 @@ test("emotional and gesture presets are distinct and facial previews require a r
   assert.equal(isPreviewActionSupported("hand-wave", ["head-rotation"]), false);
 });
 
+test("ChatGPT expression presets have distinct visible eye, brow and mouth configurations", async () => {
+  const { chatGptExpressionPresets: p } = await import("../src/lib/characters/chatgpt-expression-presets.ts");
+  for (const expression of ["happy", "sad", "angry", "surprised", "excited"]) {
+    assert.notDeepEqual(p[expression], p.neutral);
+  }
+  assert.equal(p.happy.mouth, "smile");
+  assert.equal(p.sad.mouth, "frown");
+  assert.equal(p.happy.mouthRotation, 0);
+  assert.equal(p.sad.mouthRotation, Math.PI);
+  assert.ok(p.angry.eyeScaleY < p.neutral.eyeScaleY);
+  assert.ok(p.surprised.eyeScaleY > p.excited.eyeScaleY);
+  assert.ok(p.surprised.browLift > p.happy.browLift);
+  assert.ok(p.excited.mouthScale[0] > p.happy.mouthScale[0]);
+  const renderers = await readFile(new URL("../src/components/characters/character-renderers.tsx", import.meta.url), "utf8");
+  assert.match(renderers, /name="eye-shape" scale=\{\[1, poseExpression\.eyeScaleY, 1\]\}/);
+  assert.match(renderers, /name="eyebrow" position=/);
+  assert.match(renderers, /name="mouth-display"/);
+  assert.match(renderers, /"left-eyebrow" : "right-eyebrow"/);
+  assert.match(renderers, /claudeOpenMouth/);
+});
+
+test("every procedural prototype advertises only implemented local face controls", () => {
+  const claude = characterModelRegistry.get("character-model:claude-mascot");
+  const kamyar = characterModelRegistry.get("character-model:kamyar");
+  const hamid = characterModelRegistry.get("character-model:hamid");
+  assert.ok(claude && kamyar && hamid);
+  assert.ok(claude.capabilities.animationCapabilities.includes("facial-expression"));
+  assert.ok(kamyar.capabilities.animationCapabilities.includes("facial-expression"));
+  assert.ok(hamid.capabilities.animationCapabilities.includes("facial-expression"));
+  assert.equal(getPreviewExpression("surprised", claude.capabilities.animationCapabilities), "surprised");
+  assert.equal(getPreviewExpression("neutral", kamyar.capabilities.animationCapabilities), "neutral");
+  assert.equal(getPreviewExpression("surprised", []), undefined);
+});
+
+function faceNode(name, children = []) {
+  const node = { name, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, visible: true, children,
+    getObjectByName(target) { if (this.name === target) return this; for (const child of this.children) { const found = child.getObjectByName(target); if (found) return found; } return undefined; } };
+  return node;
+}
+function fakeFaceRig({ digital = true, nestedBrows = true } = {}) {
+  const variants = ["neutral", "smile", "frown", "open", "small-open", "laughing-open", "tilted-line"].map((shape) => faceNode(`mouth-${shape}`));
+  const eyes = [-1, 1].map((side) => faceNode(side < 0 ? "left-eye" : "right-eye", [
+    ...(digital ? [faceNode("eye-shape")] : []), ...(nestedBrows ? [faceNode("eyebrow")] : []),
+  ]));
+  return faceNode("root", [...eyes, faceNode("left-eyebrow"), faceNode("right-eyebrow"), faceNode("mouth-display", [faceNode("mouth", variants)])]);
+}
+
+test("facial adapter changes actual named renderer transforms, mouth visibility, blink, and restores baseline", () => {
+  const rig = fakeFaceRig();
+  applyFacialExpressionPose(rig, "chatgpt-robot", "neutral", 1);
+  const baseEye = rig.getObjectByName("eye-shape").scale.y;
+  applyFacialExpressionPose(rig, "chatgpt-robot", "happy", 1);
+  assert.notEqual(rig.getObjectByName("eye-shape").scale.y, baseEye);
+  assert.notEqual(rig.getObjectByName("eyebrow").position.y, 0.115);
+  assert.equal(rig.getObjectByName("mouth-smile").visible, true);
+  assert.equal(rig.getObjectByName("mouth-neutral").visible, false);
+  const happyMouthScale = rig.getObjectByName("mouth-display").scale.x;
+  applyFacialExpressionPose(rig, "chatgpt-robot", "sad", 1);
+  assert.equal(rig.getObjectByName("mouth-frown").visible, true);
+  assert.notEqual(rig.getObjectByName("mouth-display").scale.x, happyMouthScale);
+  const openEye = rig.getObjectByName("eye-shape").scale.y;
+  applyFacialExpressionPose(rig, "chatgpt-robot", "surprised", 1, 1);
+  assert.ok(rig.getObjectByName("eye-shape").scale.y < openEye);
+  assert.equal(rig.getObjectByName("mouth-open").visible, true);
+  applyFacialExpressionPose(rig, "chatgpt-robot", "neutral", 1);
+  assert.equal(rig.getObjectByName("mouth-neutral").visible, true);
+  assert.equal(evaluatePreviewBlinkWeight(0.31, 0.1), evaluatePreviewBlinkWeight(0.31, 0.1));
+});
+
+test("human adapters use their actual named eyes, brows, mouth, and independent per-instance nodes", () => {
+  const kamyar = fakeFaceRig({ digital: false, nestedBrows: false }); const hamid = fakeFaceRig({ digital: false, nestedBrows: false });
+  applyFacialExpressionPose(kamyar, "kamyar-stylized", "angry", 1);
+  applyFacialExpressionPose(hamid, "hamid-stylized", "happy", 1);
+  assert.ok(kamyar.getObjectByName("left-eye").scale.y < 1);
+  assert.notEqual(kamyar.getObjectByName("left-eyebrow").rotation.z, 0);
+  assert.equal(kamyar.getObjectByName("mouth-small-open").visible, true);
+  assert.equal(hamid.getObjectByName("mouth-smile").visible, true);
+  assert.equal(kamyar.getObjectByName("mouth-smile").visible, false);
+});
+
+test("runtime wires renderer facial values into demand rendering without replacing gaze composition", async () => {
+  const layer = await readFile(new URL("../src/components/characters/character-layer.tsx", import.meta.url), "utf8");
+  const renderers = await readFile(new URL("../src/components/characters/character-renderers.tsx", import.meta.url), "utf8");
+  assert.match(layer, /applyFacialExpressionPose\(group\.current/);
+  assert.match(layer, /evaluateFacialExpressionWeight\(preview\.actionId, elapsed/);
+  assert.match(layer, /invalidate\(\)/);
+  assert.match(layer, /composeGazeHeadRotation\(pose\.headRotation, gazePose/);
+  assert.match(renderers, /<ExpressionMouth expression=\{face\}/);
+  assert.match(renderers, /name="mouth-smile"/);
+  assert.match(renderers, /name="mouth-frown"/);
+  assert.match(renderers, /name="mouth-open"/);
+});
+
 test("preview timing and intensity settings are bounded and deterministic", () => {
   assert.deepEqual(clampPreviewSettings({ speed: 12, intensity: -4, transitionSeconds: 5, returnSeconds: 0 }), {
     speed: 2, intensity: 0.25, transitionSeconds: 0.8, returnSeconds: 0.15, easing: "smooth",
@@ -63,6 +158,31 @@ test("preview timing and intensity settings are bounded and deterministic", () =
   const maximumPose = evaluateCharacterPreviewPose({ actionId: "celebrating", sourceTimeSeconds: 0.65, durationSeconds: 1.3, capabilities: ["head-rotation", "arm-gesture"], settings: { intensity: 1.5 } });
   assert.ok(Math.abs(maximumPose.leftArmRotation[2]) <= 0.54 && Math.abs(maximumPose.rightArmRotation[2]) <= 0.54);
   assert.deepEqual(defaultPreviewSettings.speed, 1);
+});
+
+test("surprise and excitement respond faster and more strongly than calm actions", () => {
+  const early = (actionId, t) => evaluateCharacterPreviewPose({ actionId, sourceTimeSeconds: t,
+    durationSeconds: getPreviewDuration(actionId), capabilities: ["head-rotation", "arm-gesture", "facial-expression"] });
+  const surprised = early("surprised", 0.045);
+  const excited = early("excited", 0.08);
+  const calm = early("listening", 0.08);
+  assert.ok(Math.abs(surprised.headRotation[0]) > 0);
+  assert.ok(Math.abs(excited.leftArmRotation[2]) > Math.abs(calm.leftArmRotation[2]));
+  const max = early("excited", 0.35);
+  assert.ok(Math.abs(max.leftArmRotation[2]) > 0.25);
+  const scaled = evaluateCharacterPreviewPose({ actionId: "excited", sourceTimeSeconds: 0.35,
+    durationSeconds: getPreviewDuration("excited", { speed: 1.5 }), capabilities: ["head-rotation", "arm-gesture"],
+    settings: { speed: 1.5, intensity: 0.5 } });
+  assert.ok(Math.abs(scaled.leftArmRotation[2]) <= Math.abs(max.leftArmRotation[2]));
+});
+
+test("facial expression controls ease in and out at explicit timestamps", () => {
+  const weight = (time) => evaluateFacialExpressionWeight("surprised", time, 0.85);
+  assert.equal(weight(0), 0);
+  assert.ok(weight(0.11) > 0.9);
+  assert.ok(weight(0.84) < 0.1);
+  assert.equal(weight(0.11), evaluateFacialExpressionWeight("surprised", 0.11, 0.85));
+  assert.equal(evaluateFacialExpressionWeight("head-turn", 0.2, 2.4), 0);
 });
 
 test("pose layers resolve conflicting channels by deterministic priority", () => {

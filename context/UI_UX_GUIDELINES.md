@@ -243,6 +243,8 @@ Do not duplicate their full contents here. This document does **not** authorize 
 
 - Keep the laptop's close-up on the actual 3D screen, framed from a readable front/overhead angle. Restore the full editor camera pose when close-up ends.
 - Provide a compact fullscreen viewer for the selected project-local display image or video, with an accessible close/exit control and a modal fallback when browser fullscreen is unavailable. The viewer does not replace the laptop or edit its media assignment.
+- Keep Device View, Screen Focus and Content Only as separate Persian-labeled modes. Device/screen framing must use the actual laptop screen/body proportions and honor source contain/cover behavior; fullscreen and Escape must restore the viewer/editor state predictably.
+- Distinguish removing a laptop image assignment from permanently deleting its imported project image. Confirm permanent deletion; list/reference conflicts and provide a safe workflow to clear assignments before retrying. Show loading, failure and refreshed library state.
 - Selection from properties must not show viewport bounds or transform gizmos. Show object edit visuals only after explicit double-click or the Persian edit command; keep empty-space deselection behavior.
 - Browser review remains required for close-up framing, fullscreen open/exit/Escape, media readability, camera restoration and clean viewport appearance.
 

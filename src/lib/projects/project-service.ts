@@ -46,6 +46,29 @@ function projectName(name: string): string {
   return parsed.data;
 }
 
+/** Finds all project-data references, including references added by future scene contracts. */
+export function displayImageReferenceLabels(project: ProjectDocument, assetId: string): string[] {
+  const paths: string[] = [];
+  const visit = (value: unknown, path: string[]) => {
+    if (value === assetId) { paths.push(path.join(".")); return; }
+    if (Array.isArray(value)) { value.forEach((item, index) => visit(item, [...path, String(index)])); return; }
+    if (!value || typeof value !== "object") return;
+    for (const [key, child] of Object.entries(value)) {
+      if (key === "assetManifest") continue;
+      visit(child, [...path, key]);
+    }
+  };
+  visit(project, []);
+  const labels = new Set<string>();
+  for (const path of paths) {
+    if (path.includes("displayAssignments")) labels.add("نمایشگر لپ‌تاپ");
+    else if (path.includes("decoration") && path.includes("frames")) labels.add("قاب‌های تصویر دیواری");
+    else if (path.includes("decoration") && path.includes("sign")) labels.add("تابلوی دیواری استودیو");
+    else labels.add("بخش دیگری از پروژه یا صحنه");
+  }
+  return [...labels];
+}
+
 function summary(project: ProjectDocument): ProjectSummary {
   const { id, title, createdAt, updatedAt, revision } = project;
   return { id, title, createdAt, updatedAt, revision };
@@ -270,6 +293,34 @@ export class ProjectService {
       await handle.close();
       try { await this.atomicWrite(this.projectFile(id), updated); }
       catch (error) { await unlink(target).catch(() => undefined); throw error; }
+      return updated;
+    });
+  }
+
+  async removeDisplayImage(id: string, assetId: string): Promise<ProjectDocument> {
+    id = projectId(id);
+    if (!/^[0-9a-f-]{36}$/.test(assetId)) throw new ProjectError("NOT_FOUND", "تصویر پیدا نشد.", 404);
+    return this.lock(id, async () => {
+      const current = await this.readProject(id);
+      const asset = current.assetManifest[assetId];
+      if (!asset || asset.kind !== "display-image" || asset.origin !== "imported") {
+        throw new ProjectError("NOT_FOUND", "تصویر واردشده پیدا نشد.", 404);
+      }
+      const references = displayImageReferenceLabels(current, assetId);
+      if (references.length) {
+        throw new ProjectError("ASSET_IN_USE", `این تصویر هنوز در ${references.join("، ")} استفاده می‌شود. ابتدا ارجاع‌ها را از همان بخش‌ها جدا کنید؛ سپس می‌توانید تصویر را حذف کنید.`, 409);
+      }
+      const path = await this.resolveAssetFile(id, asset);
+      const assetManifest = { ...current.assetManifest };
+      delete assetManifest[assetId];
+      const updated = projectSchema.parse({ ...current, assetManifest, revision: current.revision + 1, updatedAt: new Date().toISOString() });
+      const backup = join(this.projectDir(id), "backups", `revision-${current.revision}-${randomUUID()}.json`);
+      await copyFile(this.projectFile(id), backup, constants.COPYFILE_EXCL);
+      const tombstone = `${path}.deleting-${randomUUID()}`;
+      await rename(path, tombstone);
+      try { await this.atomicWrite(this.projectFile(id), updated); }
+      catch (error) { await rename(tombstone, path).catch(() => undefined); throw error; }
+      await unlink(tombstone).catch(() => undefined);
       return updated;
     });
   }

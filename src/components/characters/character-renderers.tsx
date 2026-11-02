@@ -1,4 +1,4 @@
-import { BoxGeometry, CapsuleGeometry, Color, CylinderGeometry, MeshStandardMaterial, PlaneGeometry, Shape, ShapeGeometry, SphereGeometry, TorusGeometry } from "three";
+import { BoxGeometry, BufferGeometry, CapsuleGeometry, Color, CylinderGeometry, MeshStandardMaterial, PlaneGeometry, Shape, ShapeGeometry, SphereGeometry, TorusGeometry } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { useTexture } from "@react-three/drei";
 import {
@@ -21,6 +21,8 @@ const claudeCube = new RoundedBoxGeometry(0.94, 0.9, 0.78, 3, 0.035);
 const claudeLimb = new BoxGeometry(0.16, 0.48, 0.48);
 const claudeEye = new BoxGeometry(0.11, 0.19, 0.028);
 const claudeMouth = new BoxGeometry(0.18, 0.045, 0.03);
+const claudeOpenMouth = new RoundedBoxGeometry(0.14, 0.105, 0.035, 3, 0.035);
+const humanOpenMouth = new RoundedBoxGeometry(0.11, 0.052, 0.012, 3, 0.018);
 const claudeHeadband = new TorusGeometry(0.49, 0.055, 6, 24, Math.PI);
 const claudeHeadphoneCup = new RoundedBoxGeometry(0.19, 0.35, 0.2, 3, 0.035);
 const claudeSquareHeadphoneCup = new BoxGeometry(0.19, 0.35, 0.2);
@@ -94,7 +96,26 @@ function Eye({ at, color, size = [0.04, 0.052, 0.025] as [number, number, number
   return <Ball at={at} size={size} color={color} roughness={0.25} />;
 }
 
-function Kamyar({ appearance }: { appearance: CharacterCustomization }) {
+function ExpressionMouth({ expression, lineGeometry, openGeometry, color }: {
+  expression: ChatGptExpression; lineGeometry: BufferGeometry; openGeometry: BufferGeometry; color: string;
+}) {
+  const selected = chatGptExpressionPresets[expression].mouth;
+  const visible = (shape: string) => selected === (shape === "neutral" ? "line" : shape);
+  return <group name="mouth">
+    <mesh name="mouth-neutral" geometry={lineGeometry} visible={visible("neutral")}><meshStandardMaterial color={color} roughness={0.72} /></mesh>
+    <mesh name="mouth-smile" geometry={chatGPTSmile} scale={[0.72, 0.55, 0.72]} visible={visible("smile")}><meshStandardMaterial color={color} side={2} roughness={0.5} /></mesh>
+    <mesh name="mouth-frown" geometry={chatGPTSmile} scale={[0.72, 0.55, 0.72]} visible={visible("frown")}><meshStandardMaterial color={color} side={2} roughness={0.5} /></mesh>
+    <group name="mouth-open" visible={visible("open")}><Ball at={[0, 0, 0]} size={[0.018, 0.025, 0.009]} color="#301b18" />
+      <mesh geometry={openGeometry}><meshStandardMaterial color={color} roughness={0.46} /></mesh></group>
+    <group name="mouth-small-open" visible={visible("small-open")}><Ball at={[0, 0, 0]} size={[0.012, 0.014, 0.008]} color="#301b18" />
+      <mesh geometry={openGeometry} scale={[0.78, 0.64, 1]}><meshStandardMaterial color={color} roughness={0.46} /></mesh></group>
+    <group name="mouth-laughing-open" visible={visible("laughing-open")}><Ball at={[0, 0, 0]} size={[0.019, 0.025, 0.009]} color="#301b18" />
+      <mesh geometry={openGeometry} scale={[1.12, 1.12, 1]}><meshStandardMaterial color={color} roughness={0.46} /></mesh></group>
+    <mesh name="mouth-tilted-line" geometry={lineGeometry} rotation={[0, 0, -0.22]} visible={visible("tilted-line")}><meshStandardMaterial color={color} roughness={0.72} /></mesh>
+  </group>;
+}
+
+function Kamyar({ appearance, previewExpression }: { appearance: CharacterCustomization; previewExpression?: ChatGptExpression }) {
   const hair = appearance.hairColor ?? "#211d1d";
   const hairRoot = new Color(hair).multiplyScalar(0.78);
   const hairHighlight = new Color(hair).offsetHSL(0.008, 0.035, 0.075);
@@ -199,9 +220,7 @@ function Kamyar({ appearance }: { appearance: CharacterCustomization }) {
           <Ball at={[0, -0.031, 0.019]} size={[0.027, 0.021, 0.021]} color={skin} roughness={0.74} />
         </group>
         <group name="mouth" position={[0, mouthY, mouthZ]}>
-          <mesh name="natural-mouth-line" geometry={kamyarMouthGeometry}>
-            <meshStandardMaterial color="#744b43" roughness={0.78} />
-          </mesh>
+          <ExpressionMouth expression={previewExpression ?? "neutral"} lineGeometry={kamyarMouthGeometry} openGeometry={humanOpenMouth} color="#744b43" />
         </group>
         {accessory === "glasses" && <group name="glasses-accessory">
           {[-1, 1].map((side) => {
@@ -232,7 +251,7 @@ function Kamyar({ appearance }: { appearance: CharacterCustomization }) {
   </group>;
 }
 
-function Hamid({ appearance }: { appearance: CharacterCustomization }) {
+function Hamid({ appearance, previewExpression }: { appearance: CharacterCustomization; previewExpression?: ChatGptExpression }) {
   const normalized = normalizeCharacterCustomization("character-model:hamid", appearance);
   const skin = normalized.skinTone ?? "#c98f70";
   const hair = normalized.hairColor ?? "#211d1d";
@@ -317,6 +336,7 @@ function Hamid({ appearance }: { appearance: CharacterCustomization }) {
               <Ball at={[0, -0.001, 0.01]} size={[0.013, 0.017, 0.009]} color={eyeColor} roughness={0.28} />
               <Ball at={[0.001, -0.001, 0.017]} size={[0.0055, 0.008, 0.004]} color="#171413" roughness={0.2} />
               <Ball at={[-0.004, 0.006, 0.019]} size={[0.003, 0.004, 0.002]} color="#ffffff" roughness={0.16} />
+              <mesh name="upper-eyelid-definition" geometry={kamyarUpperEyelidGeometry} position={[0, 0.001, 0.016]}><meshStandardMaterial color={beard} roughness={0.78} /></mesh>
             </group>
           </group>;
         })}
@@ -325,7 +345,7 @@ function Hamid({ appearance }: { appearance: CharacterCustomization }) {
           <Ball at={[0, -0.03, 0.019]} size={[0.028, 0.021, 0.022]} color={skin} />
         </group>
         <group name="mouth" position={[0, mouthY, kamyarFacePosition(0, mouthY, 0.009)[2]]}>
-          <mesh geometry={kamyarMouthGeometry}><meshStandardMaterial color="#744b43" roughness={0.8} /></mesh>
+          <ExpressionMouth expression={previewExpression ?? "neutral"} lineGeometry={kamyarMouthGeometry} openGeometry={humanOpenMouth} color="#744b43" />
         </group>
       </group>
     </group>
@@ -338,6 +358,7 @@ function ChatGPT({ appearance, previewExpression }: { appearance: CharacterCusto
   const eye = appearance.eyeColor ?? "#8cfff0";
   const face = previewExpression ?? resolveChatGptExpression(appearance.faceStyle);
   const expression = chatGptExpressionPresets[face];
+  const poseExpression = previewExpression ? chatGptExpressionPresets.neutral : expression;
   const openAiMark = useTexture("/characters/openai-mark.svg");
   return <group dispose={null} name="chatgpt-robot-forward-positive-z">
     <group name="body-root">
@@ -375,11 +396,11 @@ function ChatGPT({ appearance, previewExpression }: { appearance: CharacterCusto
         <group name="face-display" position={[0, 0, 0.35]}>
           {[-1, 1].map((side) => {
             const eyeIndex = side < 0 ? 0 : 1;
-            return <group key={side} name={side < 0 ? "left-eye" : "right-eye"} position={[side * 0.115, 0.025 + expression.eyeYOffset[eyeIndex], 0]}>
-            <group name="eyebrow" position={[0, 0.115 + expression.browLift, 0]}>
-              <Tube at={[0, 0, 0]} size={[0.058, 0.014, 0.012]} color={eye} rotation={[0, 0, expression.browAngle[eyeIndex]]} />
+            return <group key={side} name={side < 0 ? "left-eye" : "right-eye"} position={[side * 0.115, 0.025 + poseExpression.eyeYOffset[eyeIndex], 0]}>
+            <group name="eyebrow" position={[0, 0.115 + poseExpression.browLift, 0]} rotation={[0, 0, poseExpression.browAngle[eyeIndex]]}>
+              <Tube at={[0, 0, 0]} size={[0.058, 0.014, 0.012]} color={eye} />
             </group>
-            <group name="eye-shape" scale={[1, expression.eyeScaleY, 1]}>
+            <group name="eye-shape" scale={[1, poseExpression.eyeScaleY, 1]}>
               <Ball at={[0, 0, 0]} size={[0.079, 0.094, 0.025]} color="#31c8c9" roughness={0.3} />
               <Ball at={[0, 0, 0.018]} size={[0.061, 0.075, 0.019]} color="#101b25" roughness={0.22} />
               <group name={eyeIndex === 0 ? "left-iris-gaze" : "right-iris-gaze"} position={[expression.pupilOffsetX[eyeIndex], 0, 0]}>
@@ -392,19 +413,8 @@ function ChatGPT({ appearance, previewExpression }: { appearance: CharacterCusto
             </group>
           </group>;
           })}
-          <group name="mouth-display" position={[0, -0.092, 0.008]}>
-            {expression.mouth === "smile" || expression.mouth === "frown" ? <mesh name={expression.mouth === "smile" ? "friendly-smile" : "expression-frown"}
-              geometry={chatGPTSmile} rotation={[0, 0, expression.mouthRotation]} scale={[expression.mouthScale[0], expression.mouthScale[1], 0.72]}>
-              <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.08} roughness={0.3} />
-            </mesh> : expression.mouth === "open" || expression.mouth === "small-open" ? <group name={`${expression.mouth}-mouth-shape`} rotation={[0, 0, expression.mouthRotation]}>
-              <Ball at={[0, 0, 0]} size={[0.012, 0.018, 0.008]} color="#0c141c" />
-              <mesh geometry={chatGPTOpenMouth} scale={[expression.mouthScale[0], expression.mouthScale[1], 0.72]}>
-                <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.07} roughness={0.32} />
-              </mesh>
-            </group> : <mesh name={expression.mouth === "line" ? "neutral-mouth-line" : "tilted-mouth-line"}
-              geometry={chatGPTMouthLine} rotation={[0, 0, expression.mouthRotation]} scale={[expression.mouthScale[0], expression.mouthScale[1], 1]}>
-              <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.06} roughness={0.3} />
-            </mesh>}
+          <group name="mouth-display" position={[0, -0.092, 0.008]} scale={[poseExpression.mouthScale[0], poseExpression.mouthScale[1], 1]} rotation={[0, 0, poseExpression.mouthRotation]}>
+            <ExpressionMouth expression={face} lineGeometry={chatGPTMouthLine} openGeometry={chatGPTOpenMouth} color={accent} />
           </group>
         </group>
         <mesh geometry={cylinder} position={[0, 0.355, 0]} scale={[0.035, 0.11, 0.035]} castShadow><meshStandardMaterial color={accent} /></mesh>
@@ -418,12 +428,15 @@ function ChatGPT({ appearance, previewExpression }: { appearance: CharacterCusto
   </group>;
 }
 
-function Claude({ appearance }: { appearance: CharacterCustomization }) {
+function Claude({ appearance, previewExpression }: { appearance: CharacterCustomization; previewExpression?: ChatGptExpression }) {
   const orange = appearance.furColor ?? "#f47920";
   const headphoneAccent = appearance.chestColor ?? "#d9d2c8";
   const eyes = appearance.eyeColor ?? "#21140f";
   const roundedCups = appearance.earStyle === "rounded";
   const cupGeometry = roundedCups ? claudeHeadphoneCup : claudeSquareHeadphoneCup;
+  const face = previewExpression ?? "neutral";
+  const expression = chatGptExpressionPresets[face];
+  const poseExpression = previewExpression ? chatGptExpressionPresets.neutral : expression;
   return <group dispose={null} name="claude-cube-forward-positive-z">
     <group name="body-root">
       <group name="head-pivot" position={[0, 0.93, 0]}>
@@ -444,11 +457,19 @@ function Claude({ appearance }: { appearance: CharacterCustomization }) {
           </group>)}
         </group>
         <group name="face-elements">
-          {[-1, 1].map((side) => <group key={side} name={side < 0 ? "left-eye" : "right-eye"} position={[side * 0.2, 0.045, 0.405]}>
+          {[-1, 1].map((side) => {
+            const index = side < 0 ? 0 : 1;
+            return <group key={side} name={side < 0 ? "left-eye" : "right-eye"} position={[side * 0.2, 0.045 + poseExpression.eyeYOffset[index], 0.405]} scale={[1, poseExpression.eyeScaleY, 1]}>
+            <group name={side < 0 ? "left-eyebrow" : "right-eyebrow"} position={[0, 0.16 + poseExpression.browLift, 0]} rotation={[0, 0, poseExpression.browAngle[index]]}>
+              <mesh geometry={claudeEye} scale={[1.05, 0.24, 0.7]}>
+                <meshStandardMaterial color="#6b321b" roughness={0.62} />
+              </mesh>
+            </group>
             <mesh geometry={claudeEye} castShadow><meshStandardMaterial color={eyes} roughness={0.34} /></mesh>
-          </group>)}
-          <group name="mouth" position={[0, -0.19, 0.405]}>
-            <mesh geometry={claudeMouth} castShadow><meshStandardMaterial color="#6c321c" roughness={0.45} /></mesh>
+            </group>;
+          })}
+          <group name="mouth" position={[0, -0.19, 0.405]} scale={[poseExpression.mouthScale[0], poseExpression.mouthScale[1], 1]} rotation={[0, 0, poseExpression.mouthRotation]}>
+            <ExpressionMouth expression={face} lineGeometry={claudeMouth} openGeometry={claudeOpenMouth} color="#542619" />
           </group>
         </group>
       </group>
@@ -460,10 +481,10 @@ function Claude({ appearance }: { appearance: CharacterCustomization }) {
 }
 
 function ProceduralCharacterRenderer({ model, customization, previewExpression }: { model: CharacterModelDefinition; customization: CharacterCustomization; previewExpression?: ChatGptExpression }) {
-  if (model.rendererKey === "kamyar-stylized") return <Kamyar appearance={customization} />;
-  if (model.rendererKey === "hamid-stylized") return <Hamid appearance={customization} />;
+  if (model.rendererKey === "kamyar-stylized") return <Kamyar appearance={customization} previewExpression={previewExpression} />;
+  if (model.rendererKey === "hamid-stylized") return <Hamid appearance={customization} previewExpression={previewExpression} />;
   if (model.rendererKey === "chatgpt-robot") return <ChatGPT appearance={customization} previewExpression={previewExpression} />;
-  if (model.rendererKey === "claude-terracotta-mascot") return <Claude appearance={customization} />;
+  if (model.rendererKey === "claude-terracotta-mascot") return <Claude appearance={customization} previewExpression={previewExpression} />;
   return <mesh geometry={sphere} scale={[0.38, 0.62, 0.28]}><primitive object={missingMaterial} attach="material" /></mesh>;
 }
 

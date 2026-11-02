@@ -2,17 +2,19 @@
 
 import { useRef, useState } from "react";
 import type { ProjectDocument } from "@/lib/projects/project-schema";
+import { removeLaptopImageAssignment } from "@/lib/environments/display-assignment";
 import { LaptopDisplayViewer } from "./laptop-display-viewer";
 
 type Assignment = ProjectDocument["displayAssignments"][string];
 type Asset = ProjectDocument["assetManifest"][string];
 const button = "rounded-lg border border-[#536276] px-2.5 py-1.5 text-xs hover:bg-[#2c4051] focus-visible:outline-2 focus-visible:outline-accent";
 
-export function DisplayEditor({ project, assignment, onChange, onUpload, onInspect, inspecting, playing, onTogglePlayback, onViewerOpenChange }: {
+export function DisplayEditor({ project, assignment, onChange, onUpload, onDeleteImage, onInspect, inspecting, playing, onTogglePlayback, onViewerOpenChange }: {
   project: ProjectDocument;
   assignment?: Assignment;
   onChange: (assignment: Assignment) => void;
   onUpload: (file: File) => Promise<string | null>;
+  onDeleteImage: (assetId: string) => Promise<ProjectDocument>;
   onInspect: () => void;
   inspecting: boolean;
   playing: boolean;
@@ -20,7 +22,11 @@ export function DisplayEditor({ project, assignment, onChange, onUpload, onInspe
   onViewerOpenChange?: (open: boolean) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
+  const deleteDialog = useRef<HTMLDialogElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteAsset, setDeleteAsset] = useState<Asset | null>(null);
+  const [deleteError, setDeleteError] = useState("");
   const initial: Assignment = assignment ?? { state: "off", fit: "contain", brightness: 1 };
   const images = Object.values(project.assetManifest).filter((asset) => asset.kind === "display-image");
   const videos = Object.values(project.assetManifest).filter((asset) => asset.kind === "display-video");
@@ -39,6 +45,17 @@ export function DisplayEditor({ project, assignment, onChange, onUpload, onInspe
   const selectAsset = (asset: Asset | undefined) => {
     if (!asset) return;
     update(asset.kind === "display-video" ? { state: "video", videoAssetId: asset.id } : { state: "image", imageAssetId: asset.id });
+  };
+  const requestDelete = (asset: Asset) => {
+    setDeleteAsset(asset); setDeleteError(""); deleteDialog.current?.showModal();
+  };
+  const closeDelete = (force = false) => { if (deleting && !force) return; deleteDialog.current?.close(); setDeleteAsset(null); setDeleteError(""); };
+  const confirmDelete = async () => {
+    if (!deleteAsset || deleting) return;
+    setDeleting(true); setDeleteError("");
+    try { await onDeleteImage(deleteAsset.id); closeDelete(true); }
+    catch (cause) { setDeleteError(cause instanceof Error ? cause.message : "حذف تصویر انجام نشد."); }
+    finally { setDeleting(false); }
   };
   return <section className="mt-4 border-t border-line pt-4" aria-labelledby="display-title">
     <h3 id="display-title" className="text-sm font-bold">محتوای نمایشگر</h3>
@@ -61,6 +78,15 @@ export function DisplayEditor({ project, assignment, onChange, onUpload, onInspe
         <option value="">انتخاب تصویر</option>{images.map((asset) => <option key={asset.id} value={asset.id}>{asset.displayName}</option>)}
       </select>
     </label>}
+    {initial.imageAssetId && <button type="button" className={`${button} mt-2`} onClick={() => onChange(removeLaptopImageAssignment(initial))}>برداشتن تصویر از لپ‌تاپ</button>}
+    {images.length > 0 && <details className="mt-3 rounded-lg border border-[#334354] px-3 py-2">
+      <summary className="cursor-pointer text-xs font-medium">کتابخانهٔ تصاویر ({images.length})</summary>
+      <p className="mt-2 text-[11px] leading-5 text-muted">حذف قطعی فقط وقتی ممکن است که تصویر به لپ‌تاپ، تابلو یا قاب‌های استودیو متصل نباشد.</p>
+      <ul className="mt-2 space-y-1.5">{images.map((asset) => <li key={asset.id} className="flex items-center justify-between gap-2 text-xs">
+        <span className="min-w-0 truncate" title={asset.displayName}>{asset.displayName}</span>
+        <button type="button" className={`${button} shrink-0`} disabled={deleting || asset.origin !== "imported"} onClick={() => requestDelete(asset)}>حذف تصویر</button>
+      </li>)}</ul>
+    </details>}
     {videos.length > 0 && <label className="mt-3 block text-xs">ویدیو
       <select className="mt-1 min-h-9 w-full rounded-lg border border-[#536276] bg-[#101722] px-2" value={initial.videoAssetId ?? ""}
         onChange={(event) => { const asset = videos.find((item) => item.id === event.target.value); if (asset) selectAsset(asset); }}>
@@ -79,5 +105,14 @@ export function DisplayEditor({ project, assignment, onChange, onUpload, onInspe
       </label>
       {initial.state === "video" && <button type="button" className={`${button} mt-3`} onClick={onTogglePlayback}>{playing ? "توقف موقت ویدیو" : "پخش ویدیو"}</button>}
     </>}
+    <dialog ref={deleteDialog} className="media-delete-confirm" aria-labelledby="delete-image-title" onClose={() => { if (!deleting) setDeleteAsset(null); }}>
+      <div dir="rtl" className="grid gap-3">
+        <h4 id="delete-image-title" className="text-sm font-semibold">حذف قطعی تصویر؟</h4>
+        <p className="break-words text-xs leading-5 text-muted">«{deleteAsset?.displayName}» از فایل‌های این پروژه حذف می‌شود. اتصال از لپ‌تاپ با حذف فایل فرق دارد.</p>
+        {deleteError && <p role="alert" className="text-xs leading-5 text-amber-200">{deleteError}</p>}
+        {deleteAsset && deleteAsset.id === initial.imageAssetId && <button type="button" className={`${button} justify-self-start`} disabled={deleting} onClick={() => { onChange(removeLaptopImageAssignment(initial)); setDeleteError("تصویر از لپ‌تاپ جدا شد. پس از ذخیره، حذف قطعی را دوباره تأیید کنید."); }}>جداکردن از لپ‌تاپ و ادامه</button>}
+        <div className="flex justify-end gap-2"><button type="button" className={button} disabled={deleting} onClick={() => closeDelete()}>انصراف</button><button type="button" className={`${button} border-red-400 text-red-100`} disabled={deleting || !deleteAsset} onClick={() => void confirmDelete()}>{deleting ? "در حال حذف…" : "حذف قطعی"}</button></div>
+      </div>
+    </dialog>
   </section>;
 }

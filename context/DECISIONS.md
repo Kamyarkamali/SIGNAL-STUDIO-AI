@@ -321,3 +321,31 @@ Use IDs `ADR-001`, `ADR-002`, etc. Each entry states **Decision**, **Reason**, *
 - **Decision:** Use the existing 3D laptop and attached display surface for the primary enlarged presentation. Hide editor gizmos and bounds through a temporary visibility gate; retain a manual helper toggle and keep selection, transforms, project data and production camera state unchanged. Keep the content-only fullscreen dialog as a distinct secondary viewer.
 - **Reason:** Presentation should feel like looking at the laptop in the studio, with a distraction-free media-only option still available.
 - **Trade-offs:** Browser fullscreen permission and actual visual framing, occlusion, responsiveness and readability require manual browser review.
+
+### ADR-043 — Separate laptop device, screen-focus and content-only viewing modes
+
+- **Status:** Implemented 2026-11-03; browser acceptance pending.
+- **Decision:** Provide three clearly labeled transient viewing modes. Device and screen-focus modes frame media inside a bezel at the laptop display's native aspect ratio; device mode adds a restrained keyboard/base representation. Content-only remains an explicit option. Fullscreen is user-triggered, and exiting fullscreen leaves the viewer open in its selected mode.
+- **Reason:** Educational media should read as content shown on a laptop display, with uncluttered screen viewing available without conflating it with content-only presentation.
+- **Trade-offs:** The dialog uses a lightweight HTML device frame rather than creating a second WebGL context; actual appearance, proportions and responsive readability need browser review. Existing in-scene device presentation remains available.
+
+### ADR-044 — Accept Phase 04-C3 for MVP and hand off Phase 05
+
+- **Status:** User-approved 2026-11-02.
+- **Decision:** Record Phase 04-C3 as accepted for MVP/prototype development based on the user's confirmation that all 8/8 manual browser tests PASS. Accept the handoff to Phase 05 — Scenes, Storyboard and Scene-Time Model — for development; Phase 05 remains unstarted until work begins.
+- **Reason:** Record the explicit milestone decision while keeping prototype acceptance distinct from production-quality acceptance.
+- **Trade-offs:** Test names and individual outcomes were not supplied. Phase 04-C3 production verification remains open. The three Phase 04-C2 visual defects remain open and C2 is not accepted.
+
+### ADR-045 — Separate display-image unassignment from confirmed asset deletion
+
+- **Status:** Implemented; browser acceptance pending.
+- **Decision:** Treat clearing an image from the laptop as an assignment edit, separate from permanent removal of an imported image asset. Before deleting, recheck every project-data reference under the project lock and block while any laptop, sign, frame or future project/scene reference remains. Require explicit confirmation before deleting an unreferenced asset.
+- **Reason:** Prevent accidental loss of media still used in the studio and avoid stale project references while still supporting media-library cleanup.
+- **Trade-offs:** Users must remove references in their owning editors before retrying deletion. The dependency checker is deliberately conservative and scans serialized project data beyond current known reference locations. No project schema change is required.
+
+### ADR-046 — Gate facial expression previews on actual renderer controls
+
+- **Status:** Implemented; manual visual verification pending.
+- **Decision:** Drive ChatGPT expression presets through its existing face display and add Claude expression support only through actual eye, eyebrow and mouth geometry. Keep Kamyar, Hamid and imported GLB facial previews disabled until their renderers have verified adapters. Use action-specific timing for surprise/excitement without changing other action speeds or the accepted gaze evaluator.
+- **Reason:** A generic `facial-expression` capability must correspond to visible, controllable renderer components; model labels or mathematical pose differences alone are insufficient evidence.
+- **Trade-offs:** Visual quality and readability at podcast distance require a real browser review. No project schema, identity, customization, saved transform or C3 gaze contract changes.

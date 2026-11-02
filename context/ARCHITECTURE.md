@@ -14,7 +14,7 @@ Studio 01 decoration appearance is optional data on the existing stable prop ins
 
 Viewport fullscreen is temporary editor UI state on the existing viewport section. The browser Fullscreen API promotes that section only; it does not save project data, reset the editor camera, change the production camera, or remount the R3F scene. CSS keeps the production preview at 16:9 within the fullscreen surface, and the existing canvas resizes through its container observer. Unsupported or denied fullscreen requests return to the normal layout with a Persian status message.
 
-The laptop display viewer is a temporary HTML dialog over the editor. It reads the active project-local image/video assignment and provides browser fullscreen for the viewer only; it does not modify the 3D laptop, assignment, playback state, or editor/production cameras. Laptop close-up temporarily reframes the existing editor camera to the screen from a slight overhead angle, saving/restoring position, orientation, up vector and target while keeping its FOV unchanged. Prop selection alone does not show bounds or gizmos; the selection wireframe and TransformControls are visible only in object edit mode.
+The laptop display viewer is a temporary HTML dialog over the editor. It reads the active project-local image/video assignment and provides device, screen-focus and separately labeled content-only modes. Device/screen frames derive proportions from the shared Studio 01 laptop visual specification; fullscreen remains viewer-only and transient. The viewer does not modify playback state or editor/production cameras. Laptop close-up temporarily reframes the existing editor camera to the screen from a slight overhead angle, saving/restoring position, orientation, up vector and target while keeping its FOV unchanged. Prop selection alone does not show bounds or gizmos; the selection wireframe and TransformControls are visible only in object edit mode.
 
 ### Phase 04-C1 character preview runtime
 
@@ -26,7 +26,7 @@ The long-term product goal is timeline-driven animated podcast and educational v
 
 ### Phase 04-C2 expressive preview extension
 
-C2 extends the same pure timestamp evaluator with localized action definitions, bounded transient speed/intensity/transition/return settings, eased movement, and channel-composed pose layers with deterministic priority resolution. Emotional and gesture presets resolve only to channels declared by a model; facial preview is currently supported only by ChatGPT's existing static face-display shapes. Human and Claude renderers receive local head/arm gestures only where their pivots exist. Playback/configuration remains transient per instance and is not part of project JSON. This is still preview playback, not a scheduled behavior engine or final facial rig.
+C2 extends the pure timestamp evaluator with localized actions, bounded transient playback controls and channel-composed priority resolution. A renderer adapter applies deterministic expression weights to named face nodes for ChatGPT, Claude, Kamyar and Hamid; procedural mouths expose named shape meshes and eyes/brows receive model-appropriate local transforms. The head/gaze layer remains independent and additive. Neutral is an explicit expression preview and reset restores baseline transforms/shape visibility. Deterministic preview blinking runs only during playback. Surprise/excitement retain action-specific timing. Human support is limited to existing procedural eye, brow and mouth components; it is not full facial rigging. User has rejected the latest visual result before this recovery; automated checks do not establish visible quality. Browser review remains mandatory, and all three C2 defects remain open.
 
 ### Phase 04-C3 gaze runtime
 
@@ -294,6 +294,8 @@ The Asset Manager must:
 \- Support safe asset replacement and deletion.
 
 Deleting an asset referenced by a project must require confirmation or a safe replacement strategy.
+
+Imported display images use the project service's locked dependency check before permanent deletion. It scans serialized project data outside the asset manifest, including laptop display assignments, studio signs and frames, and future scene references. A referenced image cannot be deleted until its assignments are explicitly removed; removing a laptop assignment is a distinct operation from deleting the managed file. Successful deletion updates the manifest and project backup atomically with file cleanup.
 
 A missing asset must not crash the complete application.
 

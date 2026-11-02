@@ -1,11 +1,11 @@
 # Signal Studio AI — Development Roadmap
 
 **Document:** `context/ROADMAP.md`  
-**Status:** Phase 04-B has an MVP/prototype handoff accepted for development; functional and production verification remains open. Phase 04-C1/C2 manual preview foundations and Phase 04-C3 manual gaze preview are implemented; browser and visual acceptance remain pending. C2 has three user-reported visual failures that remain open.
+**Status:** Phase 04-B MVP/prototype handoff remains accepted with functional and production verification open. Phase 04-C3 is accepted for MVP/prototype development after the user confirmed 8/8 manual browser tests PASS (2026-11-02); production verification remains open. Phase 04-C2 has three unresolved user-reported visual failures. Phase 05 development handoff is accepted but implementation has not started.
 **Target:** Single-user Windows local application, Persian RTL editor  
-**Current stage:** The user approved Kamyar, ChatGPT, Claude, and Hamid for MVP/prototype use, authorized Phase 04-C1/C2, and explicitly authorizes Phase 04-C3 at MVP level under the AGENTS.md progression policy (2026-11-02). C1/C2/C3 have deterministic manual preview evaluators and compact Persian controls; browser behavior/visual acceptance is not yet verified. This is not final production-quality acceptance. Phase 04-B functional/browser/GPU checks remain verification debt; no itemized results are inferred. Phase 04-A and Phase 03-E retain their separately recorded acceptance. The Studio 01 realism/lighting upgrade awaits browser visual review.
+**Current stage:** The user approved Kamyar, ChatGPT, Claude, and Hamid for MVP/prototype use, authorized Phase 04-C1/C2 and C3 MVP development, and confirmed C3's 8/8 manual browser tests PASS (2026-11-02). C3 is accepted for MVP/prototype development only; production verification remains open. C1/C2 acceptance is separate. The user accepted the handoff to Phase 05 — Scenes, Storyboard and Scene-Time Model — for development; Phase 05 is authorized but not started. C2's three visual failures remain open. Phase 04-B functional/browser/GPU checks remain verification debt; no individual outcomes are inferred. Phase 04-A and Phase 03-E retain their separately recorded acceptance. The Studio 01 realism/lighting upgrade awaits browser visual review.
 
-**Current scoped refinement:** Laptop display close-up/fullscreen viewing and prop edit-overlay cleanliness are implemented with automated coverage; manual browser acceptance remains pending. No project schema changes were required.
+**Current scoped refinement:** The laptop viewer has distinct device-framed, screen-focus and content-only modes; this refinement fixes device frame sizing and adds reference-safe imported image deletion. Existing Studio 01 geometry, lighting controls, display playback and project data remain compatible. Automated checks pass; browser visual and deletion-flow acceptance remains pending. No project schema change was made.
 
 ## 1. Roadmap Rules
 
@@ -163,6 +163,8 @@ The Studio 01 room shell now includes a right-side wall and ceiling while retain
 
 **Out of scope:** AI script interpretation, advanced fade effects.
 
+**Handoff (2026-11-02):** The user accepted Phase 04-C3 for MVP/prototype use and authorized Phase 05 development. Phase 05 is accepted as the next development handoff but has not started; this does not constitute production acceptance of C3.
+
 ### Phase 04-C1 — Reusable animation foundation and manual preview (implemented; browser acceptance pending)
 
 **Implemented scope:** Pure explicit-time pose evaluation; capability-gated neutral, gentle head turn, nod, small arm gesture and return-to-idle preview; transient per-instance playback; shoulder-centered procedural arm pivots; compact Persian preview controls; demand invalidation only during active preview. Saved identity, instance, transform, placement and appearance data remain unchanged. The current model registry advertises only working procedural head/arm channels. Imported GLB skeleton/clip inspection is metadata only and no imported clip action is exposed without a runtime adapter.
@@ -173,13 +175,13 @@ The Studio 01 room shell now includes a right-side wall and ceiling while retain
 
 ### Phase 04-C2 — Expressive character preview (implemented; browser acceptance pending)
 
-Expanded C1 with emotional and gesture presets, bounded transient playback controls, eased transitions and per-channel pose priority resolution. ChatGPT's existing face display supports transient expressions; other models use only registered head/arm pivots. Automated checks are recorded in `PROGRESS_CHECKLIST.md`. Browser motion quality, responsiveness, panel usability, stop/reset behavior and visual expression remain unverified; do not mark C2 accepted until manual review.
+Expanded C1 with emotional and gesture presets, bounded transient playback controls, eased transitions and per-channel pose priority resolution. A recovery added named-node facial pose application for ChatGPT, Claude, and limited existing procedural components on Kamyar/Hamid; this is not full human facial rigging. The user rejected the visible result and C2 remains unaccepted. The original three manual failures remain open under BUG-0024; newly reported arm/hand and thinking issues are BUG-0029/0030. Automated checks are recorded in `PROGRESS_CHECKLIST.md` but do not establish visual quality. Do not mark C2 accepted until all required manual checks pass.
 
-### Phase 04-C3 — Manual character gaze and attention (implemented; browser acceptance pending)
+### Phase 04-C3 — Manual character gaze and attention (MVP accepted; production acceptance pending)
 
 Adds an explicit-time capability-gated gaze evaluator and per-instance transient editor preview. Stable character IDs resolve to actual head pivots; prop targets resolve in world space with laptop-specific display-surface targeting; the active editor camera, custom world points, manual local directions and short attention previews are supported. Existing named head pivots are used; ChatGPT's independently named iris groups provide eye direction. Unsupported human/Claude eye controls, torso controls and GLB gaze controls remain absent. Missing/hidden targets fall back safely. Gaze does not update project JSON or camera state and composes with independent expression/gesture channels.
 
-Automated checks and manual visual review are tracked in `PROGRESS_CHECKLIST.md`. C3 remains pending browser verification. C2's user-reported 9 PASS / 3 FAIL results and three expressive-visual failures remain open; C3 does not accept or resolve them. Automatic speaker-following, audio-driven gaze, timeline events, camera automation and export are out of scope.
+**MVP acceptance (2026-11-02):** The user confirmed all 8/8 manual browser tests PASS and accepted Phase 04-C3 for MVP/prototype use. Test names and per-test evidence were not supplied. This does not constitute production-quality acceptance; remaining checks are tracked in `PROGRESS_CHECKLIST.md`. C2's user-reported 9 PASS / 3 FAIL results and three expressive-visual failures remain open and are not resolved by C3 acceptance. Automatic speaker-following, audio-driven gaze, timeline events, camera automation and export are out of scope.
 
 ### Phase 05-B — Scene Prop Editing and Studio Refinement (planned, not started)
 
@@ -230,6 +232,20 @@ Automated checks and manual visual review are tracked in `PROGRESS_CHECKLIST.md`
 **Acceptance:** Mixed recording alternates correct visible mouth animation; unknown/audio-only speakers do not animate unrelated mouths; gaze can target another visible actor; scene seeks show correct state immediately; unsupported behaviors disabled; simultaneous compatible layers work; tested screenshots/video capture where possible.
 
 **Out of scope:** Phoneme-perfect Persian lip sync, auto-rigging arbitrary GLB models.
+
+### Phase 08-A — Natural Character Acting Refinement (planned; not started or authorized)
+
+**Purpose:** Refine the limited preview foundation into a reusable, model-capability-aware acting library after the applicable timeline and animation prerequisites. This is a future target milestone only; it does not alter the current Phase 05 development handoff or claim any acting action is implemented.
+
+**Target emotional/social states:** Neutral, happy, excited, laughing, sad, angry, worried, afraid, surprised, confused, thinking, curious, embarrassed, frustrated, agreeing, disagreeing, listening, speaking and celebrating.
+
+**Target body/hand actions:** Hand-to-chin thinking; pointing to people/props; open-hand explanation; wave; thumbs-up; nod, head shake, shrug; folded arms; hands resting on desk; leaning forward/back; thoughtful look-away; sitting/standing; and holding compatible educational props. Each action is exposed only where the model has real controls. Hand-to-chin requires controllable arm/shoulder, elbow, wrist and hand joints; do not substitute head motion and call it a hand gesture.
+
+**Architecture requirements:** Keep facial expression, gaze, head, torso, arms, hands and posture as separate composable channels; coordinate channels into performances using model-specific capabilities, safe joint limits, blending, priority, interruption, manual override and smooth transitions. Evaluate deterministically from explicit scene timestamps, support arbitrary-time seeking and future frame export, preserve saved world transforms, and allow multiple independent characters to act simultaneously. Reserve compatible channels for speech-driven lip sync/listener reactions and interactions with laptops, whiteboards, microphones, phones and other props. Keep integrated AMD Radeon performance in scope.
+
+**Acceptance:** Real-browser review confirms distinct supported emotions, visible eyes/brows/mouth, natural smiling/laughing and thinking gestures where supported, responsive excitement, smooth transitions, correct stop/reset, accepted C3 gaze coexistence, unchanged saved transforms, safe joint/prop clearance and acceptable performance with multiple characters. Automated tests alone cannot satisfy visual acceptance. Keep BUG-0024, BUG-0029 and BUG-0030 open until manual verification.
+
+**Out of scope:** Claiming full facial rigging on current MVP human models, enabling unsupported GLB actions, or replacing audio/dialogue/timeline/camera/subtitle/MP4 requirements. Long-term synchronized audio, dialogue, deterministic timeline, cinematic camera, educational presentation, subtitles and MP4 export remain part of the product goal and their existing phases.
 
 ## 12. Phase 09 — Camera and Director Tools
 

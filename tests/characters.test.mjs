@@ -23,7 +23,7 @@ test("character registry validates stable models, renderer keys, capabilities, f
   assert.ok(Array.isArray(model.seatPositionOffset));
   assert.ok(Number.isFinite(model.seatYawOffsetRadians));
   assert.equal("preferredAnchorRoles" in model, false, "seat selection must not be model-specific");
-  assert.deepEqual(model.capabilities.animationCapabilities, ["head-rotation", "arm-gesture"]);
+  assert.deepEqual(model.capabilities.animationCapabilities, ["head-rotation", "arm-gesture", "facial-expression"]);
   assert.equal(characterModelDefinitionSchema.safeParse({ ...model, defaultTransform: { ...model.defaultTransform, scale: [0, 1, 1] } }).success, false);
 });
 
@@ -135,14 +135,14 @@ test("tabletop and platform placement aligns model support points and rejects in
 });
 
 test("ChatGPT static expression presets coordinate distinct eyes, brows and real mouth shapes", () => {
-  assert.deepEqual(chatGptExpressionNames, ["neutral", "happy", "sad", "angry", "surprised", "worried", "confused", "thinking", "listening", "speaking", "excited"]);
-  assert.equal(new Set(Object.values(chatGptExpressionPresets).map((preset) => preset.mouth)).size, 6);
+  assert.deepEqual(chatGptExpressionNames, ["neutral", "happy", "sad", "angry", "surprised", "worried", "confused", "thinking", "listening", "speaking", "excited", "laughing"]);
+  assert.equal(new Set(Object.values(chatGptExpressionPresets).map((preset) => preset.mouth)).size, 7);
   assert.ok(new Set(Object.values(chatGptExpressionPresets).map((preset) => preset.eyeScaleY)).size > 5);
   assert.ok(new Set(Object.values(chatGptExpressionPresets).map((preset) => preset.browAngle.join(","))).size > 4);
   for (const expression of chatGptExpressionNames) {
     const preset = chatGptExpressionPresets[expression];
     assert.ok(preset.mouthScale[0] > 0 && preset.mouthScale[1] > 0, `${expression} must select a visible mouth shape`);
-    assert.ok(["line", "smile", "frown", "open", "small-open", "tilted-line"].includes(preset.mouth));
+    assert.ok(["line", "smile", "frown", "open", "small-open", "laughing-open", "tilted-line"].includes(preset.mouth));
   }
   assert.equal(resolveChatGptExpression("friendly"), "happy");
   assert.equal(resolveChatGptExpression("focused"), "thinking");
@@ -185,7 +185,7 @@ test("production model definitions and capability-backed appearances are distinc
   assert.equal(new Set(models.map((model) => model.id)).size, 4);
   assert.equal(new Set(models.map((model) => model.rendererKey)).size, 4);
   assert.deepEqual(models.map((model) => model.capabilities.animationCapabilities), [
-    ["head-rotation", "arm-gesture"], ["head-rotation", "arm-gesture", "facial-expression", "eyes"], ["head-rotation"], ["head-rotation", "arm-gesture"],
+    ["head-rotation", "arm-gesture", "facial-expression"], ["head-rotation", "arm-gesture", "facial-expression", "eyes"], ["head-rotation", "facial-expression"], ["head-rotation", "arm-gesture", "facial-expression"],
   ]);
   let data = emptyCharacterData();
   const firstId = randomUUID(); const secondId = randomUUID();
@@ -208,7 +208,7 @@ test("Hamid is an independent registered human with a shaped torso and persisten
   assert.equal(model.forwardAxis, "+Z");
   assert.deepEqual(model.defaultTransform.scale, [0.72, 0.72, 0.72]);
   assert.ok(model.placementKinds.includes("seat"));
-  assert.deepEqual(model.capabilities.animationCapabilities, ["head-rotation", "arm-gesture"], "declared channels are wired to functional local pose pivots");
+  assert.deepEqual(model.capabilities.animationCapabilities, ["head-rotation", "arm-gesture", "facial-expression"], "declared channels are wired to functional local face controls");
   assert.equal(model.customizationFields.find((field) => field.key === "hairStyle").defaultValue, "short-fade");
   assert.equal(model.customizationFields.find((field) => field.key === "beardStyle").defaultValue, "light-stubble");
   assert.equal(model.customizationFields.find((field) => field.key === "clothingColor").defaultValue, "#111315");
@@ -278,7 +278,7 @@ test("Kamyar uses a distinct stylized head, attached hair and beard shells, and 
   assert.ok(kamyar.attachmentPoints.includes("head-pivot"));
   assert.ok(kamyar.attachmentPoints.includes("facial-hair-pivot"));
   assert.ok(kamyar.attachmentPoints.includes("left-hand-pivot"));
-  assert.deepEqual(kamyar.capabilities.animationCapabilities, ["head-rotation", "arm-gesture"], "preview channels are declared only after the pivots are wired");
+  assert.deepEqual(kamyar.capabilities.animationCapabilities, ["head-rotation", "arm-gesture", "facial-expression"], "preview channels are declared only after the face controls are wired");
 
   const head = createKamyarHeadGeometry();
   const hair = createKamyarHairGeometry("parted");
@@ -429,11 +429,11 @@ test("ChatGPT keeps its stable model contract and renders an expressive face wit
   assert.match(chatgptRenderer, /name="eyebrow"/);
   assert.match(chatgptRenderer, /name="eye-shape"/);
   assert.match(chatgptRenderer, /name="mouth-display"/);
-  assert.match(chatgptRenderer, /"friendly-smile"/);
+  assert.match(renderer, /name="mouth-smile"/);
+  assert.match(renderer, /name="mouth-frown"/);
   assert.match(chatgptRenderer, /resolveChatGptExpression\(appearance\.faceStyle\)/);
   assert.match(chatgptRenderer, /chatGptExpressionPresets\[face\]/);
-  assert.match(chatgptRenderer, /expression\.mouth === "open" \|\| expression\.mouth === "small-open"/);
-  assert.match(chatgptRenderer, /neutral-mouth-line/);
+  assert.match(chatgptRenderer, /<ExpressionMouth expression=\{face\}/);
   assert.match(chatgptRenderer, /name="iris"/);
   assert.match(chatgptRenderer, /name="openai-chest-logo"/);
   assert.match(renderer, /const chatGPTLogoPlane = new PlaneGeometry\(0\.22, 0\.22\)/);

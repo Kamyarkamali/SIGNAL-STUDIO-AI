@@ -3,6 +3,8 @@ import { test } from "node:test";
 import { readFile } from "node:fs/promises";
 import { defaultArrangement } from "../src/lib/environments/arrangement.ts";
 import { getLaptopInspectionPose } from "../src/lib/environments/laptop-view.ts";
+import { laptopVisualSpec } from "../src/lib/environments/studio-visual-spec.ts";
+import { Euler, Vector3 } from "three";
 import { initialLaptopViewerState, reduceLaptopViewerState } from "../src/lib/environments/laptop-viewer-state.ts";
 
 test("laptop close-up frames the screen from the front and above in world coordinates", () => {
@@ -17,9 +19,26 @@ test("laptop close-up frames the screen from the front and above in world coordi
   assert.ok(Math.hypot(...pose.up) > 0.99, "camera up follows the transformed screen orientation");
 });
 
+test("laptop viewing camera faces the transformed screen and real screen/hinge/body dimensions align", () => {
+  const laptop = defaultArrangement().props.find((item) => item.id === "studio-01:laptop");
+  const pose = getLaptopInspectionPose(laptop.transform);
+  const screenNormal = new Vector3(0, 0, 1).applyEuler(new Euler(laptopVisualSpec.screenTilt, 0, 0)).applyEuler(new Euler(...laptop.transform.rotation));
+  const towardCamera = pose.position.map((value, index) => value - pose.target[index]);
+  assert.ok(towardCamera[0] * screenNormal.x + towardCamera[1] * screenNormal.y + towardCamera[2] * screenNormal.z > 1.1);
+  assert.equal(laptopVisualSpec.screenSurfaceSize[0] / laptopVisualSpec.screenFrameSize[0], 0.9);
+  assert.ok(Math.abs(laptopVisualSpec.screenCenter[1] - laptopVisualSpec.screenFrameSize[1] / 2) < 1e-9);
+  const bodyRearEdge = 0.03 - laptopVisualSpec.baseSize[2] / 2;
+  assert.ok(Math.abs(bodyRearEdge - laptopVisualSpec.hingeZ) <= 0.02, "hinges meet the base at its rear edge");
+  assert.ok(Math.abs(laptopVisualSpec.screenTilt) < 0.3, "screen stays near upright at a natural open angle");
+});
+
 test("fullscreen laptop viewer state opens, follows fullscreen events, and closes cleanly", () => {
   const opened = reduceLaptopViewerState(initialLaptopViewerState, { type: "open" });
-  assert.deepEqual(opened, { open: true, fullscreen: false, message: null });
+  assert.deepEqual(opened, { open: true, fullscreen: false, message: null, mode: "device" });
+  const screen = reduceLaptopViewerState(opened, { type: "mode", value: "screen" });
+  const fullscreenScreen = reduceLaptopViewerState(screen, { type: "fullscreen", value: true });
+  assert.equal(fullscreenScreen.mode, "screen", "fullscreen transitions preserve the selected viewing mode");
+  assert.equal(reduceLaptopViewerState(fullscreenScreen, { type: "fullscreen", value: false }).mode, "screen");
   const fullscreen = reduceLaptopViewerState(opened, { type: "fullscreen", value: true });
   assert.equal(fullscreen.open, true);
   assert.equal(fullscreen.fullscreen, true);
@@ -41,8 +60,24 @@ test("inspection camera restores position, orientation, up vector, target, and F
   assert.match(viewer, /toggleElementFullscreen\(dialog, document\)/);
   assert.doesNotMatch(viewer, /camera\./, "the media dialog does not mutate editor or production camera state");
   assert.match(viewer, /fullscreenchange/);
+  assert.doesNotMatch(viewer, /if \(wasFullscreen\.current && !fullscreen && dialog\?\.open\) dialog\.close\(\)/, "Escape from fullscreen keeps the viewer open and preserves its selected mode");
   assert.match(viewer, /<video key=\{mediaUrl\} src=\{mediaUrl\} autoPlay=\{playing\} controls/);
   assert.match(viewer, /<Image src=\{mediaUrl\}/);
+  assert.match(viewer, /value=\{state\.mode\}/);
+  assert.match(viewer, /نمای دستگاه/);
+  assert.match(viewer, /تمرکز روی صفحه/);
+  assert.match(viewer, /محتوا فقط/);
+  assert.match(viewer, /aspectRatio: String\(screenAspect\)/);
+  assert.match(viewer, /aspectRatio: String\(frameAspect\)/);
+  assert.match(viewer, /laptop-hinge/);
+  assert.match(viewer, /laptop-device-keyboard/);
+  assert.match(viewer, /toggleElementFullscreen\(dialog, document\)/);
+  assert.match(css, /\.laptop-screen-bezel/);
+  assert.match(css, /\.laptop-screen-bezel\s*\{[^}]*width:\s*100%/);
+  assert.match(css, /\.laptop-screen-bezel\s*\{[^}]*aspect-ratio:\s*0\.9\s*\/\s*0\.47/);
+  assert.match(css, /\.laptop-screen-media\s*\{[^}]*width:\s*90%[^}]*height:\s*81\.28%/);
+  assert.match(css, /\.laptop-device-keyboard/);
+  assert.match(css, /\.laptop-content-only/);
   assert.match(editor, /<LaptopDisplayViewer project=\{project\} assignment=\{assignment\} playing=\{playing\}/);
   assert.match(css, /laptop-display-viewer:fullscreen/);
   assert.match(laptop, /<DisplaySurface assignment=\{assignment\} url=\{url\} playing=\{playing\}/);
