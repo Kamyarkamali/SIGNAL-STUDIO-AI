@@ -26,8 +26,10 @@ function VectorFields({ label, value, onChange, tooltip, rotation = false, scale
   </fieldset>;
 }
 
-export function SceneConfigurationPanel({ scene, characters, baseArrangement, arrangement, resolutionWarning, anchors, onEnvironmentChange, onCharacterAdd, onCharacterRemove, onCharacterChange, onPropChange, onLightingChange, onCameraChange, onCameraPreset, onSaveEditorView, previewing, inspectionActive = false, onPreviewChange, onHelp }: {
+export function SceneConfigurationPanel({ scene, characters, baseArrangement, arrangement, resolutionWarning, anchors, view = "scene", fps = 30, onRename, onDurationChange, onEnvironmentChange, onCharacterAdd, onCharacterRemove, onCharacterChange, onPropChange, onLightingChange, onCameraChange, onCameraPreset, onSaveEditorView, previewing, inspectionActive = false, onPreviewChange, onHelp }: {
   scene: SceneDefinition | null; characters: CharacterProjectData; baseArrangement: EnvironmentArrangement | null; arrangement: EnvironmentArrangement | null;
+  view?: "scene" | "camera"; fps?: number;
+  onRename?: (id: string, name: string) => void; onDurationChange?: (id: string, seconds: number) => void;
   resolutionWarning?: string;
   anchors: readonly { id: string; displayName?: string; kind?: string }[];
   onEnvironmentChange: (environmentId: string) => void;
@@ -41,7 +43,7 @@ export function SceneConfigurationPanel({ scene, characters, baseArrangement, ar
   onHelp: (topic: ContextHelpId) => void;
 }) {
   const environments = environmentRegistry.list();
-  if (!scene) return <section className="scene-config-panel p-3" aria-label="تنظیم سکانس"><header className="flex items-center gap-2"><h2 className="text-sm font-bold">تنظیمات سکانس</h2><ContextHelpTrigger topic="sceneConfiguration" onOpen={onHelp} /></header><p className="mt-3 text-xs leading-6 text-muted">برای ویرایش تنظیمات مستقل، ابتدا از استوری‌بورد یک سکانس بسازید یا انتخاب کنید.</p></section>;
+  if (!scene) return <section className="scene-config-panel p-3" aria-label={view === "camera" ? "تنظیم دوربین" : "تنظیم سکانس"}><header className="flex items-center gap-2"><h2 className="text-sm font-bold">{view === "camera" ? "دوربین تولید" : "تنظیمات سکانس"}</h2><ContextHelpTrigger topic={view === "camera" ? "productionCamera" : "sceneConfiguration"} onOpen={onHelp} /></header><p className="mt-3 text-xs leading-6 text-muted">برای ویرایش، ابتدا در بخش سکانس‌ها یک سکانس بسازید یا انتخاب کنید.</p></section>;
   const sceneCharacters = Object.entries(scene.characters).flatMap(([id, config]) => {
     const instance = characters.characterInstances[id]; const identity = instance && characters.characterIdentities[instance.characterId];
     return instance && identity ? [{ id, config, state: characters.characterStates[id], identity }] : [];
@@ -61,9 +63,24 @@ export function SceneConfigurationPanel({ scene, characters, baseArrangement, ar
   const targetExists = !cameraTargetRef || cameraTargetRef.kind === "character-instance"
     ? !cameraTargetRef || Boolean(scene.characters[cameraTargetRef.id] && characters.characterInstances[cameraTargetRef.id])
     : Boolean(arrangement?.props.some((prop) => prop.id === cameraTargetRef.id && prop.visible));
-  return <section className="scene-config-panel flex min-h-full flex-col overflow-y-auto rounded-xl border border-line bg-surface p-3" aria-labelledby="scene-config-title">
-    <header className="flex items-center justify-between gap-2"><div className="min-w-0"><h2 id="scene-config-title" className="truncate text-sm font-bold">تنظیمات سکانس · {scene.name}</h2><p className="mt-0.5 text-[10px] text-muted">تغییرها فقط برای همین سکانس ذخیره می‌شوند.</p></div><ContextHelpTrigger topic="sceneConfiguration" onOpen={onHelp} /></header>
-    <details open className="mt-3 border-t border-line pt-2"><summary className="flex cursor-pointer list-none items-center justify-between text-xs font-bold focus-visible:outline-2 focus-visible:outline-accent">محیط و وسایل <ContextHelpTrigger topic="sceneEnvironment" onOpen={onHelp} /></summary>
+  return <section className="scene-config-panel flex min-h-full flex-col rounded-xl border border-line bg-surface p-3" aria-labelledby="scene-config-title">
+    <header className="flex items-center justify-between gap-2"><div className="min-w-0"><h2 id="scene-config-title" className="truncate text-sm font-bold">{view === "camera" ? "دوربین تولید" : "ویژگی‌های سکانس"} · {scene.name}</h2><p className="mt-0.5 text-xs text-muted">تغییرها فقط برای همین سکانس ذخیره می‌شوند.</p></div><ContextHelpTrigger topic={view === "camera" ? "productionCamera" : "sceneConfiguration"} onOpen={onHelp} /></header>
+    {view === "scene" && <>
+      <div className="mt-3 grid gap-3 rounded-lg border border-line bg-[#111b26] p-3">
+        <label className="text-xs font-semibold">نام سکانس
+          <input key={`${scene.id}:${scene.name}`} className={`mt-1 w-full ${field}`} defaultValue={scene.name} maxLength={80}
+            title="نام همین سکانس را تغییر می‌دهد؛ با خروج از کادر یا Enter ثبت می‌شود."
+            onBlur={(event) => { const name = event.currentTarget.value.trim(); if (name && name !== scene.name) onRename?.(scene.id, name); }}
+            onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} />
+        </label>
+        <label className="text-xs font-semibold">مدت سکانس · ثانیه
+          <input key={`${scene.id}:${scene.durationFrames}`} className={`mt-1 w-full ${field}`} type="number" min={1 / fps} max={3600} step={1 / fps} defaultValue={+(scene.durationFrames / fps).toFixed(3)}
+            title="مدت همین سکانس را بر حسب ثانیه تغییر می‌دهد؛ زمان سکانس‌های بعدی دوباره محاسبه می‌شود."
+            onBlur={(event) => { const seconds = Number(event.currentTarget.value); if (Number.isFinite(seconds) && seconds > 0 && Math.round(seconds * fps) !== scene.durationFrames) onDurationChange?.(scene.id, seconds); }}
+            onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} />
+        </label>
+      </div>
+    <details className="mt-3 border-t border-line pt-2"><summary className="flex cursor-pointer list-none items-center justify-between text-xs font-bold focus-visible:outline-2 focus-visible:outline-accent" title="حضور شخصیت، چیدمان وسایل و نور همین سکانس را نشان می‌دهد.">تنظیمات پیشرفتهٔ محیط و شخصیت‌ها <ContextHelpTrigger topic="sceneEnvironment" onOpen={onHelp} /></summary>
       <label className="mt-2 block text-[11px] text-muted" title="محیط سه‌بعدی این سکانس را از محیط‌های واقعاً ثبت‌شده انتخاب می‌کند.">محیط این سکانس
         <select className={`mt-1 w-full ${field}`} value={scene.environmentId ?? baseArrangement?.environmentId ?? ""} disabled={!environments.length || environments.length === 1}
           title="محیط سه‌بعدی ذخیره‌شده برای همین سکانس را انتخاب می‌کند؛ کتابخانه فعلاً یک محیط آماده دارد."
@@ -113,9 +130,11 @@ export function SceneConfigurationPanel({ scene, characters, baseArrangement, ar
         {scene.lightingOverride && <button type="button" className={`${button} mt-2 w-full`} title="تنظیم نور این سکانس را پاک می‌کند و نور پیش‌فرض پروژه را دوباره به ارث می‌برد." onClick={() => onLightingChange(undefined)}>بازگشت به نور پروژه</button>}
       </div>}
     </details>
-    <details open className="mt-3 border-t border-line pt-2"><summary className="flex cursor-pointer list-none items-center justify-between text-xs font-bold focus-visible:outline-2 focus-visible:outline-accent">دوربین تولید <ContextHelpTrigger topic="productionCamera" onOpen={onHelp} /></summary>
-      <p className="mt-1 text-[10px] leading-5 text-muted">این دوربین برای نمای تولید همین سکانس است؛ حرکت دوربین ویرایش را هنگام پیش‌نمایش موقتاً جایگزین می‌کند و موقعیت شخصیت‌ها را تغییر نمی‌دهد.</p>
+    </>}
+    {view === "camera" && <div className="mt-3 border-t border-line pt-3">
+      <p className="mt-1 text-xs leading-5 text-muted">این دوربین برای نمای تولید همین سکانس است؛ حرکت دوربین ویرایش را هنگام پیش‌نمایش موقتاً جایگزین می‌کند و موقعیت شخصیت‌ها را تغییر نمی‌دهد.</p>
       <div className="mt-2 grid grid-cols-2 gap-1.5">{presets.map((preset) => { const disabled = preset.id === "two-character" && visibleCharacterCount < 2 || preset.id === "group" && visibleCharacterCount < 3 || preset.id === "character-close-up" && visibleCharacterCount < 1 || preset.id === "laptop-focused" && !laptopAvailable; return <button key={preset.id} type="button" className={button} disabled={disabled} title={disabled ? "برای استفاده از این نما، محتوای لازم را به همین سکانس اضافه یا نمایان کنید." : preset.tooltip} onClick={() => onCameraPreset(preset.id)}>{preset.label}</button>; })}</div>
+      <details className="mt-3 rounded-md border border-line p-2"><summary className="cursor-pointer text-xs font-semibold focus-visible:outline-2 focus-visible:outline-accent" title="مختصات، هدف، قاب و بزرگ‌نمایی دقیق دوربین تولید را نشان می‌دهد.">تنظیمات پیشرفتهٔ دوربین</summary>
       <VectorFields label="موقعیت دوربین" value={camera.position} tooltip="موقعیت دوربین تولید این سکانس را بر حسب X، Y و Z ذخیره می‌کند." onChange={(position) => onCameraChange({ ...camera, position })} />
       <VectorFields label="هدف نگاه»" value={camera.target} tooltip="نقطه‌ای را تعیین می‌کند که دوربین تولید این سکانس به آن نگاه می‌کند." onChange={(target) => onCameraChange({ ...camera, target, orientationMode: "look-at" })} />
       <VectorFields label="چرخش دوربین · درجه" value={camera.rotation} rotation tooltip="چرخش محلی دوربین تولید را نگه می‌دارد و فقط در حالت جهت‌گیری چرخشی به‌کار می‌رود." onChange={(rotation) => onCameraChange({ ...camera, rotation, orientationMode: "rotation" })} />
@@ -128,7 +147,8 @@ export function SceneConfigurationPanel({ scene, characters, baseArrangement, ar
           <option value="none">نقطهٔ ثابت دوربین</option>{sceneCharacters.filter((item) => item.config.visible).map((item) => <option key={item.id} value={`character-instance:${item.id}`}>شخصیت: {item.identity.name}</option>)}{(arrangement?.props ?? []).filter((prop) => prop.visible).map((prop) => <option key={prop.id} value={`prop-instance:${prop.id}`}>وسیله: {prop.id}</option>)}
         </select></label>
       {cameraTargetRef && !targetExists && <p role="status" className="mt-1 text-[10px] text-amber-200">هدف ذخیره‌شده پیدا نشد؛ پیش‌نمایش از نقطهٔ ثابت دوربین استفاده می‌کند.</p>}
+      </details>
       <div className="mt-2 grid grid-cols-2 gap-1.5"><button type="button" className={button} disabled={previewing} title="موقعیت و هدف دوربین ویرایشگر را به تنظیم تولید همین سکانس کپی می‌کند؛ دوربین ویرایشگر دست‌نخورده می‌ماند." onClick={onSaveEditorView}>ذخیره نمای فعلی</button><button type="button" className={button} aria-pressed={previewing} disabled={!previewing && inspectionActive} title={inspectionActive && !previewing ? "ابتدا نمایش نزدیک لپ‌تاپ یا وسیله را ببندید؛ سپس دوربین تولید را پیش‌نمایش کنید." : previewing ? "پیش‌نمایش دوربین تولید را می‌بندد و نمای ویرایشگر قبلی را برمی‌گرداند." : "دوربین تولید ذخیره‌شده برای همین سکانس را موقتاً در نما نشان می‌دهد."} onClick={() => onPreviewChange(!previewing)}>{previewing ? "بازگشت به ویرایش" : "پیش‌نمایش تولید"}</button></div>
-    </details>
+    </div>}
   </section>;
 }

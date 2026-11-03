@@ -31,3 +31,7 @@ test-results/
 *.mov
 *.wav
 *.mp3
+# Private AI development context
+/context/
+/AGENTS.md
+/references/

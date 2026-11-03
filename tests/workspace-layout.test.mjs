@@ -42,18 +42,40 @@ test("editor layout retains the viewport, timeline and existing feature panels",
   assert.match(styles, /@media \(max-width: 767px\)/);
   assert.match(shell, /<WorkspaceResizeHandle\s+axis="x"/);
   assert.match(shell, /timelineHeight/);
-  assert.match(shell, /بازنشانی چیدمان/);
+  assert.match(shell, /<WorkspaceSettings[\s\S]*?onReset=\{\(\) =>/);
+  const settings = readFileSync(new URL("../src/components/layout/workspace-settings.tsx", import.meta.url), "utf8");
+  assert.match(settings, /بازنشانی چیدمان/);
 });
 
 test("inspector follows scene and object selection while Projects remains a single management view", () => {
   const shell = readFileSync(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8");
   const properties = readFileSync(new URL("../src/components/layout/properties-panel.tsx", import.meta.url), "utf8");
-  assert.match(shell, /setActiveSection\("scenes"\);\s*dispatchPanel\(\{ type: "selection" \}\)/);
+  assert.match(shell, /\["projects", "help", "settings"\]\.includes\(activeSection\)\) setActiveSection\("scenes"\)/);
   assert.match(shell, /setActiveSection\("characters"\);[\s\S]*?dispatchPanel\(\{ type: "selection" \}\)/);
   assert.match(shell, /setActiveSection\("environments"\);[\s\S]*?dispatchPanel\(\{ type: "selection" \}\)/);
   assert.match(shell, /activeSection === "projects" \? \([\s\S]*?<ProjectManager projects=\{projects\} \/>/);
-  assert.match(shell, /hidden=\{\s*!\(\s*activeSection === "characters"\s*\|\|\s*activeSection === "scenes"\s*\|\|\s*activeSection === "environments"\s*\|\|\s*activeSection === "animations"\s*\)\s*\|\|\s*inspectorView !== "properties"\s*\}/);
+  assert.match(shell, /hidden=\{\s*!\(\s*activeSection === "camera"\s*\|\|\s*activeSection === "characters"\s*\|\|\s*activeSection === "scenes"\s*\|\|\s*activeSection === "environments"\s*\|\|\s*activeSection === "animations"\s*\)\s*\|\|\s*inspectorView !== "properties"\s*\}/);
   assert.match(shell, /topic=\{inspectorHelpTopic\}/);
   assert.match(properties, /selected\.definitionId === "prop:laptop" && project &&\s*\(\s*<details/);
   assert.match(properties, /برای ویرایش وسایل، پروژه‌ای باز کنید و به بخش محیط‌ها بروید/);
+});
+
+test("primary navigation exposes six working tools and keeps project and animation actions reachable", () => {
+  const navigation = readFileSync(new URL("../src/components/navigation/workspace-navigation.tsx", import.meta.url), "utf8");
+  assert.match(navigation, /primarySections: SectionId\[\] = \["scenes", "characters", "audio", "camera", "environments", "settings"\]/);
+  assert.match(navigation, /utilitySections: SectionId\[\] = \["projects", "animations"\]/);
+  assert.match(navigation, /data-section=\{section\}/);
+  assert.match(navigation, /aria-current=\{activeSection === section \? "page"/);
+  assert.match(navigation, /aria-label=\{item\.label\}/);
+  assert.doesNotMatch(navigation, /primarySections[\s\S]*?"dialogue"|primarySections[\s\S]*?"export"/);
+});
+
+test("scene inspector keeps basic identity and duration ahead of advanced scene and camera controls", () => {
+  const scene = readFileSync(new URL("../src/components/scenes/scene-configuration-panel.tsx", import.meta.url), "utf8");
+  const shell = readFileSync(new URL("../src/components/layout/editor-shell.tsx", import.meta.url), "utf8");
+  assert.match(scene, /view === "scene" && <>[\s\S]*?نام سکانس[\s\S]*?مدت سکانس · ثانیه/);
+  assert.match(scene, /<details className="mt-3 border-t border-line pt-2"><summary[\s\S]*?تنظیمات پیشرفتهٔ محیط و شخصیت‌ها/);
+  assert.match(scene, /view === "camera" && <div[\s\S]*?تنظیمات پیشرفتهٔ دوربین/);
+  assert.match(shell, /view=\{activeSection === "camera" \? "camera" : "scene"\}/);
+  assert.match(shell, /onDurationChange=\{updateSceneDuration\}/);
 });

@@ -18,8 +18,8 @@ export const futureTrackKinds = [
 export const sceneActionTypes = [
   "head-turn", "head-nod", "quick-nod", "head-shake", "arm-gesture", "hand-wave", "explain",
   "happy", "excited", "surprised", "sad", "angry", "worried", "confused", "thinking",
-  "listening", "agreeing", "disagreeing", "laughing", "celebrating", "return-idle",
-  "gaze-character", "gaze-prop",
+  "speaking", "listening", "agreeing", "disagreeing", "laughing", "celebrating", "return-idle",
+  "gaze-character", "gaze-prop", "gaze-camera",
 ] as const;
 export const sceneActionEventSchema = z.object({
   id: z.uuid(),
@@ -32,13 +32,16 @@ export const sceneActionEventSchema = z.object({
   priority: z.number().int().min(-100).max(100).default(0),
   intensity: z.number().finite().min(0.25).max(1.5).default(1),
   speed: z.number().finite().min(0.5).max(2).default(1),
-  targetKind: z.enum(["character", "prop"]).optional(),
+  targetKind: z.enum(["character", "prop", "camera"]).optional(),
   targetId: z.string().trim().min(1).max(120).optional(),
 }).strict().superRefine((event, context) => {
   if ((event.action === "gaze-character" || event.action === "gaze-prop") && (!event.targetId || event.targetKind !== (event.action === "gaze-character" ? "character" : "prop"))) {
     context.addIssue({ code: "custom", message: "Gaze events require a matching stable scene target." });
   }
-  if (event.action !== "gaze-character" && event.action !== "gaze-prop" && (event.targetId || event.targetKind)) {
+  if (event.action === "gaze-camera" && (event.targetKind !== "camera" || event.targetId)) {
+    context.addIssue({ code: "custom", message: "Camera gaze requires a camera target without an instance ID." });
+  }
+  if (!event.action.startsWith("gaze-") && (event.targetId || event.targetKind)) {
     context.addIssue({ code: "custom", message: "Only gaze events can reference a target." });
   }
 });
@@ -94,6 +97,7 @@ export const sceneDefinitionSchema = z.object({
   productionCamera: sceneCameraSchema,
   tracks: z.array(sceneTrackSchema).max(200),
   actionEvents: z.array(sceneActionEventSchema).max(5000).default([]),
+  behaviorMode: z.enum(["automatic", "manual", "hybrid"]).optional(),
   directionNotes: z.string().max(4000),
 }).strict().superRefine((scene, context) => {
   const ids = new Set<string>();

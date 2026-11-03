@@ -13,6 +13,7 @@ import "./environment.test.mjs";
 import "./arrangement.test.mjs";
 import "./display.test.mjs";
 import "./audio.test.mjs";
+import "./audio-behavior.test.mjs";
 import "./unified-timeline.test.mjs";
 import "./laptop-viewer.test.mjs";
 import "./characters.test.mjs";

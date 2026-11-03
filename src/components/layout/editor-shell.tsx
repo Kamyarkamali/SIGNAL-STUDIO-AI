@@ -11,6 +11,7 @@ import {
 } from "react";
 import { navigationItems, helpItem, type SectionId } from "@/config/navigation";
 import { WorkspaceNavigation } from "@/components/navigation/workspace-navigation";
+import { WorkspaceSettings } from "@/components/layout/workspace-settings";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceResizeHandle } from "./workspace-resize-handle";
 import {
@@ -95,6 +96,7 @@ import {
   reorderScene,
   reorderSceneActionEvent,
   setSceneCamera,
+  setSceneBehaviorMode,
   setSceneDuration,
   updateSceneActionEvent,
   updateSceneContent,
@@ -134,6 +136,7 @@ import {
 import type { ProductionCameraConfig } from "@/lib/camera/production-camera";
 import { captureSceneCamera } from "@/lib/scenes/capture-scene-camera";
 import { evaluateSceneCharacterActions } from "@/lib/scenes/scene-action-evaluation";
+import { resolveAudioBehaviorAtFrame } from "@/lib/scenes/audio-behavior";
 import type {
   SceneActionEvent,
   SceneDefinition,
@@ -180,6 +183,7 @@ export function EditorShell() {
     status: PlaybackStatus;
   }>({ projectId: null, frame: 0, status: "stopped" });
   const playStartFrameRef = useRef(0);
+  const [playbackRestart, restartPlayback] = useState(0);
   const editorCameraCaptureRef = useRef<(() => ProductionCameraConfig) | null>(
     null,
   );
@@ -230,7 +234,7 @@ export function EditorShell() {
   const openSection = (section: SectionId) => {
     focusInspectorAfterNavigation.current = true;
     setActiveSection(section);
-    dispatchPanel({ type: "section" });
+    dispatchPanel({ type: section === "camera" ? "selection" : "section" });
   };
   useEffect(() => {
     if (!inspectorOpen || !focusInspectorAfterNavigation.current) return;
@@ -357,7 +361,14 @@ export function EditorShell() {
     totalFrames,
     projectFps,
     setProjectPlayback,
+    playbackRestart,
   ]);
+  const activeDialogue = useMemo(() => activeScene && activeSceneTime
+    ? resolveAudioBehaviorAtFrame({ audio: projects.audio, scene: activeScene,
+        sceneStartFrame: activeSceneTime.startFrame, projectFrame: activePlayback.frame,
+        fps: projectFps, characters: sceneCharacterData })
+    : null,
+  [activeScene, activeSceneTime, activePlayback.frame, projectFps, projects.audio, sceneCharacterData]);
   const scheduledActions = useMemo(() => {
     if (!activeScene) return {};
     const capabilities: Record<
@@ -391,8 +402,13 @@ export function EditorShell() {
       joints[instanceId] = model && !model.glb ? model.attachmentPoints : [];
       if (model && supportedGazeCapability(model)) gazeCapable.add(instanceId);
     }
+    const behaviorMode = activeScene.behaviorMode ?? "hybrid";
+    const evaluationScene = behaviorMode === "manual" ? activeScene
+      : { ...activeScene, actionEvents: behaviorMode === "automatic"
+          ? activeDialogue?.actions ?? []
+          : [...activeScene.actionEvents, ...(activeDialogue?.actions ?? [])] };
     return evaluateSceneCharacterActions(
-      activeScene,
+      evaluationScene,
       activeSceneTime?.localFrame ?? 0,
       projectFps,
       capabilities,
@@ -402,6 +418,7 @@ export function EditorShell() {
   }, [
     activeScene,
     activeSceneTime?.localFrame,
+    activeDialogue,
     projectFps,
     sceneCharacterData,
   ]);
@@ -416,14 +433,14 @@ export function EditorShell() {
               actionId: "neutral" as const,
               startedAtMs: 0,
               durationSeconds: 0,
-              timelinePose,
+              timelinePose: { ...timelinePose, evaluationTimeSeconds: activePlayback.frame / projectFps },
             },
           ]),
       );
     const manual =
       previewState.scopeKey === activeScopeKey ? previewState.byInstance : {};
     return { ...manual, ...scheduled };
-  }, [scheduledActions, previewState, activeScopeKey]);
+  }, [scheduledActions, previewState, activeScopeKey, activePlayback.frame, projectFps]);
   const characterGazes = useMemo(() => {
     const scheduled = Object.fromEntries(
       Object.entries(scheduledActions).flatMap(([id, pose]) =>
@@ -998,8 +1015,8 @@ export function EditorShell() {
     ).find((item) => item.sceneId === sceneId);
     if (entry) {
       setProjectPlayback(() => ({ frame: entry.startFrame, status: "paused" }));
-      if (activeSection !== "animations") setActiveSection("scenes");
-      dispatchPanel({ type: "selection" });
+      if (["projects", "help", "settings"].includes(activeSection)) setActiveSection("scenes");
+      dispatchPanel({ type: ["audio", "environments"].includes(activeSection) ? "section" : "selection" });
     }
   };
   const keepActiveScenePosition = (next: {
@@ -1280,6 +1297,12 @@ export function EditorShell() {
     const frame = entry.startFrame + event.startFrame;
     playStartFrameRef.current = frame;
     setProjectPlayback(() => ({ frame, status: "playing" }));
+    restartPlayback((value) => value + 1);
+  };
+  const previewBehaviorAtFrame = (frame: number) => {
+    playStartFrameRef.current = frame;
+    setProjectPlayback(() => ({ frame, status: "playing" }));
+    restartPlayback((value) => value + 1);
   };
 
   const initialTimelineAudioSelection = (() => {
@@ -1348,15 +1371,6 @@ export function EditorShell() {
         onDuplicate={cloneScene}
         onDelete={removeScene}
         onReorder={moveScene}
-        onRename={(id, name) => {
-          try {
-            projects.editScenes((current) => renameScene(current, id, name));
-          } catch (error) {
-            projects.setError(
-              error instanceof Error ? error.message : "نام سکانس معتبر نیست.",
-            );
-          }
-        }}
       />
     ) : activeSection === "environments" ? (
       <EnvironmentEditor
@@ -1388,6 +1402,13 @@ export function EditorShell() {
         busy={projects.busy}
         projectEndFrame={totalFrames}
         initialSelection={initialTimelineAudioSelection}
+        sceneDefinition={activeScene}
+        sceneCharacters={sceneCharacterData}
+        activeDialogue={activeDialogue}
+        onBehaviorMode={(mode) => activeScene && editActionEvents(activeScene.id, (scene) => setSceneBehaviorMode(scene, mode))}
+        onAddBehavior={(event) => activeScene && editActionEvents(activeScene.id, (scene) => addSceneActionEvent(scene, event))}
+        onPreviewBehavior={previewBehaviorAtFrame}
+        onEditBehavior={selectActionEvent}
         scene={
           activeScene && activeSceneTime
             ? {
@@ -1443,6 +1464,20 @@ export function EditorShell() {
           }
         }}
       />
+    ) : activeSection === "settings" ? (
+      <WorkspaceSettings
+        inspectorWidth={inspectorWidth}
+        timelineHeight={timelineHeight}
+        onInspectorWidth={setInspectorWidth}
+        onTimelineHeight={setTimelineHeight}
+        onHelp={setHelpTopic}
+        onReset={() => {
+          setNavigationCollapsed(false);
+          setInspectorWidth(280);
+          setTimelineHeight(230);
+          setTimelineCollapsed(false);
+        }}
+      />
     ) : (
       <SectionContent section={activeSection} />
     );
@@ -1456,6 +1491,9 @@ export function EditorShell() {
         onModeChange={setMode}
         onEdit={commitCharacter}
         onReset={restoreCharacterPlacement}
+        onVisibility={setCharacterVisible}
+        onAssignPlacement={assignPlacement}
+        anchors={characterEnvironment?.characterAnchors ?? []}
         onAppearanceChange={(id, appearance) =>
           projects.editCharacters((current) =>
             updateCharacterCustomization(current, id, appearance),
@@ -1518,8 +1556,18 @@ export function EditorShell() {
         }}
         onPreview={previewActionEvent}
       />
-    ) : activeSection === "scenes" ? (
+    ) : activeSection === "scenes" || activeSection === "camera" ? (
       <SceneConfigurationPanel
+        view={activeSection === "camera" ? "camera" : "scene"}
+        fps={projectFps}
+        onRename={(id, name) => {
+          try {
+            projects.editScenes((current) => renameScene(current, id, name));
+          } catch (error) {
+            projects.setError(error instanceof Error ? error.message : "نام سکانس معتبر نیست.");
+          }
+        }}
+        onDurationChange={updateSceneDuration}
         scene={activeScene}
         characters={projects.characterData}
         baseArrangement={projects.arrangement}
@@ -1694,7 +1742,7 @@ export function EditorShell() {
         className={`editor-layout grid min-h-0 flex-1 ${navigationCollapsed ? "navigation-is-collapsed" : ""}`}
         style={
           {
-            "--navigation-width": navigationCollapsed ? "68px" : "220px",
+            "--navigation-width": navigationCollapsed ? "64px" : "172px",
           } as CSSProperties
         }
         dir="rtl"
@@ -1714,6 +1762,7 @@ export function EditorShell() {
               <span className="min-w-0 truncate text-xs font-semibold text-[#c9d8e5]">
                 {activeItem?.label ?? "فضای کار"}
               </span>
+              {activeScene && <span className="min-w-0 truncate text-xs text-muted" title="سکانس فعال در نمای سه‌بعدی و تایم‌لاین؛ دوربین ویرایش از دوربین تولید آن جداست.">· {activeScene.name}</span>}
               <ContextHelpTrigger
                 topic={
                   activeSection === "help"
@@ -1726,20 +1775,6 @@ export function EditorShell() {
               />
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
-              <button
-                type="button"
-                className="workspace-compact-action max-[850px]:hidden"
-                title="اندازه و نمایش پنل‌ها را به چیدمان آغازین برمی‌گرداند."
-                onClick={() => {
-                  setNavigationCollapsed(false);
-                  setInspectorWidth(280);
-                  setTimelineHeight(230);
-                  setTimelineCollapsed(false);
-                  dispatchPanel({ type: "section" });
-                }}
-              >
-                بازنشانی چیدمان
-              </button>
               <button
                 type="button"
                 className="workspace-compact-action"
@@ -1774,13 +1809,6 @@ export function EditorShell() {
               data-scene-id={activeSceneId ?? undefined}
               aria-label="پیش‌نمایش سه‌بعدی"
             >
-              {activeSceneId && (
-                <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border border-line/80 bg-[#101722]/85 px-2.5 py-1 text-[11px] text-[#d7e5ef]">
-                  صحنه {projects.sceneOrder.indexOf(activeSceneId) + 1} ·{" "}
-                  {projects.scenes[activeSceneId]?.name}{" "}
-                  <span className="text-[#9fb1c3]">(دوربین ویرایش جداست)</span>
-                </div>
-              )}
               <StudioViewport
                 arrangement={sceneArrangement}
                 selectedId={selectedId}
@@ -1846,6 +1874,10 @@ export function EditorShell() {
                 >
                   {activeSection === "projects"
                     ? "مدیریت پروژه‌ها"
+                    : activeSection === "camera"
+                      ? `دوربین · ${activeScene?.name ?? "سکانسی انتخاب نشده"}`
+                    : activeSection === "audio" && initialTimelineAudioSelection
+                      ? `صدا · ${projects.active?.assetManifest[initialTimelineAudioSelection.assetId]?.displayName ?? "کلیپ انتخاب‌شده"}`
                     : activeSection === "characters" && selectedCharacterId
                       ? `شخصیت · ${selectedCharacterIdentity?.name ?? "ویژگی‌ها"}`
                       : activeSection === "environments" && selectedPropLabel
@@ -1910,9 +1942,9 @@ export function EditorShell() {
                   >
                     {activeSection === "animations"
                       ? "ویژگی‌های رویداد"
-                      : selectedCharacterId
+                      : activeSection === "characters" && selectedCharacterId
                         ? "ویژگی‌های شخصیت"
-                        : selectedPropLabel
+                        : activeSection === "environments" && selectedPropLabel
                           ? "ویژگی‌های وسیله"
                           : activeSection === "scenes" && activeScene
                             ? "تنظیمات سکانس"
@@ -1925,7 +1957,7 @@ export function EditorShell() {
                 role="tabpanel"
                 aria-labelledby="workspace-inspector-title"
                 hidden={
-                  activeSection !== "projects" && inspectorView !== "section"
+                  !["projects", "settings", "audio"].includes(activeSection) && inspectorView !== "section"
                 }
                 className="workspace-pane min-h-0 flex-1"
               >
@@ -1937,6 +1969,7 @@ export function EditorShell() {
                 aria-labelledby="workspace-inspector-title"
                 hidden={
                   !(
+                    activeSection === "camera" ||
                     activeSection === "characters" ||
                     activeSection === "scenes" ||
                     activeSection === "environments" ||

@@ -22,7 +22,7 @@ export type EvaluatedCharacterActions = {
   gaze?: GazePreview;
 };
 
-const gazeActions = new Set<SceneActionEvent["action"]>(["gaze-character", "gaze-prop"]);
+const gazeActions = new Set<SceneActionEvent["action"]>(["gaze-character", "gaze-prop", "gaze-camera"]);
 const defaultCapabilities: readonly CharacterAnimationCapability[] = [];
 
 /** Resolves the scene's enabled events at one local integer frame without reading a clock. */
@@ -57,7 +57,7 @@ export function evaluateSceneCharacterActions(
       const gaze: GazePreview = {
         mode: "attention",
         attention: "observe",
-        attentionTargetKind: event.action === "gaze-character" ? "character" : "prop",
+        attentionTargetKind: event.action === "gaze-character" ? "character" : event.action === "gaze-camera" ? "camera" : "prop",
         targetId: event.targetId,
         startedAtMs: (event.startFrame / safeFps) * 1000,
         durationSeconds: event.durationFrames / safeFps,

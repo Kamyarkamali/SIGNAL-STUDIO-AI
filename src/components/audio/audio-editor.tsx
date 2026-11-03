@@ -7,9 +7,13 @@ import { audioAssetUrl } from "@/lib/audio/audio-urls";
 import { sourceDraftValues } from "@/lib/audio/audio-source-draft";
 import { validateAudioCollections, type AudioProjectCollections, type AudioClip, type SpeakerRegion } from "@/lib/audio/audio-schema";
 import { clipSceneRelation, clipSourceDurationFrames, createSceneAudioClip, sceneLocalPlacementToGlobalFrame } from "@/lib/audio/audio-placement";
-import { mergeAdjacentSpeakerRegions, splitSpeakerRegion } from "@/lib/audio/audio-operations";
+import { mergeAdjacentSpeakerRegions, splitSpeakerRegion, updateSpeakerRegion } from "@/lib/audio/audio-operations";
 import { audioClipFrameRange } from "@/lib/scenes/timeline-projection";
 import type { ProjectDocument } from "@/lib/projects/project-schema";
+import type { CharacterProjectData } from "@/lib/characters/character-schema";
+import type { SceneActionEvent, SceneDefinition } from "@/lib/scenes/scene-schema";
+import { AudioBehaviorPanel } from "./audio-behavior-panel";
+import type { ActiveDialogueState } from "@/lib/scenes/audio-behavior";
 
 const control = "min-h-9 rounded-md border border-line bg-[#111a26] px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50";
 const uuid = () => crypto.randomUUID();
@@ -34,7 +38,7 @@ async function decodeWaveform(source: Blob | ArrayBuffer): Promise<{ duration: n
 
 function time(seconds: number) { return `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toFixed(2).padStart(5, "0")}`; }
 
-export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp, onUpload, onDelete, onReplace, onEdit, onSelectClip, scene, initialSelection }: {
+export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp, onUpload, onDelete, onReplace, onEdit, onSelectClip, scene, initialSelection, sceneDefinition, sceneCharacters, activeDialogue, onBehaviorMode, onAddBehavior, onPreviewBehavior, onEditBehavior }: {
   project: ProjectDocument | null; audio: AudioProjectCollections; fps: number; busy: boolean;
   projectEndFrame: number;
   scene: { id: string; name: string; startFrame: number; durationFrames: number; localFrame: number } | null;
@@ -43,6 +47,13 @@ export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp
   onEdit: (update: (current: AudioProjectCollections) => AudioProjectCollections) => void;
   onSelectClip: (assetId: string | null, clipId: string | null, regionId?: string) => void;
   initialSelection?: { assetId: string; clipId: string; regionId?: string } | null;
+  sceneDefinition: SceneDefinition | null;
+  sceneCharacters: CharacterProjectData;
+  activeDialogue: ActiveDialogueState | null;
+  onBehaviorMode: (mode: NonNullable<SceneDefinition["behaviorMode"]>) => void;
+  onAddBehavior: (event: SceneActionEvent) => void;
+  onPreviewBehavior: (frame: number) => void;
+  onEditBehavior: (eventId: string) => void;
 }) {
   const assets = useMemo(() => Object.values(project?.assetManifest ?? {}).filter((asset) => asset.kind === "audio"), [project?.assetManifest]);
   const identities = project?.characterIdentities ?? {};
@@ -79,6 +90,14 @@ export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp
   const selectedRegionId = selection.regionId;
   const regions = Object.values(audio.speakerRegions).filter((region) => region.audioClipId === clip?.id)
     .sort((a, b) => a.startSeconds - b.startSeconds || a.id.localeCompare(b.id));
+  const primaryRegion = regions[0];
+  const primarySpeaker = primaryRegion?.speakerId ? audio.speakers[primaryRegion.speakerId] : undefined;
+  const playheadSourceSeconds = clip && scene ? clip.sourceStartSeconds + (scene.startFrame + scene.localFrame - clip.startFrame) / fps : -1;
+  const behaviorRegion = regions.find((region) => region.id === selection.regionId)
+    ?? regions.find((region) => playheadSourceSeconds >= region.startSeconds && playheadSourceSeconds < region.endSeconds)
+    ?? primaryRegion;
+  const behaviorSpeaker = behaviorRegion?.speakerId ? audio.speakers[behaviorRegion.speakerId] : undefined;
+  const primarySpeakerValue = primaryRegion?.status === "silence" ? "__silence" : primarySpeaker?.kind === "character" ? primarySpeaker.characterId : primarySpeaker?.id ?? "";
   const { start: sourceStartDraft, end: sourceEndDraft } = sourceDraftValues(sourceDraft, selectedAsset);
   const sceneOffsetDraft = placementDraft && scene && placementDraft.sceneId === scene.id ? placementDraft.offset : String(scene?.localFrame ?? 0);
   const allowSceneSpan = placementDraft && scene && placementDraft.sceneId === scene.id ? placementDraft.allowSpan : false;
@@ -206,7 +225,7 @@ export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp
 
   if (!project) return <section className="rounded-lg border border-line bg-[#111a25] p-4 text-sm text-muted">برای مدیریت صدا، ابتدا یک پروژه باز کنید.</section>;
 
-  return <section dir="rtl" className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto rounded-lg border border-line bg-[#111a25] p-3 text-foreground">
+  return <section dir="rtl" className="flex min-h-0 flex-col gap-3 rounded-lg border border-line bg-[#111a25] p-3 text-foreground">
     <header className="flex flex-wrap items-center justify-between gap-2">
       <div><h2 className="text-sm font-bold">فایل‌ها و گویندگان <ContextHelpTrigger topic="audio" onOpen={onHelp} /></h2><p className="mt-1 text-[11px] text-muted">فایل‌ها محلی می‌مانند؛ هیچ صدای نمونه‌ای خودکار اضافه نمی‌شود.</p></div>
       <div className="flex flex-wrap gap-2">
@@ -218,6 +237,30 @@ export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp
         </label>
       </div>
     </header>
+    {clip && primaryRegion && <div className="grid gap-2 rounded-md border border-accent/40 bg-[#112827]/70 p-3" aria-label="گویندهٔ کلیپ انتخاب‌شده">
+      <strong className="truncate text-xs">{project.assetManifest[clip.assetId]?.displayName ?? "کلیپ صوتی"} · {time(clip.startFrame / fps)}</strong>
+      <label className="grid gap-1 text-xs font-semibold">{regions.length > 1 ? "گویندهٔ بازهٔ نخست" : "گویندهٔ کلیپ"}
+        <select className={control} value={primarySpeakerValue} aria-label="گویندهٔ کلیپ انتخاب‌شده"
+          title="گویندهٔ بازهٔ نخست این کلیپ را دستی تعیین می‌کند؛ در کلیپ چندگوینده، بازه‌های دیگر را در پایین ویرایش کنید."
+          onChange={(event) => {
+            const value = event.target.value;
+            applyUpdate((current) => updateSpeakerRegion(current, primaryRegion.id, {
+              speakerId: value && value !== "__silence" ? value : null,
+              status: value === "__silence" ? "silence" : value ? "assigned" : "unknown",
+            }, identities, uuid));
+          }}>
+          <option value="">نامشخص</option><option value="__silence">سکوت</option>
+          {Object.values(identities).map((identity) => <option key={identity.id} value={identity.id}>{identity.name}</option>)}
+          {Object.values(audio.speakers).filter((speaker) => speaker.kind === "audio-only").map((speaker) => <option key={speaker.id} value={speaker.id}>{speaker.name} · فقط صدا</option>)}
+        </select>
+      </label>
+      {regions.length > 1 && <p className="text-xs text-muted">این انتخاب فقط بازهٔ نخست را تغییر می‌دهد؛ گویندهٔ بازه‌های دیگر را پایین‌تر تعیین کنید.</p>}
+    </div>}
+    {clip && scene && sceneDefinition && clip.startFrame < scene.startFrame + scene.durationFrames && clip.startFrame + clipSourceDurationFrames(clip.sourceStartSeconds, clip.sourceEndSeconds, fps) > scene.startFrame &&
+      <AudioBehaviorPanel key={`${scene.id}:${clip.id}`} clip={clip} scene={sceneDefinition} sceneStartFrame={scene.startFrame} fps={fps}
+        characters={sceneCharacters} speakerIdentityId={behaviorSpeaker?.kind === "character" ? behaviorSpeaker.characterId : null} activeDialogue={activeDialogue}
+        onMode={onBehaviorMode} onAdd={onAddBehavior} onPreview={() => onPreviewBehavior(Math.max(scene.startFrame, clip.startFrame))}
+        onEditEvent={onEditBehavior} onHelp={onHelp} />}
     {!assets.length ? <div className="rounded-md border border-dashed border-line p-5 text-center text-xs leading-6 text-muted">هنوز فایلی وارد نشده است. برای شروع یک فایل گفت‌وگوی ضبط‌شده یا صدای جداگانه انتخاب کنید.</div> : <>
       <div className="grid min-w-0 gap-2 rounded-md border border-line bg-[#0c141e] p-3">
         <div className="flex flex-wrap items-center gap-2"><label htmlFor="audio-asset" className="text-xs font-semibold">فایل صوتی</label><select id="audio-asset" className={`${control} min-w-0 flex-1`} value={selectedAsset?.id ?? ""} onChange={(event) => handleSelectAsset(event.target.value)} title="فایل محلی را برای پخش و قرار دادن در سکانس انتخاب می‌کند.">
@@ -228,8 +271,9 @@ export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp
         <div className="flex h-14 items-center gap-px overflow-hidden rounded border border-line bg-[#081018] px-2" role="img" aria-label={waveError || "موج‌نمای واقعی فایل صوتی"}>
           {waveform.length ? waveform.map((peak, index) => <span key={index} className="min-w-px flex-1 rounded-sm bg-accent/80" style={{ height: `${Math.max(3, peak * 88)}%` }} />) : <span className="w-full text-center text-[10px] text-muted">{waveError || "در حال ساخت موج‌نمای فایل…"}</span>}
         </div>
-        {selectedAsset && <div className="grid gap-2 rounded-md border border-accent/30 bg-[#101c28] p-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-1"><div><h3 className="text-xs font-bold">افزودن صدا به سکانس</h3><p className="mt-1 text-[10px] text-muted">فایل را انتخاب کنید، محدودهٔ منبع و جایگاه درون سکانس را تعیین کنید.</p></div><ContextHelpTrigger topic="audio" onOpen={onHelp} /></div>
+        {selectedAsset && <details className="rounded-md border border-accent/30 bg-[#101c28] p-2.5">
+          <summary className="cursor-pointer text-xs font-bold focus-visible:outline-2 focus-visible:outline-accent" title="فایل صوتی موجود را با برش و جایگاه دقیق به سکانس انتخاب‌شده اضافه می‌کند؛ برای شروع سریع از «افزودن صدا» استفاده کنید.">افزودن فایل موجود · تنظیمات پیشرفته</summary>
+          <div className="mt-2 grid gap-2"><p className="text-xs text-muted">برای جای‌گذاری دقیق، بازهٔ فایل و موقعیت سکانس را تعیین کنید.</p>
           {scene ? <div className="rounded border border-line bg-[#0b141e] px-2 py-1.5 text-[10px] leading-5">
             <strong>سکانس فعال: {scene.name}</strong><span className="mx-2 text-muted">·</span><span>شروع پروژه {time(scene.startFrame / fps)} ({scene.startFrame} فریم)</span><span className="mx-2 text-muted">·</span><span>مدت سکانس {time(scene.durationFrames / fps)}</span>
           </div> : <div className="rounded border border-dashed border-amber-500/50 p-2 text-[10px] text-amber-200">ابتدا یک سکانس بسازید یا از تایم‌لاین انتخاب کنید تا جایگاه صدا مشخص شود.</div>}
@@ -241,7 +285,8 @@ export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp
           {scene && selectedAsset.audioDurationSeconds !== undefined && <p className="text-[10px] text-muted">جایگاه پروژه: {placementFrame === null ? "نامعتبر" : `${time(placementFrame / fps)} · فریم ${placementFrame}`} · مدت منبع انتخابی: {time(sourceFrames / fps)}</p>}
           {crossesScene && <label className="flex items-start gap-2 rounded border border-amber-500/50 p-2 text-[10px] leading-5 text-amber-100" title="اجازه می‌دهد کلیپ کامل بدون برش یا تکثیر از مرز سکانس عبور کند."><input className="mt-1 accent-[#40d7c5]" type="checkbox" checked={allowSceneSpan} onChange={(event) => scene && setPlacementDraft({ sceneId: scene.id, offset: sceneOffsetDraft, allowSpan: event.target.checked })} /><span>{extendsPastProject ? "کلیپ کامل بعد از پایان پروژه نیز ذخیره شود؛ بخش بیرون از بازهٔ پروژه در تایم‌لاین دیده نمی‌شود." : "ادامهٔ کلیپ کامل در سکانس‌های بعدی را مجاز می‌کنم؛ صدا بریده یا تکثیر نمی‌شود."}</span></label>}
           <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted"><span>{selectedAsset.fileSizeBytes.toLocaleString("fa-IR")} بایت · کل فایل {time(selectedAsset.audioDurationSeconds ?? 0)}</span><button className={`${control} min-h-8 border-accent/60`} type="button" disabled={!scene || placementFrame === null || !Number.isSafeInteger(localOffset) || localOffset < 0 || !sourceFrames || crossesScene && !allowSceneSpan || busy} onClick={addClipToScene} title={!scene ? "ابتدا یک سکانس انتخاب کنید تا مبنای جایگذاری مشخص باشد." : crossesScene && !allowSceneSpan ? "برای ثبت کلیپ عبوری، گزینهٔ ادامه پس از مرز سکانس را فعال کنید." : "بازهٔ انتخابی را در جایگاه سکانس ثبت می‌کند؛ زمان در پروژه با فریم سراسری ذخیره می‌شود."}>افزودن صدا به سکانس</button></div>
-        </div>}
+          </div>
+        </details>}
       </div>
       <div className="grid min-w-0 gap-2 rounded-md border border-line bg-[#0c141e] p-3">
         <div><h3 className="text-xs font-bold">کلیپ‌های پروژه</h3><p className="mt-1 text-[10px] text-muted">هر کلیپ یک ترک نمایشی دارد؛ زمان ذخیره‌شده سراسری و فریم‌محور است. پیش‌نمایش با نشانگر زمان پروژه همگام نیست.</p></div>
@@ -255,7 +300,8 @@ export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp
               onPreview={() => { void playSourceRange(item.assetId, item.id, item.sourceStartSeconds, item.sourceEndSeconds).catch(() => setError("پخش کلیپ ممکن نشد؛ فایل صوتی را دوباره انتخاب کنید.")); }}
               onSelect={() => { setLocalSelection({ assetId: item.assetId, clipId: item.id, regionId: "" }); onSelectClip(item.assetId, item.id); }} onChange={(change) => applyUpdate((current) => ({ ...current, audioClips: { ...current.audioClips, [item.id]: { ...item, ...change } } }))}
               onDelete={() => { const removed = applyUpdate((current) => { const audioClips = { ...current.audioClips }; delete audioClips[item.id]; const speakerRegions = Object.fromEntries(Object.entries(current.speakerRegions).filter(([, region]) => region.audioClipId !== item.id)); return { ...current, audioClips, speakerRegions }; }); if (removed && selectedClipId === item.id) { const next = clips.find((candidate) => candidate.id !== item.id); setLocalSelection(next ? { assetId: next.assetId, clipId: next.id, regionId: "" } : { assetId: selectedAssetId, clipId: "", regionId: "" }); onSelectClip(next?.assetId ?? null, next?.id ?? null); } }} />
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted"><span>ترک صدا {String(index + 1).padStart(2, "0")}</span><span>پروژه: {time(range.startFrame / fps)}–{time(range.endFrame / fps)} ({range.startFrame}–{range.endFrame} فریم)</span><span>برش منبع: {time(item.sourceStartSeconds)}–{time(item.sourceEndSeconds)}</span><span>سکانس «{scene?.name ?? "—"}»: {sceneLocal === null ? "—" : `${sceneLocal} فریم`}</span><strong className={relation === "spans" ? "text-amber-200" : relation === "inside" ? "text-emerald-200" : "text-muted"}>{relationLabel}</strong></div>
+            <div className="mt-1 text-xs text-muted">{relation === "spans" ? <strong className="text-amber-200">{relationLabel}</strong> : <span>{relationLabel}</span>}</div>
+            <details className="mt-1 border-t border-line/70 pt-1"><summary className="cursor-pointer text-xs text-muted" title="زمان پروژه، برش فایل و فریم‌های دقیق این کلیپ را نشان می‌دهد.">جزئیات زمانی · پیشرفته</summary><div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted"><span>ترک صدا {String(index + 1).padStart(2, "0")}</span><span>پروژه: {time(range.startFrame / fps)}–{time(range.endFrame / fps)} ({range.startFrame}–{range.endFrame} فریم)</span><span>برش منبع: {time(item.sourceStartSeconds)}–{time(item.sourceEndSeconds)}</span><span>سکانس «{scene?.name ?? "—"}»: {sceneLocal === null ? "—" : `${sceneLocal} فریم`}</span></div></details>
           </div>;
         })}
       </div>
@@ -271,14 +317,7 @@ export function AudioEditor({ project, audio, fps, busy, projectEndFrame, onHelp
         <div className="flex flex-wrap items-end gap-2"><label className="grid gap-1 text-[10px] text-muted">شروع (ثانیه)<input className={`${control} w-24`} type="number" min={clip.sourceStartSeconds} max={clip.sourceEndSeconds} step="0.01" value={regionStart} onChange={(event) => setRegionDraft({ clipId: clip.id, start: event.target.value, end: regionEnd })} title="ابتدای بازهٔ گوینده را برحسب ثانیهٔ فایل اصلی تعیین می‌کند؛ به‌صورت خودکار به زمان پروژه نگاشت می‌شود." /></label><label className="grid gap-1 text-[10px] text-muted">پایان (ثانیه)<input className={`${control} w-24`} type="number" min={clip.sourceStartSeconds} max={clip.sourceEndSeconds} step="0.01" value={regionEnd} onChange={(event) => setRegionDraft({ clipId: clip.id, start: regionStart, end: event.target.value })} title="پایان بازه را برحسب ثانیهٔ فایل اصلی تعیین می‌کند؛ به‌صورت خودکار به زمان پروژه نگاشت می‌شود." /></label><select className={control} value={regionSpeaker} onChange={(event) => setRegionSpeaker(event.target.value)} aria-label="گویندهٔ این بازه" title="شخصیت حاضر در این بازه را دستی انتخاب می‌کند؛ این انتساب حرکت خودکار ایجاد نمی‌کند."><option value="">نامشخص</option><option value="__silence">سکوت</option>{Object.values(audio.speakers).map((speaker) => <option key={speaker.id} value={speaker.id}>{speaker.name}</option>)}</select><button className={control} type="button" onClick={addRegion} title="بازه را با گویندهٔ انتخاب‌شده، وضعیت نامشخص یا سکوت ثبت می‌کند.">ثبت بازه</button></div>
         {!regions.length ? <p className="text-xs text-muted">برای این کلیپ هنوز بازهٔ گوینده ثبت نشده است. زمان شروع و پایان را نسبت به فایل وارد و شخصیت را دستی انتخاب کنید.</p> : regions.map((region, index) => <RegionRow key={`${region.id}:${region.startSeconds}:${region.endSeconds}`} region={region} clip={clip} audio={audio} selected={selectedRegionId === region.id}
           onPreview={() => { void playSourceRange(clip.assetId, clip.id, region.startSeconds, region.endSeconds, region.id).catch(() => setError("پخش بازه ممکن نشد؛ ابتدا فایل را برای پخش در مرورگر آماده کنید.")); }}
-          onChange={(change) => applyUpdate((current) => {
-            const identity = change.speakerId ? identities[change.speakerId] : undefined;
-            const speaker = identity ? { id: uuid(), kind: "character" as const, characterId: identity.id, name: identity.name } : undefined;
-            const speakerId = speaker?.id ?? change.speakerId ?? null;
-            return { ...current,
-              speakers: speaker ? { ...current.speakers, [speaker.id]: speaker } : current.speakers,
-              speakerRegions: { ...current.speakerRegions, [region.id]: { ...region, ...change, speakerId } } };
-          })}
+          onChange={(change) => applyUpdate((current) => updateSpeakerRegion(current, region.id, change, identities, uuid))}
           onSplit={() => { const split = splitSpeakerRegion(region, uuid()); if (!split) { setError("بازه برای تقسیم کوتاه است."); return; } applyUpdate((current) => ({ ...current, speakerRegions: { ...current.speakerRegions, [split.first.id]: split.first, [split.second.id]: split.second } })); }}
           onMerge={() => { const previous = regions[index - 1]; const merged = previous && mergeAdjacentSpeakerRegions(previous, region); if (!previous || !merged) { setError("برای ادغام، بازهٔ قبلی باید مجاور و دارای گویندهٔ یکسان باشد."); return; } applyUpdate((current) => { const speakerRegions = { ...current.speakerRegions, [previous.id]: merged }; delete speakerRegions[region.id]; return { ...current, speakerRegions }; }); }}
           onDelete={() => applyUpdate((current) => { const speakerRegions = { ...current.speakerRegions }; delete speakerRegions[region.id]; return { ...current, speakerRegions }; })} identities={identities} />)}

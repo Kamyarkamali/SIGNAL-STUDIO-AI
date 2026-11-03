@@ -193,11 +193,17 @@
 .workspace-nav-link:focus-visible,.nav-collapse-button:focus-visible,.workspace-compact-action:focus-visible,.context-help-trigger:focus-visible,.header-help-button:focus-visible,.context-help-close:focus-visible { outline: 2px solid var(--studio-accent-hover); outline-offset: 2px; }
 .workspace-nav-link.is-active { border-color: #21635b; background: #153535; color: #e4fffa; }
 .workspace-nav-symbol { width: 22px; flex: none; color: var(--studio-accent); text-align: center; font: 600 17px/1 Arial,sans-serif; }
+.workspace-nav-symbol svg { display: block; width: 19px; height: 19px; margin: auto; }
 .workspace-nav-label { overflow: hidden; flex: 1; white-space: nowrap; font-size: 13px; font-weight: 600; text-overflow: ellipsis; }
 .nav-planned-badge { flex: none; border: 1px solid #48556a; border-radius: 999px; padding: 0 5px; color: #b6c3d1; font-size: 9px; line-height: 17px; }
 .workspace-navigation-collapsed .workspace-nav-link { min-height: 44px; justify-content: center; padding: 0; }
 .workspace-navigation-collapsed .workspace-nav-label,.workspace-navigation-collapsed .workspace-nav-help { display: none; }
 .workspace-navigation-collapsed .nav-planned-badge { display: none; }
+.workspace-navigation { overflow-y: auto; }
+.workspace-navigation-main,.workspace-navigation-utility { min-width: 0; }
+.workspace-navigation-utility { padding-bottom: 2px; }
+.workspace-navigation .workspace-nav-link { width: 100%; min-height: 42px; flex: none; }
+.workspace-navigation-collapsed .workspace-nav-symbol { width: 100%; }
 .nav-collapse-button,.workspace-compact-action { display: inline-flex; min-height: 30px; align-items: center; justify-content: center; border: 1px solid var(--studio-border-strong); border-radius: var(--studio-radius-sm); background: var(--studio-surface-raised); padding: 0 9px; color: #c7d4e0; font-size: 11px; transition: background var(--studio-motion-fast), color var(--studio-motion-fast); }
 .nav-collapse-button:hover,.workspace-compact-action:hover { background: #223448; color: #fff; }
 .workspace-nav-help .context-help-trigger { min-height: 30px; min-width: 30px; }
@@ -218,22 +224,17 @@
 
 @media (max-width: 1023px) and (min-width: 768px) {
   .editor-layout { grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .workspace-navigation { max-width: 100%; max-height: 54px; overflow-x: auto; border: 0; border-bottom: 1px solid var(--studio-border); }
-  .workspace-navigation { padding-block: 5px; }
-  .workspace-navigation > div:first-child { display: none; }
-  .workspace-navigation > div:nth-child(2) { flex-direction: row; overflow-x: auto; }
-  .workspace-nav-link { width: auto; flex: none; }
-  .workspace-nav-help { display: none; }
-  .workspace-navigation > div:last-child { display: none; }
+  .workspace-navigation { max-width: 100%; max-height: 54px; overflow: hidden; border: 0; border-bottom: 1px solid var(--studio-border); padding-block: 5px; }
+  .workspace-navigation-heading,.workspace-navigation-main,.workspace-navigation-utility { display: none; }
+  .workspace-navigation > .workspace-navigation-mobile { display: flex; }
 }
 @media (max-width: 767px) {
   .editor-shell { height: 100dvh; min-height: 0; overflow: hidden; }
   .editor-layout { display: grid; min-height: 0; grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr); overflow: hidden; }
-  .workspace-navigation { position: sticky; top: 0; z-index: 5; max-width: 100%; max-height: 52px; flex: none; overflow-x: auto; border: 0; border-bottom: 1px solid var(--studio-border); }
+  .workspace-navigation { position: sticky; top: 0; z-index: 5; max-width: 100%; max-height: 52px; flex: none; overflow: hidden; border: 0; border-bottom: 1px solid var(--studio-border); }
   .workspace-navigation { padding-block: 5px; }
-  .workspace-navigation > div:nth-child(2) { flex-direction: row; overflow-x: auto; }
-  .workspace-nav-link { width: auto; flex: none; padding: 0 10px; }
-  .workspace-nav-help,.workspace-navigation > div:last-child { display: none; }
+  .workspace-navigation-heading,.workspace-navigation-main,.workspace-navigation-utility { display: none; }
+  .workspace-navigation > .workspace-navigation-mobile { display: flex; }
   .editor-workspace { display: grid; grid-template-rows: auto minmax(0,1fr) minmax(176px,30dvh); gap: 6px; overflow: hidden; }
   .editor-workspace.timeline-is-collapsed { grid-template-rows: auto minmax(0,1fr) 40px; }
   .workspace-section-bar { position: relative; z-index: 4; background: var(--studio-background); }

@@ -82,6 +82,10 @@ export function addSceneActionEvent(scene: SceneDefinition, event: SceneActionEv
   return sceneDefinitionSchema.parse({ ...scene, actionEvents: [...scene.actionEvents, event] });
 }
 
+export function setSceneBehaviorMode(scene: SceneDefinition, behaviorMode: NonNullable<SceneDefinition["behaviorMode"]>): SceneDefinition {
+  return sceneDefinitionSchema.parse({ ...scene, behaviorMode });
+}
+
 export function updateSceneActionEvent(scene: SceneDefinition, eventId: string, patch: Partial<Omit<SceneActionEvent, "id">>): SceneDefinition {
   return sceneDefinitionSchema.parse({ ...scene, actionEvents: scene.actionEvents.map((event) => event.id === eventId ? { ...event, ...patch } : event) });
 }

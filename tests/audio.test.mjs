@@ -11,7 +11,7 @@ import { validateAudioCollections } from "../src/lib/audio/audio-schema.ts";
 import { createSceneAudioClip, isAudioAssetAvailable, sceneLocalPlacementToGlobalFrame } from "../src/lib/audio/audio-placement.ts";
 import { moveAudioClip, splitAudioClip } from "../src/lib/audio/timeline-editing.ts";
 import { audioSourceTimeAtProjectFrame } from "../src/lib/scenes/timeline-projection.ts";
-import { mergeAdjacentSpeakerRegions, splitSpeakerRegion } from "../src/lib/audio/audio-operations.ts";
+import { mergeAdjacentSpeakerRegions, splitSpeakerRegion, updateSpeakerRegion } from "../src/lib/audio/audio-operations.ts";
 import { sourceDraftValues } from "../src/lib/audio/audio-source-draft.ts";
 import { createScene } from "../src/lib/scenes/scene-operations.ts";
 
@@ -96,6 +96,26 @@ test("speaker split and merge preserve stable records, source bounds, speaker id
   assert.deepEqual(mergeAdjacentSpeakerRegions(split.first, split.second), original);
   assert.equal(mergeAdjacentSpeakerRegions(split.first, { ...split.second, speakerId: randomUUID() }), null);
   assert.equal(mergeAdjacentSpeakerRegions(split.first, { ...split.second, startSeconds: 4.1 }), null);
+});
+
+test("speaker quick assignment reuses identity and timing edits retain the selected speaker", () => {
+  const identityId = randomUUID(), clipId = randomUUID(), regionId = randomUUID(), speakerId = randomUUID();
+  const identity = { id: identityId, name: "Presenter" };
+  const base = {
+    speakers: {}, audioClips: {},
+    speakerRegions: { [regionId]: { id: regionId, audioClipId: clipId, startSeconds: 0, endSeconds: 2, speakerId: null, status: "unknown" } },
+  };
+  const assigned = updateSpeakerRegion(base, regionId, { speakerId: identityId, status: "assigned" }, { [identityId]: identity }, () => speakerId);
+  assert.equal(assigned.speakerRegions[regionId].speakerId, speakerId);
+  assert.equal(assigned.speakers[speakerId].characterId, identityId);
+  const changedTime = updateSpeakerRegion(assigned, regionId, { endSeconds: 1.5 }, { [identityId]: identity }, randomUUID);
+  assert.equal(changedTime.speakerRegions[regionId].speakerId, speakerId);
+  assert.equal(changedTime.speakerRegions[regionId].endSeconds, 1.5);
+  const reassigned = updateSpeakerRegion(changedTime, regionId, { speakerId: identityId, status: "assigned" }, { [identityId]: identity }, randomUUID);
+  assert.deepEqual(Object.keys(reassigned.speakers), [speakerId]);
+  const unknown = updateSpeakerRegion(reassigned, regionId, { speakerId: null, status: "unknown" }, { [identityId]: identity }, randomUUID);
+  assert.equal(unknown.speakerRegions[regionId].speakerId, null);
+  assert.equal(unknown.speakerRegions[regionId].status, "unknown");
 });
 
 test("scene-first audio import creates stable global frame placements and maps playback into source trims", () => {
@@ -183,7 +203,8 @@ test("audio workflow exposes direct scene import, same-lane speaker names, and f
   assert.match(editor, /createSceneAudioClip\(/);
   assert.match(editor, /تنظیمات پیشرفتهٔ کلیپ/);
   assert.match(editor, /Object\.values\(identities\)\.map/);
-  assert.match(editor, /speaker\?\.id \?\? change\.speakerId \?\? null/);
+  assert.match(editor, /updateSpeakerRegion\(current, region\.id, change, identities, uuid\)/);
+  assert.match(editor, /aria-label="گویندهٔ کلیپ انتخاب‌شده"/);
   assert.match(editor, /speakerName=/);
   assert.match(editor, /unknown-speaker|status: "unknown"/);
   assert.match(editor, /پخش کلیپ/);

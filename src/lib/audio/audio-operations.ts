@@ -1,4 +1,26 @@
-import type { SpeakerRegion } from "./audio-schema.ts";
+import type { AudioProjectCollections, SpeakerRegion } from "./audio-schema.ts";
+
+export function updateSpeakerRegion(
+  current: AudioProjectCollections,
+  regionId: string,
+  change: Partial<SpeakerRegion>,
+  identities: Readonly<Record<string, { id: string; name: string }>>,
+  newSpeakerId: () => string,
+): AudioProjectCollections {
+  const region = current.speakerRegions[regionId];
+  if (!region) return current;
+  const requestedId = change.speakerId === undefined ? region.speakerId : change.speakerId;
+  const identity = requestedId ? identities[requestedId] : undefined;
+  const existing = identity ? Object.values(current.speakers).find((speaker) => speaker.kind === "character" && speaker.characterId === identity.id) : undefined;
+  const speaker = identity && !existing ? { id: newSpeakerId(), kind: "character" as const, characterId: identity.id, name: identity.name } : undefined;
+  const status = change.status ?? region.status;
+  const speakerId = status === "assigned" ? speaker?.id ?? existing?.id ?? requestedId : null;
+  return {
+    ...current,
+    speakers: speaker ? { ...current.speakers, [speaker.id]: speaker } : current.speakers,
+    speakerRegions: { ...current.speakerRegions, [regionId]: { ...region, ...change, status, speakerId } },
+  };
+}
 
 export function splitSpeakerRegion(
   region: SpeakerRegion,

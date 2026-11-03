@@ -15,7 +15,6 @@ type Props = {
   onHelp: (topic: ContextHelpId) => void;
   onCreate: () => void;
   onSelect: (id: string) => void;
-  onRename: (id: string, name: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   onReorder: (id: string, index: number) => void;
@@ -55,11 +54,8 @@ export function SceneManagementPanel(props: Props) {
             <button type="button" draggable={props.sceneOrder.length > 1} aria-label={`جابجایی سکانس ${scene.name}`} title="برای جابجایی این سکانس بکشید؛ دکمه‌های جهت‌دار نیز برای صفحه‌کلید در دسترس‌اند." className="min-h-8 min-w-8 cursor-grab rounded border border-line px-1 text-sm active:cursor-grabbing"
               onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", id); setDraggedId(id); }} onDragEnd={() => { setDraggedId(null); setDropIndex(null); }}>⠿</button>
           </div>
-          <label className="mt-2 block text-[10px] text-muted">عنوان سکانس
-            <input key={`${id}:${scene.name}`} className="mt-1 h-8 w-full rounded border border-line bg-[#0b111a] px-2 text-xs text-foreground" defaultValue={scene.name} maxLength={80} aria-label={`عنوان سکانس ${index + 1}`} title="نام این سکانس را در همین پروژه تغییر می‌دهد؛ با خروج از کادر ذخیره می‌شود."
-              onBlur={(event) => { const value = event.currentTarget.value.trim(); if (value && value !== scene.name) props.onRename(id, value); }} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} />
-          </label>
-          <div className="mt-2 flex items-center justify-between gap-1 border-t border-line/70 pt-1.5">
+          <details className="mt-2 border-t border-line/70 pt-1.5"><summary className="cursor-pointer text-xs text-muted focus-visible:outline-2 focus-visible:outline-accent" title="ترتیب، تکثیر و حذف همین سکانس را نشان می‌دهد؛ نام و مدت در ویژگی‌های سکانس است.">کارهای بیشتر</summary>
+          <div className="mt-2 flex items-center justify-between gap-1">
             <div className="flex gap-1">
               <button type="button" className="min-h-8 min-w-8 rounded border border-line px-1 disabled:opacity-40" title="این سکانس را یک جایگاه به عقب می‌برد و زمان شروع را دوباره محاسبه می‌کند." aria-label={`انتقال سکانس ${scene.name} به قبل`} disabled={index === 0} onClick={() => props.onReorder(id, index - 1)}>←</button>
               <button type="button" className="min-h-8 min-w-8 rounded border border-line px-1 disabled:opacity-40" title="این سکانس را یک جایگاه به جلو می‌برد و زمان شروع را دوباره محاسبه می‌کند." aria-label={`انتقال سکانس ${scene.name} به بعد`} disabled={index === props.sceneOrder.length - 1} onClick={() => props.onReorder(id, index + 1)}>→</button>
@@ -69,10 +65,10 @@ export function SceneManagementPanel(props: Props) {
               <button type="button" className="min-h-8 rounded border border-red-900 px-2 text-[10px] text-red-200" title="حذف سکانس انتخاب‌شده را تأیید می‌کند؛ شخصیت‌ها و دارایی‌های پروژه باقی می‌مانند." onClick={() => { props.onDelete(id); setDeletingId(null); }}>تأیید حذف</button>
               <button type="button" className="min-h-8 rounded border border-line px-2 text-[10px]" title="درخواست حذف را لغو می‌کند و سکانس را نگه می‌دارد." onClick={() => setDeletingId(null)}>لغو</button>
             </span> : <button type="button" className="min-h-8 min-w-8 rounded border border-line px-1 text-red-200" title="ابتدا درخواست حذف این سکانس را برای تأیید نمایش می‌دهد." aria-label={`حذف سکانس ${scene.name}`} onClick={() => setDeletingId(id)}>×</button>}
-          </div>
+          </div></details>
         </article>;
       })}
     </div>
-    {props.activeSceneId && props.scenes[props.activeSceneId] && <p className="shrink-0 rounded-md border border-line bg-[#101822] p-2 text-[10px] leading-5 text-muted">سکانس فعال: <strong className="text-foreground">{props.scenes[props.activeSceneId].name}</strong>. تنظیمات محیط، حضور شخصیت‌ها و دوربین را از زبانهٔ «ویژگی‌ها» ویرایش کنید.</p>}
+    {props.activeSceneId && props.scenes[props.activeSceneId] && <p className="shrink-0 rounded-md border border-line bg-[#101822] p-2 text-xs leading-5 text-muted">سکانس فعال: <strong className="text-foreground">{props.scenes[props.activeSceneId].name}</strong>. نام و مدت را در «ویژگی‌ها» و دوربین را در بخش «دوربین» تغییر دهید.</p>}
   </section>;
 }

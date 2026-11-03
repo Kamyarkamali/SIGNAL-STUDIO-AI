@@ -13,7 +13,7 @@ import { sceneActionLabels } from "@/lib/scenes/scene-action-labels";
 import { EventTimeRangeInput } from "./event-timing-input";
 import { sceneActionTypes, type SceneActionEvent, type SceneDefinition } from "@/lib/scenes/scene-schema";
 
-const actionOptions = sceneActionTypes.filter((action) => action !== "gaze-character" && action !== "gaze-prop");
+const actionOptions = sceneActionTypes.filter((action) => !action.startsWith("gaze-"));
 const button = "min-h-9 rounded-md border border-line bg-[#1b2736] px-3 text-xs font-semibold text-foreground transition-colors hover:bg-[#26364a] focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45";
 
 export function SceneActionEditor({ scene, characters, arrangement, fps, localFrame, onAdd, onSelectEvent, onReorderEvent, selectedEventId, onHelp }: {
@@ -54,6 +54,7 @@ export function SceneActionEditor({ scene, characters, arrangement, fps, localFr
       ...actionOptions.filter((item) => item === "return-idle" || supported.has(item as CharacterPreviewActionId)),
       ...(actor.canGaze && targetOptions.some((item) => item.value.startsWith("character:")) ? ["gaze-character" as const] : []),
       ...(actor.canGaze && targetOptions.some((item) => item.value.startsWith("prop:")) ? ["gaze-prop" as const] : []),
+      ...(actor.canGaze ? ["gaze-camera" as const] : []),
     ];
   }, [actor, targetOptions]);
   const normalizedAction = availableActions.includes(action) ? action : availableActions[0] ?? "head-nod";
@@ -73,7 +74,7 @@ export function SceneActionEditor({ scene, characters, arrangement, fps, localFr
     const [targetKind, targetId] = activeTarget ? activeTarget.split(":", 2) : [];
     onAdd({ id: crypto.randomUUID(), sceneId: scene.id, characterInstanceId: actor.id, action: normalizedAction, startFrame, durationFrames: endFrame - startFrame,
       enabled: true, priority: 0, intensity: 1, speed: 1,
-      ...(targetRequired && targetId ? { targetKind: targetKind as "character" | "prop", targetId } : {}),
+      ...(targetRequired && targetId ? { targetKind: targetKind as "character" | "prop", targetId } : normalizedAction === "gaze-camera" ? { targetKind: "camera" as const } : {}),
     });
   };
 

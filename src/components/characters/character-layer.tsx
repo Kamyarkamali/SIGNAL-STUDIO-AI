@@ -46,6 +46,7 @@ export type CharacterPreviewPlayback = {
     pose: CharacterPreviewPlaybackPose;
     expression?: ChatGptExpression;
     expressionWeight: number;
+    evaluationTimeSeconds?: number;
   };
 };
 
@@ -228,7 +229,12 @@ function CharacterInstanceView({
       const phase =
         ([...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 2350) /
         1000;
-      const blink = preview ? evaluatePreviewBlinkWeight(elapsed, phase) : 0;
+      const blink = preview
+        ? evaluatePreviewBlinkWeight(
+            preview.timelinePose?.evaluationTimeSeconds ?? elapsed,
+            phase,
+          )
+        : 0;
       applyFacialExpressionPose(
         group.current as unknown as FacialNode,
         modelKey,

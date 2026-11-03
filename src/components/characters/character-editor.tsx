@@ -686,6 +686,9 @@ export function CharacterProperties({
   onModeChange,
   onEdit,
   onReset,
+  onVisibility,
+  onAssignPlacement,
+  anchors,
   onAppearanceChange,
   onResetAppearance,
   onSavePreset,
@@ -709,6 +712,9 @@ export function CharacterProperties({
   onModeChange: (mode: "translate" | "rotate" | "scale") => void;
   onEdit: (instanceId: string, state: CharacterState) => void;
   onReset: (instanceId: string) => void;
+  onVisibility: (instanceId: string, visible: boolean) => void;
+  onAssignPlacement: (instanceId: string, anchorId: string | null) => void;
+  anchors: readonly CharacterAnchor[];
   onAppearanceChange: (
     characterId: string,
     appearance: Record<string, string>,
@@ -745,6 +751,11 @@ export function CharacterProperties({
     ? characterModelRegistry.get(identity.modelId)
     : undefined;
   const state = selectedId ? data.characterStates[selectedId] : undefined;
+  const availableAnchors = anchors.filter((anchor) => {
+    const kind = anchor.kind ?? "seat";
+    return model?.placementKinds.includes(kind) &&
+      (anchor.surfaceOffsetY !== undefined || (kind === "seat" && anchor.seatSurfaceOffsetY !== undefined));
+  });
   const previewCapabilities =
     model && !model.glb
       ? model.capabilities.animationCapabilities.filter(
@@ -804,16 +815,23 @@ export function CharacterProperties({
       ) : (
         <div className="p-4">
           <h2 className="text-sm font-bold">{identity.name}</h2>
-          <p className="mt-1 break-all text-[10px] text-muted" dir="ltr">
-            {selectedId}
-          </p>
-          <p className="mt-2 rounded-md border border-[#806c3f] bg-[#39331e] p-2 text-xs leading-5">
-            مدل‌ها ریزتری و بدون ریگ هستند؛ قابلیت‌های رقص یا حرکت صورت فعال
-            نیست.
-          </p>
-          <details open className="mt-4 border-t border-line pt-3">
+          <div className="mt-3 grid gap-3 rounded-lg border border-line bg-[#111b26] p-3">
+            <label className="flex items-center gap-2 text-xs" title="نمایش این نمونه را فقط در سکانس انتخاب‌شده تغییر می‌دهد؛ هویت شخصیت باقی می‌ماند.">
+              <input type="checkbox" checked={state.visible} onChange={(event) => onVisibility(selectedId, event.target.checked)} aria-label={`نمایش ${identity.name}`} />نمایش در صحنه
+            </label>
+            <label className="text-xs font-semibold">جایگاه در صحنه
+              <select className="mt-1 min-h-9 w-full rounded-md border border-line bg-[#101722] px-2 text-xs" value={availableAnchors.some((anchor) => anchor.id === state.placementAnchorId) ? state.placementAnchorId! : "free"}
+                title="جایگاه آمادهٔ شخصیت را در همین سکانس انتخاب می‌کند؛ حالت آزاد از موقعیت فعلی استفاده می‌کند."
+                onChange={(event) => onAssignPlacement(selectedId, event.target.value === "free" ? null : event.target.value)}>
+                <option value="free">جای‌گذاری آزاد</option>
+                {availableAnchors.map((anchor) => <option key={anchor.id} value={anchor.id}
+                  disabled={Object.entries(data.characterStates).some(([id, other]) => id !== selectedId && other.placementAnchorId === anchor.id)}>{anchor.displayName ?? anchor.id}</option>)}
+              </select>
+            </label>
+          </div>
+          <details className="mt-4 border-t border-line pt-3">
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">
-              جایگاه و تبدیل
+              موقعیت دقیق · X Y Z
             </summary>
             <div className="mt-3 flex flex-wrap gap-1">
               {modes.map((item) => (
@@ -1318,7 +1336,7 @@ export function CharacterProperties({
             </details>
           )}
           {model && (
-            <details open className="mt-4 border-t border-line pt-3">
+            <details className="mt-4 border-t border-line pt-3">
               <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent">
                 ظاهر شخصیت
               </summary>

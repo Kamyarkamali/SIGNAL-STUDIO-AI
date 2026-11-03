@@ -21,8 +21,10 @@ function makeWavBuffer(durationSeconds: number) {
 test("workspace renders at target sizes without page-level horizontal overflow or runtime errors", async ({ page }, testInfo) => {
   const pageErrors: string[] = [];
   const failedRequests: string[] = [];
+  const consoleErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("requestfailed", (request) => failedRequests.push(`${request.url()} (${request.failure()?.errorText ?? "failed"})`));
+  page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(`${message.text()} [${message.location().url}]`); });
 
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
@@ -64,6 +66,122 @@ test("workspace renders at target sizes without page-level horizontal overflow o
 
   expect(pageErrors).toEqual([]);
   expect(failedRequests).toEqual([]);
+  expect(consoleErrors).toEqual([]);
+});
+
+test("scene, character, camera, audio, and settings keep selection and viewport across workspaces", async ({ page, request }, testInfo) => {
+  const pageErrors: string[] = [];
+  const consoleErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(`${message.text()} [${message.location().url}]`); });
+  const title = `Workspace E2E ${Date.now()}`;
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await page.locator('.workspace-navigation [data-section="projects"]').click();
+    await page.getByRole("button", { name: /پروژهٔ جدید|پروژه جدید/ }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("نام پروژه").fill(title);
+    await dialog.getByRole("button", { name: "ساخت پروژه" }).click();
+
+    await page.locator('.workspace-navigation [data-section="scenes"]').click();
+    await page.getByRole("button", { name: /\+ صحنه/ }).click();
+    await page.locator("[data-scene-drop-target]").first().click();
+    await expect(page.locator("#workspace-properties-pane")).toBeVisible();
+    await expect(page.getByLabel("نام سکانس", { exact: true })).toBeVisible();
+    await expect(page.getByText("تنظیمات پیشرفتهٔ محیط و شخصیت‌ها")).toBeVisible();
+    await expect(page.getByText("دوربین تولید", { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel("مدت سکانس · ثانیه")).toBeVisible();
+    await page.getByLabel("نام سکانس", { exact: true }).fill("مقدمه");
+    await page.getByLabel("نام سکانس", { exact: true }).press("Enter");
+    await expect(page.getByLabel("نام سکانس", { exact: true })).toHaveValue("مقدمه");
+    await page.getByLabel("مدت سکانس · ثانیه").fill("12");
+    await page.getByLabel("مدت سکانس · ثانیه").press("Enter");
+    await expect(page.getByLabel("مدت سکانس · ثانیه")).toHaveValue("12");
+    await page.screenshot({ path: testInfo.outputPath("scene-inspector-1440x900.png"), fullPage: true });
+    const canvas = page.locator(".studio-viewport-card canvas");
+    await expect(canvas).toBeVisible();
+    await canvas.evaluate((node) => node.setAttribute("data-viewport-survived", "yes"));
+
+    await page.locator('.workspace-navigation [data-section="camera"]').click();
+    await expect(page.locator("#workspace-properties-pane")).toBeVisible();
+    await expect(page.getByText("تنظیمات پیشرفتهٔ دوربین")).toBeVisible();
+    await expect(page.getByRole("button", { name: "پیش‌نمایش تولید" })).toBeVisible();
+    await expect(canvas).toHaveAttribute("data-viewport-survived", "yes");
+
+    await page.locator('.workspace-navigation [data-section="characters"]').click();
+    await page.getByLabel("نام شخصیت", { exact: true }).fill("آزمایشگر");
+    await page.getByRole("button", { name: "ساخت هویت" }).click();
+    await page.getByRole("button", { name: "افزودن به صحنه" }).click();
+    await page.getByRole("button", { name: /آزمایشگر.*نمونهٔ مستقل/ }).click();
+    await expect(page.locator("#workspace-properties-pane")).toBeVisible();
+    await expect(page.getByLabel("نمایش آزمایشگر")).toBeVisible();
+    await expect(canvas).toHaveAttribute("data-viewport-survived", "yes");
+    await page.screenshot({ path: testInfo.outputPath("character-inspector-1440x900.png"), fullPage: true });
+
+    await page.locator('.workspace-navigation [data-section="audio"]').click();
+    await expect(page.getByText("فایل‌ها و گویندگان")).toBeVisible();
+    await expect(page.getByText("افزودن صدا")).toBeVisible();
+    await page.locator('input[type="file"][aria-label^="افزودن و اتصال فایل صوتی به سکانس"]').setInputFiles({
+      name: "first-scene.wav", mimeType: "audio/wav", buffer: makeWavBuffer(2),
+    });
+    await expect(page.getByRole("button", { name: "حذف کلیپ" })).toHaveCount(1);
+    const quickSpeaker = page.getByRole("combobox", { name: "گویندهٔ کلیپ انتخاب‌شده" });
+    await expect(quickSpeaker).toBeVisible();
+    await quickSpeaker.selectOption({ label: "آزمایشگر" });
+    await expect(page.locator(".unified-timeline-tracks [data-audio-lane]")).toContainText("آزمایشگر");
+    await page.locator("[data-scene-drop-target]").first().click();
+    await expect(page.getByText("فایل‌ها و گویندگان")).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("audio-inspector-1440x900.png"), fullPage: true });
+    await page.locator('.workspace-navigation [data-section="settings"]').click();
+    await expect(page.getByRole("slider", { name: "عرض پنل ویرایش" })).toBeVisible();
+    await expect(canvas).toHaveAttribute("data-viewport-survived", "yes");
+
+    await page.getByRole("button", { name: "جمع‌کردن نوار پیمایش" }).click();
+    await expect(page.locator(".workspace-navigation")).toHaveClass(/workspace-navigation-collapsed/);
+    const collapsedScenes = page.locator('.workspace-navigation [data-section="scenes"]');
+    await page.keyboard.press("Tab");
+    await expect(collapsedScenes).toBeFocused();
+    await expect(collapsedScenes).toHaveCSS("outline-style", "solid");
+    await collapsedScenes.click();
+    await page.getByRole("tab", { name: /تنظیمات سکانس/ }).click();
+    await expect(page.getByLabel("نام سکانس", { exact: true })).toBeVisible();
+    await page.locator('.workspace-navigation [data-section="characters"]').click();
+    await page.getByRole("tab", { name: /ویژگی‌های شخصیت/ }).click();
+    await expect(page.getByLabel("نمایش آزمایشگر")).toBeVisible();
+    await page.getByRole("button", { name: "بازکردن نوار پیمایش" }).click();
+
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      if (viewport.width <= 1023) await page.locator("#workspace-mobile-section").selectOption("camera");
+      else await page.locator('.workspace-navigation [data-section="camera"]').click();
+      await expect(page.locator("#workspace-properties-pane")).toBeVisible();
+      await expect(page.getByText("تنظیمات پیشرفتهٔ دوربین")).toBeVisible();
+      const width = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+      expect(width.document).toBeLessThanOrEqual(width.viewport);
+      await page.screenshot({ path: testInfo.outputPath(`selection-${viewport.width}x${viewport.height}.png`), fullPage: true });
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.reload();
+    await page.locator('.workspace-navigation [data-section="projects"]').click();
+    await page.locator("li").filter({ hasText: title }).locator("[data-project-action=open]").click();
+    await page.locator('.workspace-navigation [data-section="scenes"]').click();
+    await page.locator("[data-scene-drop-target]").first().click();
+    await expect(page.getByLabel("نام سکانس", { exact: true })).toHaveValue("مقدمه");
+    await expect(page.getByLabel("مدت سکانس · ثانیه")).toHaveValue("12");
+    await page.locator('.workspace-navigation [data-section="audio"]').click();
+    await expect(page.locator("#audio-asset option")).toHaveCount(1);
+    await expect(page.locator(".unified-timeline-tracks [data-audio-lane]")).toContainText("آزمایشگر");
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors).toEqual([]);
+  } finally {
+    const listing = await request.get("/api/projects");
+    if (listing.ok()) {
+      const body = await listing.json() as { projects: { id: string; title: string; revision: number }[] };
+      const temporary = body.projects.find((project) => project.title === title);
+      if (temporary) await request.delete(`/api/projects/${temporary.id}`, { data: { expectedRevision: temporary.revision } });
+    }
+  }
 });
 
 test("audio editor survives empty library, scene changes, clip deletion, and final asset deletion", async ({ page, request }) => {
@@ -72,27 +190,27 @@ test("audio editor survives empty library, scene changes, clip deletion, and fin
   const title = `Audio crash E2E ${Date.now()}`;
   try {
     await page.goto("/");
-    await page.locator(".workspace-navigation .workspace-nav-link").nth(5).click();
+    await page.locator('.workspace-navigation [data-section="audio"]').click();
     await expect(page.getByText("برای مدیریت صدا، ابتدا یک پروژه باز کنید.")).toBeVisible();
     expect(pageErrors).toEqual([]);
 
-    await page.locator(".workspace-navigation .workspace-nav-link").first().click();
+    await page.locator('.workspace-navigation [data-section="projects"]').click();
     await page.getByRole("button", { name: /پروژهٔ جدید|پروژه جدید/ }).click();
     const createDialog = page.getByRole("dialog");
     await createDialog.getByLabel("نام پروژه").fill(title);
     await createDialog.getByRole("button", { name: "ساخت پروژه" }).click();
-    await page.locator(".workspace-navigation .workspace-nav-link").nth(5).click();
+    await page.locator('.workspace-navigation [data-section="audio"]').click();
     await expect(page.getByText(/هنوز فایلی وارد نشده است/)).toBeVisible();
     await expect(page.locator("#audio-asset")).toHaveCount(0);
     expect(pageErrors).toEqual([]);
 
-    await page.locator(".workspace-navigation .workspace-nav-link").nth(1).click();
+    await page.locator('.workspace-navigation [data-section="scenes"]').click();
     const addScene = page.getByRole("button", { name: /\+ صحنه/ });
     await addScene.click();
     await addScene.click();
     const sceneTargets = page.locator("[data-scene-drop-target]");
     await expect(sceneTargets).toHaveCount(2);
-    await page.locator(".workspace-navigation .workspace-nav-link").nth(5).click();
+    await page.locator('.workspace-navigation [data-section="audio"]').click();
     await page.locator('input[type="file"][aria-label^="افزودن و اتصال فایل صوتی به سکانس"]').setInputFiles({
       name: "crash-repro.wav", mimeType: "audio/wav", buffer: makeWavBuffer(2),
     });
@@ -101,10 +219,10 @@ test("audio editor survives empty library, scene changes, clip deletion, and fin
     expect(pageErrors).toEqual([]);
 
     await sceneTargets.first().click();
-    await page.locator(".workspace-navigation .workspace-nav-link").nth(5).click();
+    await page.locator('.workspace-navigation [data-section="audio"]').click();
     await expect(page.locator("#audio-asset")).toBeVisible();
     await sceneTargets.nth(1).click();
-    await page.locator(".workspace-navigation .workspace-nav-link").nth(5).click();
+    await page.locator('.workspace-navigation [data-section="audio"]').click();
     await expect(page.locator("#audio-asset")).toBeVisible();
     expect(pageErrors).toEqual([]);
 
@@ -116,9 +234,9 @@ test("audio editor survives empty library, scene changes, clip deletion, and fin
     expect(pageErrors).toEqual([]);
 
     await page.reload();
-    await page.locator(".workspace-navigation .workspace-nav-link").first().click();
+    await page.locator('.workspace-navigation [data-section="projects"]').click();
     await page.locator("li").filter({ hasText: title }).locator("[data-project-action=open]").click();
-    await page.locator(".workspace-navigation .workspace-nav-link").nth(5).click();
+    await page.locator('.workspace-navigation [data-section="audio"]').click();
     await expect(page.getByText(/هنوز فایلی وارد نشده است/)).toBeVisible();
     expect(pageErrors).toEqual([]);
   } finally {
@@ -148,7 +266,7 @@ test("project creation and navigation are usable in the browser", async ({ page 
     } });
   });
   await page.goto("/");
-  await page.locator(".workspace-navigation .workspace-nav-link").first().click();
+  await page.locator('.workspace-navigation [data-section="projects"]').click();
   const title = `E2E ${Date.now()}`;
   await page.getByRole("button", { name: /پروژهٔ جدید|پروژه جدید/ }).click();
   const dialog = page.getByRole("dialog");
@@ -156,7 +274,7 @@ test("project creation and navigation are usable in the browser", async ({ page 
   await dialog.getByLabel("نام پروژه").fill(title);
   await dialog.getByRole("button", { name: "ساخت پروژه" }).click();
   await expect(dialog).toBeHidden();
-  await page.locator(".workspace-navigation .workspace-nav-link").nth(1).click();
+  await page.locator('.workspace-navigation [data-section="scenes"]').click();
   const addScene = page.getByRole("button", { name: /\+ صحنه/ });
   await addScene.click();
   await addScene.click();
@@ -244,13 +362,13 @@ test("project creation and navigation are usable in the browser", async ({ page 
   await expect(splitClips).toHaveCount(1);
   await page.waitForTimeout(1_100);
   await page.reload();
-  await page.locator(".workspace-navigation .workspace-nav-link").first().click();
+  await page.locator('.workspace-navigation [data-section="projects"]').click();
   const openRow = page.locator("li").filter({ hasText: title });
   await openRow.locator("[data-project-action=open]").click();
-  await page.locator(".workspace-navigation .workspace-nav-link").nth(1).click();
+  await page.locator('.workspace-navigation [data-section="scenes"]').click();
   await expect(splitClips).toHaveCount(1);
 
-  await page.locator(".workspace-navigation .workspace-nav-link").nth(5).click();
+  await page.locator('.workspace-navigation [data-section="audio"]').click();
   const libraryUpload = page.locator('input[type="file"][aria-label="افزودن فایل صوتی WAV یا MP3 به کتابخانهٔ پروژه"]');
   await libraryUpload.setInputFiles({ name: "scene-one.wav", mimeType: "audio/wav", buffer: makeWavBuffer(2) });
   await page.locator("details summary").filter({ hasText: "کتابخانهٔ صدا" }).click();
@@ -261,9 +379,9 @@ test("project creation and navigation are usable in the browser", async ({ page 
   await expect(page.locator('.unified-timeline-tracks [data-audio-lane] > button[aria-pressed][title*="scene-one.wav"]')).toHaveCount(1);
   await page.waitForTimeout(1_100);
   await page.reload();
-  await page.locator(".workspace-navigation .workspace-nav-link").first().click();
+  await page.locator('.workspace-navigation [data-section="projects"]').click();
   await page.locator("li").filter({ hasText: title }).locator("[data-project-action=open]").click();
-  await page.locator(".workspace-navigation .workspace-nav-link").nth(1).click();
+  await page.locator('.workspace-navigation [data-section="scenes"]').click();
   await expect(page.locator('.unified-timeline-tracks [data-audio-lane] > button[aria-pressed][title*="scene-one.wav"], .unified-timeline-tracks [data-audio-lane] > button[aria-pressed][title*="scene-two.wav"]')).toHaveCount(2);
   await expect(page.locator('.unified-timeline-tracks [data-audio-lane] > button[aria-pressed][title*="scene-two.wav"]')).toHaveCount(1);
   await expect(page.locator('.unified-timeline-tracks [data-audio-lane] > button[aria-pressed][title*="scene-one.wav"]')).toHaveCount(1);
@@ -272,13 +390,13 @@ test("project creation and navigation are usable in the browser", async ({ page 
   await expect(page.locator('.unified-timeline-tracks [data-audio-lane] > button[aria-pressed][title*="scene-one.wav"]')).toHaveCount(0);
   await page.waitForTimeout(1_100);
   await page.reload();
-  await page.locator(".workspace-navigation .workspace-nav-link").first().click();
+  await page.locator('.workspace-navigation [data-section="projects"]').click();
   await page.locator("li").filter({ hasText: title }).locator("[data-project-action=open]").click();
-  await page.locator(".workspace-navigation .workspace-nav-link").nth(1).click();
+  await page.locator('.workspace-navigation [data-section="scenes"]').click();
   await expect(page.locator('.unified-timeline-tracks [data-audio-lane] > button[aria-pressed][title*="scene-two.wav"]')).toHaveCount(1);
   await expect(page.locator('.unified-timeline-tracks [data-audio-lane] > button[aria-pressed][title*="scene-one.wav"]')).toHaveCount(0);
 
-  await page.locator(".workspace-navigation .workspace-nav-link").first().click();
+  await page.locator('.workspace-navigation [data-section="projects"]').click();
   const projectRow = page.locator("li").filter({ hasText: title });
   await projectRow.locator("[data-project-action=delete]").click();
   const deleteDialog = page.getByRole("dialog");

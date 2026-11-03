@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-label="Signal Studio AI">
+  <rect width="64" height="64" rx="14" fill="#101a2a"/>
+  <path d="M10 35h8l5-13 9 25 8-30 5 18h9" fill="none" stroke="#35d3c7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

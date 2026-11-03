@@ -9,13 +9,15 @@ test("Scenes navigation is connected to the project's shared scene state and sup
   assert.match(shell, /sceneOrder=\{projects\.sceneOrder\}\s+scenes=\{projects\.scenes\}/);
   assert.match(shell, /onCreate=\{addScene\}[\s\S]*?onDuplicate=\{cloneScene\}\s+onDelete=\{removeScene\}\s+onReorder=\{moveScene\}/);
   assert.match(shell, /onSelect=\{selectScene\}/);
-  assert.match(shell, /setActiveSection\("scenes"\);\s*dispatchPanel\(\{ type: "selection" \}\)/);
+  assert.match(shell, /\["projects", "help", "settings"\]\.includes\(activeSection\)\) setActiveSection\("scenes"\)/);
+  assert.match(shell, /dispatchPanel\(\{ type: \["audio", "environments"\]\.includes\(activeSection\) \? "section" : "selection" \}\)/);
   assert.match(shell, /activeSceneId=\{activeSceneId\}/);
   assert.match(shell, /<SceneAuthoring[\s\S]*?onSeek=\{seekTimeline\}/);
   assert.match(panel, /ContextHelpTrigger topic="scenes"/);
   assert.match(panel, /props\.onSelect\(id\)/);
   assert.match(panel, /props\.onReorder\(moving, index\)/);
-  assert.match(panel, /props\.onRename\(id, value\)/);
+  assert.match(shell, /<SceneConfigurationPanel[\s\S]*?onRename=\{\(id, name\) =>/);
+  assert.match(panel, /کارهای بیشتر/);
   assert.match(panel, /props\.onDuplicate\(id\)/);
   assert.match(panel, /props\.onDelete\(id\)/);
   assert.match(panel, /title="[^"]+"/);

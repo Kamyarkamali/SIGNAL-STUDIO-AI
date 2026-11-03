@@ -12,7 +12,7 @@ import { sceneActionLabels } from "@/lib/scenes/scene-action-labels";
 import { sceneActionTypes, type SceneActionEvent, type SceneDefinition } from "@/lib/scenes/scene-schema";
 import { EventTimeRangeInput } from "./event-timing-input";
 
-const actionOptions = sceneActionTypes.filter((action) => action !== "gaze-character" && action !== "gaze-prop");
+const actionOptions = sceneActionTypes.filter((action) => !action.startsWith("gaze-"));
 const field = "min-h-9 rounded-md border border-line bg-[#101722] px-2 text-xs text-foreground";
 const btn = "min-h-8 rounded-md border border-line bg-[#1b2736] px-2 text-xs hover:bg-[#28394b] focus-visible:outline-2 focus-visible:outline-accent";
 
@@ -38,9 +38,10 @@ export function SceneActionInspector({ scene, event, characters, arrangement, fp
   const capabilities = model && !model.glb ? model.capabilities.animationCapabilities.filter((item): item is "head-rotation" | "arm-gesture" | "facial-expression" => item === "head-rotation" || item === "arm-gesture" || item === "facial-expression") : [];
   const canGaze = Boolean(model && supportedGazeCapability(model));
   const allowedActions = [
-    ...actionOptions.filter((item) => item === "return-idle" || isPreviewActionSupported(item as CharacterPreviewActionId, capabilities)),
+    ...actionOptions.filter((item) => item === "return-idle" || isPreviewActionSupported(item as CharacterPreviewActionId, capabilities, model?.attachmentPoints ?? [])),
     ...(canGaze && Object.keys(scene.characters).some((id) => id !== event.characterInstanceId) ? ["gaze-character" as const] : []),
     ...(canGaze && arrangement?.props.some((prop) => prop.visible) ? ["gaze-prop" as const] : []),
+    ...(canGaze ? ["gaze-camera" as const] : []),
   ];
   const allTargetOptions = [
     ...Object.keys(scene.characters).filter((id) => id !== event.characterInstanceId && scene.characters[id]?.visible).map((id) => {
@@ -53,7 +54,7 @@ export function SceneActionInspector({ scene, event, characters, arrangement, fp
   const targetOptions = allTargetOptions.filter((item) => item.kind === event.targetKind);
   const needsTarget = event.action === "gaze-character" || event.action === "gaze-prop";
   const setAction = (action: SceneActionEvent["action"]) => {
-    const targetKind = action === "gaze-character" ? "character" : action === "gaze-prop" ? "prop" : undefined;
+    const targetKind = action === "gaze-character" ? "character" : action === "gaze-prop" ? "prop" : action === "gaze-camera" ? "camera" : undefined;
     const target = targetKind ? allTargetOptions.find((item) => item.kind === targetKind) : undefined;
     onUpdate(event.id, { action, ...(targetKind && target ? { targetKind, targetId: target.id } : targetKind ? { targetKind, targetId: undefined } : { targetKind: undefined, targetId: undefined }) });
   };

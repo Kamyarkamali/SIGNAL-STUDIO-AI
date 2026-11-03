@@ -13,7 +13,8 @@ test("context help registry covers implemented and planned work areas with pract
     assert.ok(["available", "planned"].includes(content.status), `${topic} status`);
   }
   assert.equal(contextHelp.audio.status, "available");
-  for (const topic of ["dialogue", "behaviors", "camera", "export", "settings"]) assert.equal(contextHelp[topic].status, "planned");
+  for (const topic of ["dialogue", "behaviors", "export"]) assert.equal(contextHelp[topic].status, "planned");
+  for (const topic of ["camera", "settings"]) assert.equal(contextHelp[topic].status, "available");
   assert.match(contextHelp.scenes.limits, /خودکار/);
   assert.match(contextHelp.gaze.limits, /پذیرفته/);
   assert.match(contextHelp.audio.steps.join(" "), /WAV|MP3/);
@@ -39,7 +40,8 @@ test("context help uses accessible triggers and a native keyboard-dismissible dr
   assert.match(trigger, /aria-haspopup="dialog"/);
   assert.match(trigger, /showModal\(\)/);
   assert.match(trigger, /onClose=\{onClose\}/);
-  assert.match(navigation, /ContextHelpTrigger[\s\S]*?topic=\{item\.id === "animations" \? "timelineActions" : item\.id as ContextHelpId\}/);
+  assert.match(navigation, /ContextHelpTrigger topic="workspace" onOpen=\{onHelp\}/);
+  assert.match(shell, /<ContextHelpTrigger[\s\S]*?activeSection === "animations"[\s\S]*?"timelineActions"/);
   assert.match(shell, /<ContextHelpDrawer topic=\{helpTopic\}/);
   assert.match(shell, /onHelp=\{\(\) => setHelpTopic\("all"\)\}/);
   assert.match(trigger, /topic === "all"/);

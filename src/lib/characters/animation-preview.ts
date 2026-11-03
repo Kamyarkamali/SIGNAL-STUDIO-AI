@@ -3,7 +3,7 @@ import type { ChatGptExpression } from "./chatgpt-expression-presets";
 export const previewActionIds = [
   "neutral", "head-turn", "head-nod", "arm-gesture", "quick-nod", "thoughtful-nod",
   "head-shake", "hand-wave", "explain", "happy", "excited", "surprised", "sad",
-  "angry", "worried", "confused", "thinking", "listening", "agreeing", "disagreeing",
+  "angry", "worried", "confused", "thinking", "speaking", "listening", "agreeing", "disagreeing",
   "laughing", "celebrating", "return-idle",
 ] as const;
 
@@ -24,9 +24,9 @@ export type PreviewPose = {
   leftHandRotation: [number, number, number]; rightHandRotation: [number, number, number];
 };
 export type CharacterPreviewPlaybackPose = PreviewPose;
-const supportedFacialExpressions: readonly ChatGptExpression[] = ["neutral", "happy", "sad", "angry", "surprised", "worried", "confused", "thinking", "listening", "excited", "laughing"];
+const supportedFacialExpressions: readonly ChatGptExpression[] = ["neutral", "happy", "sad", "angry", "surprised", "worried", "confused", "thinking", "speaking", "listening", "excited", "laughing"];
 
-type ActionDefinition = { label: string; duration: number; channels: readonly CharacterAnimationCapability[]; expression?: ChatGptExpression; requiredJoints?: readonly string[]; preset?: "thinking" | "laughing" };
+type ActionDefinition = { label: string; duration: number; channels: readonly CharacterAnimationCapability[]; expression?: ChatGptExpression; requiredJoints?: readonly string[]; requiredCapabilities?: readonly CharacterAnimationCapability[]; preset?: "thinking" | "laughing" };
 const actionDefinitions: Record<CharacterPreviewActionId, ActionDefinition> = {
   neutral: { label: "حالت خنثی", duration: 1.2, channels: ["facial-expression"], expression: "neutral" },
   "head-turn": { label: "چرخش آرام سر", duration: 2.4, channels: ["head-rotation"] },
@@ -45,6 +45,7 @@ const actionDefinitions: Record<CharacterPreviewActionId, ActionDefinition> = {
   worried: { label: "نگران", duration: 2.5, channels: ["head-rotation", "facial-expression"], expression: "worried" },
   confused: { label: "گیج", duration: 2, channels: ["head-rotation", "facial-expression"], expression: "confused" },
   thinking: { label: "در حال فکر", duration: 2.6, channels: ["head-rotation", "arm-gesture", "facial-expression"], expression: "thinking", requiredJoints: ["right-arm-pivot", "right-elbow-pivot", "right-wrist-pivot", "right-hand-pivot"], preset: "thinking" },
+  speaking: { label: "در حال صحبت", duration: 2.4, channels: ["head-rotation", "facial-expression"], expression: "speaking", requiredCapabilities: ["facial-expression"] },
   listening: { label: "در حال گوش‌دادن", duration: 2.4, channels: ["head-rotation", "facial-expression"], expression: "listening" },
   agreeing: { label: "موافقت", duration: 1.45, channels: ["head-rotation"] },
   disagreeing: { label: "مخالفت", duration: 1.45, channels: ["head-rotation"] },
@@ -72,6 +73,8 @@ export function isPreviewActionSupported(actionId: CharacterPreviewActionId, cap
   if (actionId === "return-idle") return true;
   const required = actionDefinitions[actionId].requiredJoints;
   if (required && required.some((joint) => !attachmentPoints.includes(joint))) return false;
+  const requiredCapabilities = actionDefinitions[actionId].requiredCapabilities;
+  if (requiredCapabilities && requiredCapabilities.some((capability) => !capabilities.includes(capability))) return false;
   return actionDefinitions[actionId].channels.some((channel) => capabilities.includes(channel));
 }
 export function getPreviewActionAvailability(capabilities: readonly CharacterAnimationCapability[], attachmentPoints: readonly string[] = []) {
@@ -87,7 +90,8 @@ export function evaluateFacialExpressionWeight(actionId: CharacterPreviewActionI
   if (!actionDefinitions[actionId].expression || !Number.isFinite(sourceTimeSeconds) || !Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0;
   const progress = Math.max(0, Math.min(1, sourceTimeSeconds / durationSeconds));
   const edgeSeconds = actionId === "surprised" ? 0.11 : actionId === "excited" || actionId === "celebrating" ? 0.18 : normalized.transitionSeconds;
-  return pulse(progress, Math.min(0.48, edgeSeconds / durationSeconds), normalized.easing) * Math.min(1, normalized.intensity);
+  const envelope = pulse(progress, Math.min(0.48, edgeSeconds / durationSeconds), normalized.easing) * Math.min(1, normalized.intensity);
+  return actionId === "speaking" ? envelope * (0.55 + 0.45 * Math.sin(sourceTimeSeconds * 13) ** 2) : envelope;
 }
 const zeroPose = (): PreviewPose => Object.fromEntries(["headRotation", "neckRotation", "torsoRotation", "leftArmRotation", "rightArmRotation", "leftElbowRotation", "rightElbowRotation", "leftWristRotation", "rightWristRotation", "leftHandRotation", "rightHandRotation"].map((key) => [key, [0, 0, 0]])) as PreviewPose;
 const emotionMotionPresets = {
@@ -155,6 +159,7 @@ export function evaluateCharacterPreviewPose(input: {
   if (capabilities.includes("head-rotation")) {
     if (actionId === "head-turn") pose.headRotation[1] = 0.3 * envelope * Math.sin(Math.PI * t);
     else if (actionId === "head-nod" || actionId === "thoughtful-nod" || actionId === "listening") pose.headRotation[0] = 0.12 * envelope * Math.sin(2 * Math.PI * t);
+    else if (actionId === "speaking") pose.headRotation[0] = 0.045 * envelope * Math.sin(4 * Math.PI * t);
     else if (actionId === "quick-nod" || actionId === "agreeing" || actionId === "happy") pose.headRotation[0] = 0.17 * envelope * Math.sin(4 * Math.PI * t);
     else if (actionId === "head-shake" || actionId === "disagreeing" || actionId === "angry") pose.headRotation[1] = 0.15 * envelope * Math.sin(4 * Math.PI * t);
     else if (actionId === "confused") pose.headRotation[2] = 0.15 * envelope;

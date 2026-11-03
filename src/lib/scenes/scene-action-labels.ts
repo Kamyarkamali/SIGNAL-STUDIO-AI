@@ -16,6 +16,7 @@ export const sceneActionLabels: Record<SceneActionEvent["action"], string> = {
   worried: "نگرانی",
   confused: "سردرگمی",
   thinking: "فکر کردن",
+  speaking: "صحبت کردن",
   listening: "گوش دادن",
   agreeing: "موافقت",
   disagreeing: "مخالفت",
@@ -24,11 +25,12 @@ export const sceneActionLabels: Record<SceneActionEvent["action"], string> = {
   "return-idle": "بازگشت به حالت خنثی",
   "gaze-character": "نگاه به شخصیت",
   "gaze-prop": "نگاه به وسیله",
+  "gaze-camera": "نگاه به دوربین",
 };
 
 export function sceneActionCategory(action: SceneActionEvent["action"]): "head" | "gesture" | "expression" | "gaze" {
   if (action.startsWith("gaze-")) return "gaze";
   if (["arm-gesture", "hand-wave", "explain", "celebrating"].includes(action)) return "gesture";
-  if (["happy", "excited", "surprised", "sad", "angry", "worried", "confused", "thinking", "listening", "laughing"].includes(action)) return "expression";
+  if (["happy", "excited", "surprised", "sad", "angry", "worried", "confused", "thinking", "speaking", "listening", "laughing"].includes(action)) return "expression";
   return "head";
 }
