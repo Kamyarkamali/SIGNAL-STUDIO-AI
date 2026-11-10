@@ -31,3 +31,5 @@ test-results/
 *.mov
 *.wav
 *.mp3
+
+/context/
